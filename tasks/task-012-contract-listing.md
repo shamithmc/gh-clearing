@@ -8,6 +8,11 @@ paths:
   - "backend/src/main/java/com/airline/api/ContractController.java"
   - "backend/src/test/java/com/airline/api/ContractControllerTest.java"
   - "frontend/src/pages/ContractsList.tsx"
+  - "backend/src/main/resources/db/migration/V1__init_schema.sql"
+  - "backend/src/main/resources/db/migration/V2__seed_reference_data.sql"
+  - "backend/src/main/resources/db/migration/V3__supplier_configuration.sql"
+  - "backend/src/main/resources/db/migration/V4__contracts_and_services.sql"
+  - "backend/src/main/resources/db/migration/V5__add_tax_code.sql"
 proof: COMPILER
 invariants:
   - INV-01
