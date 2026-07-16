@@ -61,6 +61,36 @@ public class ContractService {
         return mapToResponse(contract);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<ContractResponse> getContracts(ContractStatus status) {
+        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantType = tenantContext.getCurrentTenantType();
+
+        java.util.List<Contract> contracts;
+
+        if ("GROUND_HANDLER".equals(tenantType)) {
+            if (status != null) {
+                contracts = contractRepository.findByGroundHandlerIdAndStatus(tenantId, status);
+            } else {
+                contracts = contractRepository.findByGroundHandlerId(tenantId);
+            }
+        } else if ("AIRLINE".equals(tenantType)) {
+            // Invisible to counterparty if DRAFT
+            if (status != null) {
+                if (status == ContractStatus.DRAFT) {
+                    return java.util.List.of();
+                }
+                contracts = contractRepository.findByAirlineIdAndStatusAndStatusNot(tenantId, status, ContractStatus.DRAFT);
+            } else {
+                contracts = contractRepository.findByAirlineIdAndStatusNot(tenantId, ContractStatus.DRAFT);
+            }
+        } else {
+            throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");
+        }
+
+        return contracts.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
     private ContractResponse mapToResponse(Contract contract) {
         return ContractResponse.builder()
                 .id(contract.getId())

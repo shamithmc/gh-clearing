@@ -2,7 +2,7 @@
 -- Reference data: IATA Charge Codes, Airline Master, Airport Master
 
 -- 1. Charge Codes Table (25 IATA codes as defined in architecture-contract.md §3.3.3)
-CREATE TABLE charge_codes (
+CREATE TABLE IF NOT EXISTS charge_codes (
     code         VARCHAR(50)  PRIMARY KEY,
     display_name VARCHAR(100) NOT NULL,
     description  VARCHAR(255) NOT NULL
@@ -33,10 +33,11 @@ INSERT INTO charge_codes (code, display_name, description) VALUES
 ('RENT_EQUIPMENT',        'Equipment Rental',           'Rental of ground support equipment and facilities'),
 ('STAND',                 'Stand / Parking',            'Aircraft stand, gate, or parking charges'),
 ('STPC',                  'STPC',                       'Stopover Passenger Care services'),
-('UTILITIES',             'Utilities',                  'Electricity, water, and other utility services provided to aircraft');
+('UTILITIES',             'Utilities',                  'Electricity, water, and other utility services provided to aircraft')
+ON CONFLICT (code) DO NOTHING;
 
 -- 2. Airlines Table (starter set of major international airlines)
-CREATE TABLE airlines (
+CREATE TABLE IF NOT EXISTS airlines (
     iata_code VARCHAR(2)  PRIMARY KEY,
     name      VARCHAR(100) NOT NULL,
     country   VARCHAR(100) NOT NULL
@@ -67,10 +68,11 @@ INSERT INTO airlines (iata_code, name, country) VALUES
 ('LX', 'Swiss International Air Lines', 'Switzerland'),
 ('SV', 'Saudi Arabian Airlines', 'Saudi Arabia'),
 ('AI', 'Air India',              'India'),
-('6E', 'IndiGo',                 'India');
+('6E', 'IndiGo',                 'India')
+ON CONFLICT (iata_code) DO NOTHING;
 
 -- 3. Airports Table (starter set of major international airports)
-CREATE TABLE airports (
+CREATE TABLE IF NOT EXISTS airports (
     iata_code VARCHAR(3)  PRIMARY KEY,
     name      VARCHAR(150) NOT NULL,
     city      VARCHAR(100) NOT NULL,
@@ -108,4 +110,6 @@ INSERT INTO airports (iata_code, name, city, country, region) VALUES
 ('PEK', 'Beijing Capital International Airport',     'Beijing',      'China',                'ASIA_PACIFIC'),
 ('BKK', 'Suvarnabhumi Airport',                      'Bangkok',      'Thailand',             'ASIA_PACIFIC'),
 ('KUL', 'Kuala Lumpur International Airport',        'Kuala Lumpur', 'Malaysia',             'ASIA_PACIFIC'),
-('MAD', 'Adolfo Suárez Madrid-Barajas Airport',     'Madrid',       'Spain',                'EUROPE');
+('MAD', 'Adolfo Suárez Madrid-Barajas Airport',     'Madrid',       'Spain',                'EUROPE')
+ON CONFLICT (iata_code) DO NOTHING;
+

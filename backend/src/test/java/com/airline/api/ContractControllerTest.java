@@ -96,4 +96,27 @@ public class ContractControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void shouldListContractsSuccessfully() throws Exception {
+        ContractResponse response = ContractResponse.builder()
+                .id("test-contract-id")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusYears(1))
+                .status(ContractStatus.APPROVED)
+                .currency("USD")
+                .services(List.of())
+                .build();
+
+        when(contractService.getContracts(any())).thenReturn(List.of(response));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/contracts")
+                        .with(jwt().jwt(builder -> builder.claim("tenant_id", "SWISSPORT").claim("tenant_type", "GROUND_HANDLER").claim("roles", List.of("CONTRACT_MANAGER")))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("test-contract-id"))
+                .andExpect(jsonPath("$[0].status").value("APPROVED"));
+    }
 }

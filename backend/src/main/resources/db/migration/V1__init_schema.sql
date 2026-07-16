@@ -2,7 +2,7 @@
 -- Baseline schema initialization for Airline Ground Handling Cost Management Platform
 
 -- 1. Tenants Table (Multi-tenant organizations partition)
-CREATE TABLE tenants (
+CREATE TABLE IF NOT EXISTS tenants (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(20) NOT NULL, -- GROUND_HANDLER, AIRLINE, PLATFORM_ADMIN
@@ -11,7 +11,7 @@ CREATE TABLE tenants (
 );
 
 -- 2. Users Table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     username VARCHAR(50) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE users (
 );
 
 -- 3. Contracts Table
-CREATE TABLE contracts (
+CREATE TABLE IF NOT EXISTS contracts (
     id VARCHAR(50) PRIMARY KEY,
     ground_handler_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     airline_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -34,7 +34,7 @@ CREATE TABLE contracts (
 );
 
 -- 4. Services (Contract-specific pricing configurations)
-CREATE TABLE services (
+CREATE TABLE IF NOT EXISTS services (
     id VARCHAR(50) PRIMARY KEY,
     contract_id VARCHAR(50) NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
     charge_code VARCHAR(50) NOT NULL, -- IATA standard charge codes
@@ -47,7 +47,7 @@ CREATE TABLE services (
 );
 
 -- 5. Operational Flights (Flight service delivery metrics)
-CREATE TABLE operational_flights (
+CREATE TABLE IF NOT EXISTS operational_flights (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     flight_number VARCHAR(10) NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE operational_flights (
 );
 
 -- 6. Invoices Table
-CREATE TABLE invoices (
+CREATE TABLE IF NOT EXISTS invoices (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     invoice_number VARCHAR(50) NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE invoices (
 );
 
 -- 7. Invoice Line Items Table
-CREATE TABLE invoice_lines (
+CREATE TABLE IF NOT EXISTS invoice_lines (
     id VARCHAR(50) PRIMARY KEY,
     invoice_id VARCHAR(50) NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
     flight_id VARCHAR(50) NOT NULL REFERENCES operational_flights(id) ON DELETE RESTRICT,
@@ -89,7 +89,7 @@ CREATE TABLE invoice_lines (
 );
 
 -- 8. Disputes Table (Level 3 billing objections)
-CREATE TABLE disputes (
+CREATE TABLE IF NOT EXISTS disputes (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     invoice_id VARCHAR(50) NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
@@ -100,11 +100,11 @@ CREATE TABLE disputes (
 );
 
 -- 9. Credit Notes Table
-CREATE TABLE credit_notes (
+CREATE TABLE IF NOT EXISTS credit_notes (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     dispute_id VARCHAR(50) NOT NULL REFERENCES disputes(id) ON DELETE CASCADE,
     amount DECIMAL(12,2) NOT NULL,
-    status VARCHAR(20) NOT NULL, -- DRAFT, APPROVED, SENT
+    status VARCHAR(20) NOT NULL, -- DRAFT, APPROVED, SENT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -22,4 +22,9 @@ public class ContractController {
     public ContractResponse createContract(@Valid @RequestBody ContractCreateRequest request) {
         return contractService.createContract(request);
     }
+
+    @GetMapping
+    public java.util.List<ContractResponse> listContracts(@RequestParam(required = false) com.airline.domain.ContractStatus status) {
+        return contractService.getContracts(status);
+    }
 }
