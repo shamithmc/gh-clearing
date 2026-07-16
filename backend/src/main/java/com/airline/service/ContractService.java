@@ -20,10 +20,13 @@ public class ContractService {
 
     private final ContractRepository contractRepository;
     private final TenantContext tenantContext;
+    private final com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
-    public ContractService(ContractRepository contractRepository, TenantContext tenantContext) {
+    public ContractService(ContractRepository contractRepository, TenantContext tenantContext,
+                           com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator) {
         this.contractRepository = contractRepository;
         this.tenantContext = tenantContext;
+        this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
     }
 
     @Transactional
@@ -31,6 +34,11 @@ public class ContractService {
         if (!"GROUND_HANDLER".equals(tenantContext.getCurrentTenantType())) {
             throw new org.springframework.security.access.AccessDeniedException("Only ground handlers can create contracts");
         }
+
+        java.util.Set<String> requestChargeCodes = request.getServices() != null ?
+                request.getServices().stream().map(ServiceConfigurationDTO::getChargeCode).collect(Collectors.toSet()) :
+                java.util.Set.of();
+        dimensionalSecurityEvaluator.verifyAccess(request.getAirportCode(), request.getAirlineId(), requestChargeCodes);
 
         Contract contract = Contract.builder()
                 .id(UUID.randomUUID().toString())
@@ -88,7 +96,12 @@ public class ContractService {
             throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");
         }
 
-        return contracts.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return contracts.stream()
+                .filter(c -> dimensionalSecurityEvaluator.isAirportPermitted(c.getAirportCode()))
+                .filter(c -> dimensionalSecurityEvaluator.isAirlinePermitted(c.getAirlineId()))
+                .filter(c -> c.getServices().stream().allMatch(s -> dimensionalSecurityEvaluator.isChargeCodePermitted(s.getChargeCode())))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -99,6 +112,11 @@ public class ContractService {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
         ContractStatus currentStatus = contract.getStatus();
+
+        java.util.Set<String> contractChargeCodes = contract.getServices() != null ?
+                contract.getServices().stream().map(com.airline.domain.ServiceConfiguration::getChargeCode).collect(Collectors.toSet()) :
+                java.util.Set.of();
+        dimensionalSecurityEvaluator.verifyAccess(contract.getAirportCode(), contract.getAirlineId(), contractChargeCodes);
 
         if (currentStatus == ContractStatus.APPROVED || currentStatus == ContractStatus.EXPIRED) {
             throw new IllegalStateException("Cannot change status of a contract that is " + currentStatus);

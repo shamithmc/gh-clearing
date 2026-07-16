@@ -12,6 +12,9 @@ public class UserResponse {
     private String username;
     private String email;
     private Set<String> roles;
+    private Set<String> airportRestrictions;
+    private Set<String> airlineRestrictions;
+    private Set<String> chargeCodeRestrictions;
     private OffsetDateTime createdAt;
 
     public static UserResponse from(User u) {
@@ -21,6 +24,9 @@ public class UserResponse {
         r.setUsername(u.getUsername());
         r.setEmail(u.getEmail());
         r.setRoles(u.getRoles());
+        r.setAirportRestrictions(u.getAirportRestrictions());
+        r.setAirlineRestrictions(u.getAirlineRestrictions());
+        r.setChargeCodeRestrictions(u.getChargeCodeRestrictions());
         r.setCreatedAt(u.getCreatedAt());
         return r;
     }

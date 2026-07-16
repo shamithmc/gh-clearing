@@ -21,4 +21,8 @@ public class UserRequest {
 
     @NotEmpty
     private Set<String> roles;
+
+    private Set<String> airportRestrictions;
+    private Set<String> airlineRestrictions;
+    private Set<String> chargeCodeRestrictions;
 }

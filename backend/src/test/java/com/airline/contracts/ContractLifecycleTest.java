@@ -32,6 +32,9 @@ public class ContractLifecycleTest {
     @Mock
     private TenantContext tenantContext;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private ContractService contractService;
 
