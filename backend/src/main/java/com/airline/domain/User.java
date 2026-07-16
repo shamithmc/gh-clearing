@@ -38,6 +38,21 @@ public class User {
     @Column(name = "roles", nullable = false, length = 255)
     private String rolesRaw;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_airport_restrictions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "airport_code")
+    private Set<String> airportRestrictions = Set.of();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_airline_restrictions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "airline_id")
+    private Set<String> airlineRestrictions = Set.of();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_charge_code_restrictions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "charge_code")
+    private Set<String> chargeCodeRestrictions = Set.of();
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

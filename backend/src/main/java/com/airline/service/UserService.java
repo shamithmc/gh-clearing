@@ -33,6 +33,9 @@ public class UserService {
                 .tenantId(tenantId)
                 .username(request.getUsername())
                 .email(request.getEmail())
+                .airportRestrictions(request.getAirportRestrictions() != null ? request.getAirportRestrictions() : java.util.Set.of())
+                .airlineRestrictions(request.getAirlineRestrictions() != null ? request.getAirlineRestrictions() : java.util.Set.of())
+                .chargeCodeRestrictions(request.getChargeCodeRestrictions() != null ? request.getChargeCodeRestrictions() : java.util.Set.of())
                 .build();
         user.setRoles(request.getRoles());
         return userRepository.save(user);
