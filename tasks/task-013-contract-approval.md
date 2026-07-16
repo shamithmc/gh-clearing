@@ -8,7 +8,9 @@ paths:
   - "backend/src/main/java/com/airline/service/ContractService.java"
   - "backend/src/main/java/com/airline/api/ContractController.java"
   - "backend/src/main/resources/db/migration/V2__seed_reference_data.sql"
+  - "backend/src/main/java/com/airline/api/dto/ContractStatusUpdateRequest.java"
   - "backend/src/test/java/com/airline/contracts/ContractLifecycleTest.java"
+  - "backend/src/test/java/com/airline/api/ContractControllerTest.java"
   - "frontend/src/pages/ContractsList.tsx"
   - "frontend/src/pages/ContractWizard.tsx"
 proof: UNIT

@@ -27,4 +27,11 @@ public class ContractController {
     public java.util.List<ContractResponse> listContracts(@RequestParam(required = false) com.airline.domain.ContractStatus status) {
         return contractService.getContracts(status);
     }
+
+    @PutMapping("/{id}/status")
+    public ContractResponse updateContractStatus(
+            @PathVariable String id,
+            @Valid @RequestBody com.airline.api.dto.ContractStatusUpdateRequest request) {
+        return contractService.updateContractStatus(id, request.getStatus());
+    }
 }

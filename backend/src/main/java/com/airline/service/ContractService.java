@@ -91,6 +91,54 @@ public class ContractService {
         return contracts.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @Transactional
+    public ContractResponse updateContractStatus(String id, ContractStatus targetStatus) {
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Contract not found"));
+
+        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantType = tenantContext.getCurrentTenantType();
+        ContractStatus currentStatus = contract.getStatus();
+
+        if (currentStatus == ContractStatus.APPROVED || currentStatus == ContractStatus.EXPIRED) {
+            throw new IllegalStateException("Cannot change status of a contract that is " + currentStatus);
+        }
+
+        if ("GROUND_HANDLER".equals(tenantType)) {
+            if (!contract.getGroundHandlerId().equals(tenantId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Contract does not belong to this tenant");
+            }
+            if (currentStatus == ContractStatus.DRAFT) {
+                if (targetStatus != ContractStatus.PENDING_APPROVAL) {
+                    throw new IllegalStateException("Draft contracts can only transition to PENDING_APPROVAL");
+                }
+            } else if (currentStatus == ContractStatus.REVIEW_REQUESTED) {
+                if (targetStatus != ContractStatus.PENDING_APPROVAL) {
+                    throw new IllegalStateException("Review requested contracts can only transition to PENDING_APPROVAL");
+                }
+            } else {
+                throw new org.springframework.security.access.AccessDeniedException("Ground handlers cannot perform status changes on contracts in " + currentStatus + " status");
+            }
+        } else if ("AIRLINE".equals(tenantType)) {
+            if (!contract.getAirlineId().equals(tenantId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Contract does not belong to this tenant");
+            }
+            if (currentStatus == ContractStatus.PENDING_APPROVAL) {
+                if (targetStatus != ContractStatus.APPROVED && targetStatus != ContractStatus.REVIEW_REQUESTED) {
+                    throw new IllegalStateException("Pending contracts can only transition to APPROVED or REVIEW_REQUESTED");
+                }
+            } else {
+                throw new org.springframework.security.access.AccessDeniedException("Airlines cannot perform status changes on contracts in " + currentStatus + " status");
+            }
+        } else {
+            throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");
+        }
+
+        contract.setStatus(targetStatus);
+        contractRepository.save(contract);
+        return mapToResponse(contract);
+    }
+
     private ContractResponse mapToResponse(Contract contract) {
         return ContractResponse.builder()
                 .id(contract.getId())

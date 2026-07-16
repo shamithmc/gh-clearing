@@ -38,11 +38,15 @@ const ContractWizard: React.FC = () => {
       }))
     };
 
+    const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
+    const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+
     fetch('/api/contracts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // In a real app, attach JWT here
+        'X-Mock-Tenant-Id': simTenantId,
+        'X-Mock-Tenant-Type': simTenantType,
       },
       body: JSON.stringify(payload)
     }).then(res => {

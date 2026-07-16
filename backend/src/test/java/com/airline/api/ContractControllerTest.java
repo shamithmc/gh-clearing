@@ -118,5 +118,33 @@ public class ContractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("test-contract-id"))
                 .andExpect(jsonPath("$[0].status").value("APPROVED"));
+     }
+
+    @Test
+    void shouldUpdateContractStatusSuccessfully() throws Exception {
+        com.airline.api.dto.ContractStatusUpdateRequest request = new com.airline.api.dto.ContractStatusUpdateRequest();
+        request.setStatus(ContractStatus.PENDING_APPROVAL);
+
+        ContractResponse response = ContractResponse.builder()
+                .id("test-contract-id")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusYears(1))
+                .status(ContractStatus.PENDING_APPROVAL)
+                .currency("USD")
+                .services(List.of())
+                .build();
+
+        when(contractService.updateContractStatus("test-contract-id", ContractStatus.PENDING_APPROVAL)).thenReturn(response);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/contracts/test-contract-id/status")
+                        .with(jwt().jwt(builder -> builder.claim("tenant_id", "SWISSPORT").claim("tenant_type", "GROUND_HANDLER").claim("roles", List.of("CONTRACT_MANAGER"))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("test-contract-id"))
+                .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
     }
 }
