@@ -1,9 +1,12 @@
 ---
 id: TASK-004
 title: "Create initial multi-tenant database tables and migrations"
-owner: unassigned
+owner: Shamith
 paths:
   - "src/main/resources/db/migration/V1__init_schema.sql"
+  - "src/test/java/com/airline/security/TenantIsolationTest.java"
+  - "src/test/java/com/airline/security/DimensionalAccessTest.java"
+  - "src/test/java/com/airline/vocabularies/VocabularyEnforcementTest.java"
 proof: INTEGRATION
 invariants:
   - INV-01
