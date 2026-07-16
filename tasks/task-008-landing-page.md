@@ -9,6 +9,8 @@ paths:
   - "frontend/src/main.tsx"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/Dashboard.tsx"
+  - "frontend/package-lock.json"
+  - "frontend/src/index.css"
 proof: COMPILER
 invariants:
   - INV-01
