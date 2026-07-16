@@ -12,9 +12,9 @@ def load_allowlist():
         return json.load(f)
 
 def validate_maven(allowlist):
-    pom_path = "pom.xml"
+    pom_path = "backend/pom.xml" if os.path.exists("backend/pom.xml") else "pom.xml"
     if not os.path.exists(pom_path):
-        print("No pom.xml found. Skipping Maven dependency checks.")
+        print(f"No pom.xml found at {pom_path}. Skipping Maven dependency checks.")
         return True
 
     print(f"Validating Maven dependencies in {pom_path}...")
@@ -65,9 +65,9 @@ def validate_maven(allowlist):
         return False
 
 def validate_npm(allowlist):
-    pkg_path = "package.json"
+    pkg_path = "frontend/package.json" if os.path.exists("frontend/package.json") else "package.json"
     if not os.path.exists(pkg_path):
-        print("No package.json found. Skipping npm dependency checks.")
+        print(f"No package.json found at {pkg_path}. Skipping npm dependency checks.")
         return True
 
     print(f"Validating npm dependencies in {pkg_path}...")

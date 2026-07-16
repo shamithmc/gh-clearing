@@ -11,11 +11,12 @@ PRD.md                                    @ground-handling/platform-admin
 PHASES.md                                 @ground-handling/platform-admin
 
 # DB and DevOps Admins own multi-tenant databases and topology definitions
-src/main/resources/db/migration/          @ground-handling/db-admins
+backend/src/main/resources/db/migration/  @ground-handling/db-admins
 topology.json                             @ground-handling/devops
 
 # Developers own the application source code and day-to-day task tracking
-src/                                      @ground-handling/developers
+backend/                                  @ground-handling/developers
+frontend/                                 @ground-handling/developers
 tasks/                                    @ground-handling/developers
 obligations.json                          @ground-handling/developers
 dependency-allowlist.json                 @ground-handling/developers

@@ -46,12 +46,13 @@ The development process is built strictly from the following five durable organi
 | Architecture Contract | [architecture-contract.md](file:///c:/Workspace/SK/GH-Project/architecture-contract.md) | Tech Lead | Amended |
 | Development Contract | [development-contract.md](file:///c:/Workspace/SK/GH-Project/development-contract.md) | Tech Lead | Amended |
 | Work Task Definitions | `tasks/task-*.md` | Developer | Deleted-at-close |
-| Source Code | `src/` | Codeowners Team | Permanent |
-| Database Schema Migrations | `src/main/resources/db/migration/` | DB Admin | Permanent (Append-only) |
-| Operational Flight Records | `src/test/resources/data/flights/` | QA Team | Permanent |
+| Backend Source Code | `backend/src/` | Codeowners Team | Permanent |
+| Frontend Source Code | `frontend/src/` | Codeowners Team | Permanent |
+| Database Schema Migrations | `backend/src/main/resources/db/migration/` | DB Admin | Permanent (Append-only) |
+| Operational Flight Records | `backend/src/test/resources/data/flights/` | QA Team | Permanent |
 | Architectural Invariants Manifest | `obligations.json` | Tech Lead | Overwritten-in-place |
 | PR Review Approval Records | `.github/reviews/` | CI Engine | Append |
-| Test Suites & Verification Proofs | `src/test/` | QA Team | Permanent |
+| Test Suites & Verification Proofs | `backend/src/test/` and `frontend/src/test/` | QA Team | Permanent |
 | Architecture Decision Log | `decisions/architecture-log.json` | Tech Lead | Append |
 | Process Decision Log | `decisions/process-log.json` | Tech Lead | Append |
 

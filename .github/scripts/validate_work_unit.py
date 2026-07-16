@@ -63,6 +63,12 @@ def main():
         print("Running on main branch, skipping work unit validation.")
         sys.exit(0)
 
+    # Fetch remote to ensure we have all commits and branches
+    try:
+        run_cmd(["git", "fetch", "origin"])
+    except Exception as e:
+        print(f"Warning: Failed to fetch origin: {e}")
+
     # 1. Find the task file in tasks/
     task_files = [f for f in os.listdir("tasks") if f.endswith(".md")] if os.path.exists("tasks") else []
     matched_files = [f for f in task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
@@ -71,16 +77,28 @@ def main():
     content = ""
     
     if not matched_files:
-        # Check if the task file was deleted on this branch but exists on origin/main
+        # Check if the task file was deleted on this branch (either created on main or created on this branch)
         try:
-            run_cmd(["git", "fetch", "origin", "main"])
-            main_tasks_str = run_cmd(["git", "ls-tree", "-r", "--name-only", "origin/main", "tasks"])
-            main_task_files = [os.path.basename(f) for f in main_tasks_str.splitlines() if f.endswith(".md")]
-            matched_files = [f for f in main_task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
-            if matched_files:
-                task_filename = matched_files[0]
-                print(f"Task file '{task_filename}' was deleted on this branch (closing task). Loading from origin/main.")
-                content = run_cmd(["git", "show", f"origin/main:tasks/{task_filename}"])
+            deleted_files = run_cmd(["git", "log", "--diff-filter=D", "--name-only", "--pretty=format:"]).splitlines()
+            deleted_tasks = [f.strip() for f in deleted_files if f.strip().startswith("tasks/") and f.strip().endswith(".md")]
+            try:
+                main_tasks_str = run_cmd(["git", "ls-tree", "-r", "--name-only", "origin/main", "tasks"])
+                deleted_tasks.extend([f.strip() for f in main_tasks_str.splitlines() if f.strip().endswith(".md")])
+            except Exception:
+                pass
+                
+            deleted_tasks = list(set(deleted_tasks))
+            matched_deleted = [f for f in deleted_tasks if current_branch in os.path.basename(f) or os.path.basename(f).replace("task-", "").replace(".md", "") in current_branch]
+            
+            if matched_deleted:
+                task_path = matched_deleted[0]
+                task_filename = os.path.basename(task_path)
+                print(f"Task file '{task_filename}' was deleted on this branch (closing task). Loading from git history.")
+                commit = run_cmd(["git", "log", f"origin/{current_branch}", "--full-history", "-1", "--format=%H", "--diff-filter=AM", "--", task_path]).strip()
+                if not commit:
+                    commit = "origin/main"
+                content = run_cmd(["git", "show", f"{commit}:{task_path}"])
+                matched_files = [task_filename]
                 deleted_task_file = True
         except Exception as e:
             print(f"Error checking deleted task file: {e}")
@@ -136,8 +154,6 @@ def main():
 
     # 2. Check path locks on other remote branches
     try:
-        # Fetch remote branches
-        run_cmd(["git", "fetch", "origin"])
         remote_branches = run_cmd(["git", "branch", "-r"]).splitlines()
         
         for ref in remote_branches:
