@@ -21,12 +21,15 @@ public class ContractService {
     private final ContractRepository contractRepository;
     private final TenantContext tenantContext;
     private final com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+    private final com.airline.repository.ContractAuditLogRepository contractAuditLogRepository;
 
     public ContractService(ContractRepository contractRepository, TenantContext tenantContext,
-                           com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator) {
+                           com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
+                           com.airline.repository.ContractAuditLogRepository contractAuditLogRepository) {
         this.contractRepository = contractRepository;
         this.tenantContext = tenantContext;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
+        this.contractAuditLogRepository = contractAuditLogRepository;
     }
 
     @Transactional
@@ -66,6 +69,18 @@ public class ContractService {
         }
 
         contractRepository.save(contract);
+
+        String currentUserId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ?
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
+        com.airline.domain.ContractAuditLog auditLog = com.airline.domain.ContractAuditLog.builder()
+                .id(UUID.randomUUID().toString())
+                .contractId(contract.getId())
+                .action("CREATED")
+                .userId(currentUserId)
+                .timestamp(java.time.OffsetDateTime.now())
+                .build();
+        contractAuditLogRepository.save(auditLog);
+
         return mapToResponse(contract);
     }
 
@@ -154,6 +169,27 @@ public class ContractService {
 
         contract.setStatus(targetStatus);
         contractRepository.save(contract);
+
+        String action = "UPDATED";
+        if (targetStatus == ContractStatus.PENDING_APPROVAL) {
+            action = "SUBMITTED";
+        } else if (targetStatus == ContractStatus.APPROVED) {
+            action = "APPROVED";
+        } else if (targetStatus == ContractStatus.REVIEW_REQUESTED) {
+            action = "REVIEW_REQUESTED";
+        }
+
+        String currentUserId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ?
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
+        com.airline.domain.ContractAuditLog auditLog = com.airline.domain.ContractAuditLog.builder()
+                .id(UUID.randomUUID().toString())
+                .contractId(contract.getId())
+                .action(action)
+                .userId(currentUserId)
+                .timestamp(java.time.OffsetDateTime.now())
+                .build();
+        contractAuditLogRepository.save(auditLog);
+
         return mapToResponse(contract);
     }
 
