@@ -63,6 +63,12 @@ def main():
         print("Running on main branch, skipping work unit validation.")
         sys.exit(0)
 
+    # Fetch remote to ensure we have all commits and branches
+    try:
+        run_cmd(["git", "fetch", "origin"])
+    except Exception as e:
+        print(f"Warning: Failed to fetch origin: {e}")
+
     # 1. Find the task file in tasks/
     task_files = [f for f in os.listdir("tasks") if f.endswith(".md")] if os.path.exists("tasks") else []
     matched_files = [f for f in task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
@@ -148,8 +154,6 @@ def main():
 
     # 2. Check path locks on other remote branches
     try:
-        # Fetch remote branches
-        run_cmd(["git", "fetch", "origin"])
         remote_branches = run_cmd(["git", "branch", "-r"]).splitlines()
         
         for ref in remote_branches:

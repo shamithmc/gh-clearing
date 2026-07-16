@@ -71,6 +71,12 @@ def main():
         print("Running on main branch, skipping obligations validation.")
         sys.exit(0)
 
+    # Fetch remote to ensure we have all commits and branches
+    try:
+        run_cmd(["git", "fetch", "origin"])
+    except Exception as e:
+        print(f"Warning: Failed to fetch origin: {e}")
+
     # 1. Load obligations.json
     obligations_path = "obligations.json"
     if not os.path.exists(obligations_path):
