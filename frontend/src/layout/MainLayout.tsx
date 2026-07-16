@@ -56,7 +56,7 @@ const MainLayout: React.FC = () => {
         <Menu 
           theme="light" 
           mode="inline" 
-          selectedKeys={[location.pathname]} 
+          selectedKeys={[location.pathname.startsWith('/invoices') ? '/invoices' : location.pathname.startsWith('/contracts') ? '/contracts' : location.pathname]} 
           items={menuItems}
           onClick={(e) => navigate(e.key)}
         />
