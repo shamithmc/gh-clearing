@@ -1,13 +1,16 @@
 ---
 id: TASK-003
 title: "Scaffold frontend React Vite application"
-owner: unassigned
+owner: Shamith
 paths:
-  - "package.json"
-  - "vite.config.ts"
+  - "frontend/package.json"
+  - "frontend/package-lock.json"
+  - "frontend/vite.config.ts"
+  - "frontend/tsconfig.json"
+  - "frontend/index.html"
+  - "frontend/src/main.tsx"
 proof: COMPILER
-invariants:
-  - INV-02
+invariants: []
 ---
 
 # TASK-003: Frontend Scaffolding
