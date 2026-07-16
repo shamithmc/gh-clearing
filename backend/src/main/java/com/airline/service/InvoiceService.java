@@ -28,17 +28,20 @@ public class InvoiceService {
     private final PricingEngine pricingEngine;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
+    private final com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
                           PricingEngine pricingEngine,
                           TenantContext tenantContext,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
+        this.invoiceAuditLogRepository = invoiceAuditLogRepository;
     }
 
     @Transactional
@@ -66,7 +69,9 @@ public class InvoiceService {
             });
         }
 
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+        audit(saved.getId(), "CREATED");
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -117,14 +122,18 @@ public class InvoiceService {
 
         calculateAndValidateInvoice(existing);
 
-        return invoiceRepository.save(existing);
+        Invoice saved = invoiceRepository.save(existing);
+        audit(saved.getId(), "UPDATED");
+        return saved;
     }
 
     @Transactional
     public Invoice updateInvoiceStatus(String id, InvoiceStatus targetStatus) {
         Invoice existing = getInvoice(id);
         existing.setStatus(targetStatus);
-        return invoiceRepository.save(existing);
+        Invoice saved = invoiceRepository.save(existing);
+        audit(saved.getId(), "STATUS_CHANGED");
+        return saved;
     }
 
     @Transactional
@@ -221,5 +230,18 @@ public class InvoiceService {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid JSON format for quantity drivers: " + quantityDriversStr, e);
         }
+    }
+
+    private void audit(String invoiceId, String action) {
+        String currentUserId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ?
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
+        com.airline.domain.InvoiceAuditLog auditLog = com.airline.domain.InvoiceAuditLog.builder()
+                .id(UUID.randomUUID().toString())
+                .invoiceId(invoiceId)
+                .action(action)
+                .userId(currentUserId)
+                .timestamp(java.time.OffsetDateTime.now())
+                .build();
+        invoiceAuditLogRepository.save(auditLog);
     }
 }
