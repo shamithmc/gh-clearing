@@ -18,6 +18,7 @@ paths:
   - "frontend/package.json"
   - "frontend/package-lock.json"
   - "dependency-allowlist.json"
+  - "backend/pom.xml"
 proof: COMPILER
 invariants:
   - INV-01
