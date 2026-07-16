@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
  * Verifies that once an invoice is dispatched (SENT, PAID, DISPUTED), its content becomes immutable.
  */
 @ExtendWith(MockitoExtension.class)
-public class InvoiceLifecycleTest {
+public class InvoiceImmutabilityTest {
 
     @Mock
     private InvoiceRepository invoiceRepository;

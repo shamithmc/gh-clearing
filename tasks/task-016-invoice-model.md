@@ -11,7 +11,7 @@ paths:
   - "backend/src/main/java/com/airline/repository/InvoiceLineItemRepository.java"
   - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/main/java/com/airline/api/InvoiceController.java"
-  - "backend/src/test/java/com/airline/invoices/InvoiceLifecycleTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceImmutabilityTest.java"
 proof: UNIT
 invariants:
   - INV-08
