@@ -116,7 +116,7 @@ def main():
                 task_path = matched_deleted[0]
                 task_filename = os.path.basename(task_path)
                 print(f"Task file '{task_filename}' was deleted on this branch (closing task). Loading from git history.")
-                commit = run_cmd(["git", "log", "-1", "--format=%H", "--diff-filter=AM", "--", task_path]).strip()
+                commit = run_cmd(["git", "log", f"origin/{current_branch}", "--full-history", "-1", "--format=%H", "--diff-filter=AM", "--", task_path]).strip()
                 if not commit:
                     commit = "origin/main"
                 content = run_cmd(["git", "show", f"{commit}:{task_path}"])
