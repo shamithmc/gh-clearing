@@ -9,6 +9,8 @@ paths:
   - ".github/scripts/validate_dependencies.py"
   - ".github/workflows/ci.yml"
   - ".gitignore"
+  - "backend/pom.xml"
+  - "backend/src/main/resources/application.yml"
 proof: COMPILER
 invariants: []
 ---
