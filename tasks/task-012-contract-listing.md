@@ -13,6 +13,7 @@ paths:
   - "backend/src/main/resources/db/migration/V3__supplier_configuration.sql"
   - "backend/src/main/resources/db/migration/V4__contracts_and_services.sql"
   - "backend/src/main/resources/db/migration/V5__add_tax_code.sql"
+  - "docker-compose.yml"
 proof: COMPILER
 invariants:
   - INV-01
