@@ -35,14 +35,16 @@
       "axios",
       "lucide-react",
       "typescript",
-      "vite"
+      "vite",
+      "react-router-dom"
     ],
     "dev_dependencies": [
       "@types/react",
       "@types/react-dom",
       "@vitejs/plugin-react",
       "typescript",
-      "@playwright/test"
+      "@playwright/test",
+      "@types/react-router-dom"
     ]
   }
 }
