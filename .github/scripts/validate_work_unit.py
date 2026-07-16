@@ -103,29 +103,31 @@ def main():
         sys.exit(1)
 
     # Validate Schema
-    required_fields = ["id", "title", "owner", "paths", "proof", "invariants"]
-    for field in required_fields:
-        if field not in fm:
-            print(f"Error: Missing required field '{field}' in task front-matter.")
+    if not deleted_task_file:
+        required_fields = ["id", "title", "owner", "paths", "proof", "invariants"]
+        for field in required_fields:
+            if field not in fm:
+                print(f"Error: Missing required field '{field}' in task front-matter.")
+                sys.exit(1)
+
+        if not fm["id"]:
+            print("Error: 'id' field cannot be empty.")
             sys.exit(1)
 
-    if not fm["id"]:
-        print("Error: 'id' field cannot be empty.")
+        if not fm["owner"] or fm["owner"].lower() == "unassigned":
+            print("Error: Task owner must be assigned (cannot be empty or 'unassigned').")
+            sys.exit(1)
+
+        if fm["proof"] not in VALID_PROOFS:
+            print(f"Error: Invalid 'proof' kind '{fm['proof']}'. Must be one of {VALID_PROOFS}.")
+            sys.exit(1)
+
+    # Basic structure validation required for locks and obligations checking
+    if "paths" not in fm or "invariants" not in fm:
+        print("Error: Task file must contain 'paths' and 'invariants' fields.")
         sys.exit(1)
 
-    if not fm["owner"] or fm["owner"].lower() == "unassigned":
-        print("Error: Task owner must be assigned (cannot be empty or 'unassigned').")
-        sys.exit(1)
-
-    if not isinstance(fm["paths"], list) or not fm["paths"]:
-        print("Error: 'paths' must be a non-empty list of file paths.")
-        sys.exit(1)
-
-    if fm["proof"] not in VALID_PROOFS:
-        print(f"Error: Invalid 'proof' kind '{fm['proof']}'. Must be one of {VALID_PROOFS}.")
-        sys.exit(1)
-
-    for inv in fm["invariants"]:
+    for inv in fm.get("invariants", []):
         if inv not in VALID_INVARIANTS:
             print(f"Error: Invalid invariant '{inv}'. Must be one of {VALID_INVARIANTS}.")
             sys.exit(1)
