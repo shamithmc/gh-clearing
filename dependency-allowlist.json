@@ -22,7 +22,8 @@
       "keycloak-spring-boot-starter",
       "lombok",
       "jakarta.xml.bind-api",
-      "jaxb-runtime"
+      "jaxb-runtime",
+      "spring-boot-starter-validation"
     ]
   },
   "npm": {
