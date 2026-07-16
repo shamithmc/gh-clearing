@@ -1,25 +1,44 @@
 package com.airline.service;
 
+import com.airline.domain.Contract;
 import com.airline.domain.Invoice;
+import com.airline.domain.InvoiceLineItem;
 import com.airline.domain.InvoiceStatus;
+import com.airline.domain.ServiceConfiguration;
+import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
+import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
+    private final ContractRepository contractRepository;
+    private final PricingEngine pricingEngine;
     private final TenantContext tenantContext;
+    private final ObjectMapper objectMapper;
 
-    public InvoiceService(InvoiceRepository invoiceRepository, TenantContext tenantContext) {
+    public InvoiceService(InvoiceRepository invoiceRepository,
+                          ContractRepository contractRepository,
+                          PricingEngine pricingEngine,
+                          TenantContext tenantContext,
+                          ObjectMapper objectMapper) {
         this.invoiceRepository = invoiceRepository;
+        this.contractRepository = contractRepository;
+        this.pricingEngine = pricingEngine;
         this.tenantContext = tenantContext;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -35,10 +54,7 @@ public class InvoiceService {
             throw new AccessDeniedException("Cannot create invoice for a different supplier");
         }
 
-        if (invoiceRepository.existsByInvoiceNumberAndAirlineIdAndSupplierId(
-                invoice.getInvoiceNumber(), invoice.getAirlineId(), invoice.getSupplierId())) {
-            throw new IllegalArgumentException("Invoice number must be unique per airline-supplier pair");
-        }
+        calculateAndValidateInvoice(invoice);
 
         invoice.setId(UUID.randomUUID().toString());
         invoice.setStatus(InvoiceStatus.DRAFT);
@@ -90,7 +106,6 @@ public class InvoiceService {
         existing.setExchangeRate(updatedInvoice.getExchangeRate());
         existing.setIssueDate(updatedInvoice.getIssueDate());
         existing.setDueDate(updatedInvoice.getDueDate());
-        existing.setTotalAmount(updatedInvoice.getTotalAmount());
 
         existing.getLineItems().clear();
         if (updatedInvoice.getLineItems() != null) {
@@ -100,14 +115,14 @@ public class InvoiceService {
             });
         }
 
+        calculateAndValidateInvoice(existing);
+
         return invoiceRepository.save(existing);
     }
 
     @Transactional
     public Invoice updateInvoiceStatus(String id, InvoiceStatus targetStatus) {
         Invoice existing = getInvoice(id);
-
-        // Validate state transition logic if needed
         existing.setStatus(targetStatus);
         return invoiceRepository.save(existing);
     }
@@ -124,5 +139,87 @@ public class InvoiceService {
         }
 
         invoiceRepository.delete(existing);
+    }
+
+    private void calculateAndValidateInvoice(Invoice invoice) {
+        // Enforce uniqueness validation INV-07
+        if (invoice.getId() == null) {
+            if (invoiceRepository.existsByInvoiceNumberAndAirlineIdAndSupplierId(
+                    invoice.getInvoiceNumber(), invoice.getAirlineId(), invoice.getSupplierId())) {
+                throw new IllegalArgumentException("Invoice number must be unique per airline-supplier pair");
+            }
+        } else {
+            Invoice existing = invoiceRepository.findById(invoice.getId()).orElse(null);
+            if (existing != null && !existing.getInvoiceNumber().equals(invoice.getInvoiceNumber())) {
+                if (invoiceRepository.existsByInvoiceNumberAndAirlineIdAndSupplierId(
+                        invoice.getInvoiceNumber(), invoice.getAirlineId(), invoice.getSupplierId())) {
+                    throw new IllegalArgumentException("Invoice number must be unique per airline-supplier pair");
+                }
+            }
+        }
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        if (invoice.getLineItems() != null) {
+            for (InvoiceLineItem item : invoice.getLineItems()) {
+                if (item.getContractId() == null) {
+                    throw new IllegalArgumentException("Line item must reference a contract");
+                }
+                Contract contract = contractRepository.findById(item.getContractId())
+                        .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + item.getContractId()));
+
+                if (contract.getStatus() != com.airline.domain.ContractStatus.APPROVED) {
+                    throw new IllegalArgumentException("Contract must be APPROVED to create invoice line items");
+                }
+
+                if (invoice.getIssueDate().isBefore(contract.getStartDate()) || invoice.getIssueDate().isAfter(contract.getEndDate())) {
+                    throw new IllegalArgumentException("Invoice issue date is outside the contract validity period");
+                }
+
+                ServiceConfiguration serviceConfig = contract.getServices().stream()
+                        .filter(s -> s.getChargeCode().equals(item.getChargeCode()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Service with charge code " + item.getChargeCode() + " not found in contract"));
+
+                Map<String, Object> flightInputs = parseQuantityDrivers(item.getQuantityDrivers());
+
+                // Enforce INV-05: PF-07 Tail ID Requirement
+                if (serviceConfig.getFormulaType() == com.airline.domain.FormulaType.PF_07) {
+                    Object tailNumber = flightInputs.get("tailNumber");
+                    if (tailNumber == null || tailNumber.toString().trim().isEmpty()) {
+                        throw new IllegalArgumentException("PF-07 requires 'tailNumber' input in quantity drivers");
+                    }
+                }
+
+                item.setServiceName(serviceConfig.getServiceName());
+                item.setFormulaType(serviceConfig.getFormulaType().getValue());
+
+                BigDecimal baseCharge = pricingEngine.calculateCharge(serviceConfig, flightInputs);
+
+                // Enforce INV-06: Cross-Currency Exchange Rate Mandate
+                BigDecimal finalAmount;
+                if (!contract.getCurrency().equals(invoice.getCurrency())) {
+                    if (invoice.getExchangeRate() == null || invoice.getExchangeRate().compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new IllegalArgumentException("Exchange rate must be provided and positive when invoice and contract currencies differ");
+                    }
+                    finalAmount = baseCharge.multiply(invoice.getExchangeRate());
+                } else {
+                    finalAmount = baseCharge;
+                }
+
+                item.setCalculatedAmount(finalAmount.setScale(2, java.math.RoundingMode.HALF_UP));
+                totalAmount = totalAmount.add(item.getCalculatedAmount());
+            }
+        }
+
+        invoice.setTotalAmount(totalAmount.setScale(2, java.math.RoundingMode.HALF_UP));
+    }
+
+    private Map<String, Object> parseQuantityDrivers(String quantityDriversStr) {
+        try {
+            return objectMapper.readValue(quantityDriversStr, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid JSON format for quantity drivers: " + quantityDriversStr, e);
+        }
     }
 }
