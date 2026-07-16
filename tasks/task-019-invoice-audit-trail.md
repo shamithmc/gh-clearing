@@ -8,6 +8,10 @@ paths:
   - "backend/src/main/java/com/airline/repository/InvoiceAuditLogRepository.java"
   - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/test/java/com/airline/invoices/InvoiceAuditLogTest.java"
+  - "backend/src/test/java/com/airline/invoices/CrossCurrencyValidationTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceImmutabilityTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceUniquenessTest.java"
+  - "backend/src/test/java/com/airline/pricing/MtowLookupTest.java"
 proof: UNIT
 invariants:
   - INV-08
