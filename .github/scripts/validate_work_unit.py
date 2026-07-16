@@ -123,7 +123,7 @@ def main():
         
         for ref in remote_branches:
             ref = ref.strip()
-            if not ref or "origin/HEAD" in ref or f"origin/{current_branch}" in ref or "origin/main" in ref:
+            if not ref or "origin/HEAD" in ref or f"origin/{current_branch}" in ref or "origin/main" in ref or "/pull/" in ref or "pull/" in ref or "/merge" in ref:
                 continue
             
             branch_name = ref.replace("origin/", "")

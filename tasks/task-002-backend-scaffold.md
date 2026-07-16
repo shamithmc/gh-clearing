@@ -5,6 +5,7 @@ owner: Shamith
 paths:
   - "pom.xml"
   - "src/main/resources/application.yml"
+  - ".github/scripts/validate_work_unit.py"
 proof: COMPILER
 invariants: []
 ---
