@@ -27,7 +27,7 @@ const ContractWizard: React.FC = () => {
       startDate: values.dateRange[0].format('YYYY-MM-DD'),
       endDate: values.dateRange[1].format('YYYY-MM-DD'),
       currency: values.currency,
-      services: values.services.map((s: any) => ({
+      services: (values.services || []).map((s: any) => ({
         chargeCode: s.chargeCode,
         serviceName: s.serviceName,
         formulaType: s.formulaType,

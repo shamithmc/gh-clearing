@@ -113,3 +113,9 @@ INSERT INTO airports (iata_code, name, city, country, region) VALUES
 ('MAD', 'Adolfo Suárez Madrid-Barajas Airport',     'Madrid',       'Spain',                'EUROPE')
 ON CONFLICT (iata_code) DO NOTHING;
 
+-- 4. Seed Default Tenants for development/testing
+INSERT INTO tenants (id, name, type, status) VALUES
+('SWISSPORT', 'Swissport International', 'GROUND_HANDLER', 'ACTIVE'),
+('EK', 'Emirates', 'AIRLINE', 'ACTIVE')
+ON CONFLICT (id) DO NOTHING;
+
