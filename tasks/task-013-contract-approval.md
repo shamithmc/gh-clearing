@@ -7,6 +7,7 @@ paths:
   - "backend/src/main/java/com/airline/config/SecurityConfig.java"
   - "backend/src/main/java/com/airline/service/ContractService.java"
   - "backend/src/main/java/com/airline/api/ContractController.java"
+  - "backend/src/main/resources/db/migration/V2__seed_reference_data.sql"
   - "backend/src/test/java/com/airline/contracts/ContractLifecycleTest.java"
   - "frontend/src/pages/ContractsList.tsx"
   - "frontend/src/pages/ContractWizard.tsx"
