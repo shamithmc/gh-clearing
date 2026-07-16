@@ -9,7 +9,9 @@ paths:
   - "backend/src/main/java/com/airline/api/dto/UserRequest.java"
   - "backend/src/main/java/com/airline/security/DimensionalSecurityEvaluator.java"
   - "backend/src/main/java/com/airline/service/ContractService.java"
+  - "backend/src/main/java/com/airline/service/UserService.java"
   - "backend/src/test/java/com/airline/security/DimensionalAccessTest.java"
+  - "backend/src/test/java/com/airline/contracts/ContractLifecycleTest.java"
 proof: UNIT
 invariants:
   - INV-02
