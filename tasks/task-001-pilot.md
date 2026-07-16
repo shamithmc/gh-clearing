@@ -1,7 +1,7 @@
 ---
 id: TASK-001
 title: "Run bootstrap pilot scenarios to exercise operating controls"
-owner: unassigned
+owner: Shamith
 paths:
   - "CODEOWNERS"
   - "obligations.json"

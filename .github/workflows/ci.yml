@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Full history needed for remote branch and diff checks
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-state: '3.10'
+
+    - name: Validate Work Unit & Path Claim Locks
+      run: python .github/scripts/validate_work_unit.py
+
+    - name: Validate Dependency Allowlist
+      run: python .github/scripts/validate_dependencies.py
+
+    - name: Validate Architectural Invariant Obligations
+      run: python .github/scripts/validate_obligations.py
+
+    - name: Set up JDK 21
+      if: hashFiles('pom.xml') != ''
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Compile and Test Backend (Maven)
+      if: hashFiles('pom.xml') != ''
+      run: mvn clean test
+
+    - name: Set up Node.js
+      if: hashFiles('package.json') != ''
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install and Build Frontend (npm)
+      if: hashFiles('package.json') != ''
+      run: |
+        npm ci
+        npm run build
