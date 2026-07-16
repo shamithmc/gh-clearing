@@ -40,7 +40,8 @@
       "@types/react",
       "@types/react-dom",
       "@vitejs/plugin-react",
-      "typescript"
+      "typescript",
+      "@playwright/test"
     ]
   }
 }

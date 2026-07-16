@@ -57,3 +57,11 @@ jobs:
         cd frontend
         npm ci
         npm run build
+
+    - name: Install and Run E2E Tests (Playwright)
+      if: hashFiles('e2e/package.json') != ''
+      run: |
+        cd e2e
+        npm ci
+        npx playwright install --with-deps chromium
+        npx playwright test
