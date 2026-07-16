@@ -44,6 +44,9 @@ public class CrossCurrencyValidationTest {
     @Mock
     private TenantContext tenantContext;
 
+    @Mock
+    private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 

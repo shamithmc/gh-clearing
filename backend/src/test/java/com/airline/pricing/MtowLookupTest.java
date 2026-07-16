@@ -38,6 +38,9 @@ public class MtowLookupTest {
     @Mock
     private com.airline.security.TenantContext tenantContext;
 
+    @Mock
+    private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 

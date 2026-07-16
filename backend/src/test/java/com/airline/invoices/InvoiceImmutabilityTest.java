@@ -34,6 +34,9 @@ public class InvoiceImmutabilityTest {
     @Mock
     private TenantContext tenantContext;
 
+    @Mock
+    private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
