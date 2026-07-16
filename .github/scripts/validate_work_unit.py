@@ -64,19 +64,38 @@ def main():
         sys.exit(0)
 
     # 1. Find the task file in tasks/
-    task_files = [f for f in os.listdir("tasks") if f.endswith(".md")]
+    task_files = [f for f in os.listdir("tasks") if f.endswith(".md")] if os.path.exists("tasks") else []
     matched_files = [f for f in task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
     
+    deleted_task_file = False
+    content = ""
+    
+    if not matched_files:
+        # Check if the task file was deleted on this branch but exists on origin/main
+        try:
+            run_cmd(["git", "fetch", "origin", "main"])
+            main_tasks_str = run_cmd(["git", "ls-tree", "-r", "--name-only", "origin/main", "tasks"])
+            main_task_files = [os.path.basename(f) for f in main_tasks_str.splitlines() if f.endswith(".md")]
+            matched_files = [f for f in main_task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
+            if matched_files:
+                task_filename = matched_files[0]
+                print(f"Task file '{task_filename}' was deleted on this branch (closing task). Loading from origin/main.")
+                content = run_cmd(["git", "show", f"origin/main:tasks/{task_filename}"])
+                deleted_task_file = True
+        except Exception as e:
+            print(f"Error checking deleted task file: {e}")
+            pass
+            
     if not matched_files:
         print(f"Error: No task file in tasks/ matched current branch '{current_branch}'")
         sys.exit(1)
     
-    task_filename = matched_files[0]
-    task_path = os.path.join("tasks", task_filename)
-    print(f"Validating task file: {task_path}")
-
-    with open(task_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    if not deleted_task_file:
+        task_filename = matched_files[0]
+        task_path = os.path.join("tasks", task_filename)
+        print(f"Validating task file: {task_path}")
+        with open(task_path, "r", encoding="utf-8") as f:
+            content = f.read()
 
     fm = parse_front_matter(content)
     if not fm:
