@@ -42,6 +42,9 @@ class DimensionalAccessTest {
     @Mock
     private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
+    @Mock
+    private com.airline.repository.ContractAuditLogRepository contractAuditLogRepository;
+
     @InjectMocks
     private ContractService contractService;
 

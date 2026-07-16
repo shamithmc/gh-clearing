@@ -16,8 +16,11 @@ class PricingEngineTest {
 
     private PricingEngine pricingEngine;
 
+    private com.airline.repository.MtowRecordRepository mtowRecordRepository;
+
     @BeforeEach
     void setUp() {
+        mtowRecordRepository = org.mockito.Mockito.mock(com.airline.repository.MtowRecordRepository.class);
         pricingEngine = new PricingEngine(List.of(
                 new UnitRateEvaluator(),
                 new UnitRateCompoundEvaluator(),
@@ -25,7 +28,7 @@ class PricingEngineTest {
                 new SlabBasedAllUnitsEvaluator(),
                 new TimeBasedEvaluator(),
                 new DayBasedEvaluator(),
-                new MtowBasedEvaluator()
+                new MtowBasedEvaluator(mtowRecordRepository)
         ));
     }
 
@@ -143,12 +146,19 @@ class PricingEngineTest {
 
     @Test
     void testMtowBasedPF07() {
+        com.airline.domain.MtowRecord record = com.airline.domain.MtowRecord.builder()
+                .tailNumber("A6-EAA")
+                .aircraftType("A380")
+                .weight(new java.math.BigDecimal("380.0"))
+                .build();
+        org.mockito.Mockito.when(mtowRecordRepository.findById("A6-EAA")).thenReturn(java.util.Optional.of(record));
+
         ServiceConfiguration config = new ServiceConfiguration();
         config.setFormulaType(FormulaType.PF_07);
         config.setQuantityDriver("mtow"); // Though mostly driven by tail number
         config.setRateDetails(Map.of("rate", 20));
 
-        Map<String, Object> inputs = Map.of("tailNumber", "A6-EAA"); // Stub returns 380.0
+        Map<String, Object> inputs = Map.of("tailNumber", "A6-EAA");
         BigDecimal charge = pricingEngine.calculateCharge(config, inputs);
         
         // 380.0 * 20 = 7600.0

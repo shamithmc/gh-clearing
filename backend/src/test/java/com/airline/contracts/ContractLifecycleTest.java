@@ -35,6 +35,9 @@ public class ContractLifecycleTest {
     @Mock
     private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
+    @Mock
+    private com.airline.repository.ContractAuditLogRepository contractAuditLogRepository;
+
     @InjectMocks
     private ContractService contractService;
 
@@ -55,6 +58,7 @@ public class ContractLifecycleTest {
 
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.PENDING_APPROVAL);
         verify(contractRepository).save(contract);
+        verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
     }
 
     @Test
@@ -92,6 +96,7 @@ public class ContractLifecycleTest {
 
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.APPROVED);
         verify(contractRepository).save(contract);
+        verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
     }
 
     @Test
@@ -111,6 +116,7 @@ public class ContractLifecycleTest {
 
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.REVIEW_REQUESTED);
         verify(contractRepository).save(contract);
+        verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
     }
 
     @Test
@@ -130,6 +136,7 @@ public class ContractLifecycleTest {
 
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.PENDING_APPROVAL);
         verify(contractRepository).save(contract);
+        verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
     }
 
     @Test
