@@ -49,6 +49,9 @@ public class ServiceConfiguration {
     @Column(name = "uom", nullable = false, length = 20)
     private String uom;
 
+    @Column(name = "tax_code", length = 20)
+    private String taxCode;
+
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 

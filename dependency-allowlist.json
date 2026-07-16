@@ -23,7 +23,8 @@
       "lombok",
       "jakarta.xml.bind-api",
       "jaxb-runtime",
-      "spring-boot-starter-validation"
+      "spring-boot-starter-validation",
+      "spring-security-test"
     ]
   },
   "npm": {
