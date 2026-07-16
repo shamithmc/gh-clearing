@@ -1,13 +1,12 @@
 ---
 id: TASK-002
 title: "Scaffold backend Maven Spring Boot application"
-owner: unassigned
+owner: Shamith
 paths:
   - "pom.xml"
   - "src/main/resources/application.yml"
 proof: COMPILER
-invariants:
-  - INV-01
+invariants: []
 ---
 
 # TASK-002: Backend Scaffolding
