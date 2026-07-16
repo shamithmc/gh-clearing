@@ -1,0 +1,13 @@
+{
+  "decisions": [
+    {
+      "id": "AD-001",
+      "title": "Establish Canonical Architecture Contract",
+      "author": "@ground-handling/tech-lead",
+      "context": "Initialization of the Ground Handling platform WHAT-contract outlining key components, primitives, and 12 invariants.",
+      "status": "APPROVED",
+      "approval_hash": "a4f89d3c5b967e890c24ee18bf723dae21183c5e8b4e72390aefd9102bc45f62",
+      "timestamp": "2026-07-16T14:15:00Z"
+    }
+  ]
+}

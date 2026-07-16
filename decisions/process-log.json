@@ -1,0 +1,13 @@
+{
+  "decisions": [
+    {
+      "id": "PD-001",
+      "title": "Establish Canonical Development Operating Contract",
+      "author": "@ground-handling/tech-lead",
+      "context": "Initialization of the Ground Handling platform HOW-contract outlining development organizing units, ownership rules, one-home rule, and 9 mechanical fences.",
+      "status": "APPROVED",
+      "approval_hash": "b59a9c51ffde23a23a3a41c2c3111b152bc4f9ee92de7c1e309bb9910dcd7e0a",
+      "timestamp": "2026-07-16T14:35:00Z"
+    }
+  ]
+}

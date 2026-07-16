@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "maven": {
+    "group_ids": [
+      "org.springframework.boot",
+      "org.springframework.security",
+      "org.postgresql",
+      "org.flywaydb",
+      "org.keycloak",
+      "org.projectlombok",
+      "jakarta.xml.bind",
+      "org.glassfish.jaxb"
+    ],
+    "artifact_ids": [
+      "spring-boot-starter-web",
+      "spring-boot-starter-security",
+      "spring-boot-starter-data-jpa",
+      "spring-boot-starter-oauth2-resource-server",
+      "postgresql",
+      "flyway-core",
+      "flyway-database-postgresql",
+      "keycloak-spring-boot-starter",
+      "lombok",
+      "jakarta.xml.bind-api",
+      "jaxb-runtime"
+    ]
+  },
+  "npm": {
+    "dependencies": [
+      "react",
+      "react-dom",
+      "antd",
+      "@ant-design/icons",
+      "axios",
+      "lucide-react",
+      "typescript",
+      "vite"
+    ],
+    "dev_dependencies": [
+      "@types/react",
+      "@types/react-dom",
+      "@vitejs/plugin-react",
+      "typescript"
+    ]
+  }
+}

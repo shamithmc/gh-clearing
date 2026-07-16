@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "tenancy": {
+    "strategy": "DISCRIMINATOR_COLUMN",
+    "discriminator_field": "tenant_id",
+    "isolation_validation_query": "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'"
+  },
+  "environments": {
+    "dev": {
+      "cors_allowed_origins": ["http://localhost:3000", "http://localhost:5173"],
+      "auth_server_url": "http://localhost:8080/auth"
+    },
+    "staging": {
+      "cors_allowed_origins": ["https://staging.groundhandling.net"],
+      "auth_server_url": "https://auth.staging.groundhandling.net"
+    },
+    "production": {
+      "cors_allowed_origins": ["https://app.groundhandling.net"],
+      "auth_server_url": "https://auth.groundhandling.net"
+    }
+  },
+  "network_policies": {
+    "sandboxed_runners": {
+      "internet_access": "BLOCKED",
+      "allowed_internal_ips": ["10.0.0.1/32"]
+    }
+  }
+}
