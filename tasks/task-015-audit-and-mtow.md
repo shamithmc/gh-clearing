@@ -14,6 +14,7 @@ paths:
   - "backend/src/main/java/com/airline/api/MtowController.java"
   - "backend/src/test/java/com/airline/contracts/ContractLifecycleTest.java"
   - "backend/src/test/java/com/airline/pricing/PricingEngineTest.java"
+  - "backend/src/test/java/com/airline/security/DimensionalAccessTest.java"
 proof: UNIT
 invariants: []
 ---
