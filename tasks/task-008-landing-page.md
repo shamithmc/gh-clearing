@@ -9,7 +9,7 @@ paths:
   - "frontend/src/main.tsx"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/Dashboard.tsx"
-proof: VERIFIED_BUILD
+proof: COMPILER
 invariants:
   - INV-01
 ---
