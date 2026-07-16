@@ -53,6 +53,7 @@ The development process is built strictly from the following five durable organi
 | Architectural Invariants Manifest | `obligations.json` | Tech Lead | Overwritten-in-place |
 | PR Review Approval Records | `.github/reviews/` | CI Engine | Append |
 | Test Suites & Verification Proofs | `backend/src/test/` and `frontend/src/test/` | QA Team | Permanent |
+| E2E Test Suites | `e2e/` | QA Team | Permanent |
 | Architecture Decision Log | `decisions/architecture-log.json` | Tech Lead | Append |
 | Process Decision Log | `decisions/process-log.json` | Tech Lead | Append |
 
@@ -95,6 +96,7 @@ invariants:
 * `INTEGRATION`: Execution of Spring Boot integration tests and Flyway schema migration validation, passing with 100% success.
 * `CONFORMANCE`: Validation of generated IATA IS-XML invoices against IATA schema specifications, passing with 100% success.
 * `COMPILER`: Compilation of all source files with zero errors and zero warnings, passing.
+* `E2E`: Execution of full-stack browser-based end-to-end tests using Playwright, passing with 100% success.
 
 Unsupported Verification Proof Kinds **MUST** fail validation and block the PR. The list widens only by explicit amendment to this contract.
 

@@ -17,6 +17,7 @@ topology.json                             @ground-handling/devops
 # Developers own the application source code and day-to-day task tracking
 backend/                                  @ground-handling/developers
 frontend/                                 @ground-handling/developers
+e2e/                                      @ground-handling/developers
 tasks/                                    @ground-handling/developers
 obligations.json                          @ground-handling/developers
 dependency-allowlist.json                 @ground-handling/developers
