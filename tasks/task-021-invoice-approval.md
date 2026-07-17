@@ -13,6 +13,9 @@ paths:
   - "e2e/tests/invoice-approval.spec.ts"
   - "tasks/task-021-invoice-approval.md"
   - ".gitignore"
+  - "backend/src/test/java/com/airline/invoices/InvoiceAuditLogTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceUniquenessTest.java"
+  - "backend/src/test/java/com/airline/pricing/MtowLookupTest.java"
 proof: INTEGRATION
 invariants:
   - INV-08
