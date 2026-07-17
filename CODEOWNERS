@@ -1,14 +1,14 @@
 # CODEOWNERS for Airline Ground Handling Cost Management Platform
 
 # Tech Lead owns the canonical contracts and decision boundaries
-architecture-contract.md                  @ground-handling/tech-lead
-development-contract.md                   @ground-handling/tech-lead
+docs/architecture-contract.md             @ground-handling/tech-lead
+docs/development-contract.md              @ground-handling/tech-lead
 decisions/architecture-log.json           @ground-handling/tech-lead
 decisions/process-log.json                @ground-handling/tech-lead
 
 # Platform Admin owns the high-level business requirement specifications
-PRD.md                                    @ground-handling/platform-admin
-PHASES.md                                 @ground-handling/platform-admin
+docs/PRD.md                               @ground-handling/platform-admin
+docs/PHASES.md                            @ground-handling/platform-admin
 
 # DB and DevOps Admins own multi-tenant databases and topology definitions
 backend/src/main/resources/db/migration/  @ground-handling/db-admins
