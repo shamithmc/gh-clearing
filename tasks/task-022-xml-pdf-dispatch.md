@@ -22,6 +22,7 @@ paths:
   - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/main/java/com/airline/api/InvoiceController.java"
   - "backend/src/test/java/com/airline/xml/InvoiceXmlGenerationTest.java"
+  - "backend/src/test/java/com/airline/xml/IataXmlComplianceTest.java"
   - "backend/src/test/java/com/airline/pdf/InvoicePdfGenerationTest.java"
   - "backend/src/test/java/com/airline/dispatch/InvoiceDispatchTest.java"
   - "backend/src/test/java/com/airline/invoices/InvoiceAuditLogTest.java"
