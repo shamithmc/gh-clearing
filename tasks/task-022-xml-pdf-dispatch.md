@@ -39,6 +39,7 @@ paths:
   - "e2e/playwright.config.ts"
   - "e2e/tests/invoice-approval.spec.ts"
   - "e2e/tests/invoices.spec.ts"
+  - "backend/src/test/java/com/airline/security/DimensionalAccessTest.java"
 proof: INTEGRATION
 invariants:
   - INV-09
