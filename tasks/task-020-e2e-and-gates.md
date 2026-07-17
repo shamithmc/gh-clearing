@@ -12,6 +12,8 @@ paths:
   - "backend/src/main/java/com/airline/domain/InvoiceLineItem.java"
   - "frontend/src/pages/InvoiceWizard.tsx"
   - ".github/workflows/ci.yml"
+  - "start-dev.ps1"
+  - "stop-dev.ps1"
 proof: INTEGRATION
 invariants:
   - INV-08
