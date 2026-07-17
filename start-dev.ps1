@@ -2,7 +2,8 @@ Write-Host "=== Starting Dev Environment ===" -ForegroundColor Green
 
 # 1. Start Docker services
 Write-Host "1. Starting Postgres Database..." -ForegroundColor Cyan
-docker compose up -d --wait
+docker compose up -d postgres --wait
+docker compose up -d keycloak
 
 # 2. Build Frontend
 Write-Host "2. Building React Frontend..." -ForegroundColor Cyan

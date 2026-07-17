@@ -5,7 +5,8 @@ echo -e "\e[32m=== Starting Dev Environment ===\e[0m"
 
 # 1. Start Docker services
 echo -e "\e[36m1. Starting Postgres Database...\e[0m"
-docker compose up -d --wait
+docker compose up -d postgres --wait
+docker compose up -d keycloak
 
 # 2. Build Frontend
 echo -e "\e[36m2. Building React Frontend...\e[0m"
