@@ -17,12 +17,12 @@ import java.util.List;
 public class DevAuthFilter extends OncePerRequestFilter {
 
     private boolean isTestEnvironment() {
-        try {
-            Class.forName("org.junit.jupiter.api.Test");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
+        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+            if (element.getClassName().startsWith("org.junit.")) {
+                return true;
+            }
         }
+        return false;
     }
 
     @Override

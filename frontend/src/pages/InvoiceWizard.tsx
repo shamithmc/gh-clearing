@@ -152,11 +152,9 @@ const InvoiceWizard: React.FC = () => {
       const matchingContract = approvedContracts.find(c => 
         c.services.some(s => s.chargeCode === item.chargeCode)
       );
-
       // JSON stringified quantity driver configuration
       const driverObj = {
-        driver: contractSvc?.quantityDriver || 'passenger',
-        value: parseFloat(item.driverValue) || 0
+        [contractSvc?.quantityDriver || 'passenger']: parseFloat(item.driverValue) || 0
       };
 
       return {
@@ -219,14 +217,14 @@ const InvoiceWizard: React.FC = () => {
           { title: 'Preview & Submit' }
         ]} style={{ marginBottom: 24 }} />
 
-        <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ exchangeRate: 1.0 }}>
           
           {/* STEP 1: Context and Invoice Header Details */}
           <div style={{ display: current === 0 ? 'block' : 'none' }}>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="airlineId" label="Airline" rules={[{ required: true, message: 'Airline is required' }]}>
-                  <Select placeholder="Select Airline" onChange={handleAirlineChange}>
+                  <Select showSearch optionFilterProp="children" placeholder="Select Airline" onChange={handleAirlineChange}>
                     {airlines.map(a => (
                       <Option key={a.iataCode} value={a.iataCode}>{a.name} ({a.iataCode})</Option>
                     ))}
@@ -235,7 +233,7 @@ const InvoiceWizard: React.FC = () => {
               </Col>
               <Col span={12}>
                 <Form.Item name="airportCode" label="Airport" rules={[{ required: true, message: 'Airport is required' }]}>
-                  <Select placeholder="Select Airport" onChange={handleAirportChange}>
+                  <Select showSearch optionFilterProp="children" placeholder="Select Airport" onChange={handleAirportChange}>
                     {airports.map(ap => (
                       <Option key={ap.iataCode} value={ap.iataCode}>{ap.name} ({ap.iataCode})</Option>
                     ))}
@@ -252,7 +250,7 @@ const InvoiceWizard: React.FC = () => {
               </Col>
               <Col span={8}>
                 <Form.Item name="currency" label="Currency" rules={[{ required: true, message: 'Currency is required' }]}>
-                  <Select placeholder="Select Currency">
+                  <Select showSearch optionFilterProp="children" placeholder="Select Currency">
                     <Option value="USD">USD</Option>
                     <Option value="EUR">EUR</Option>
                     <Option value="AED">AED</Option>
@@ -261,7 +259,7 @@ const InvoiceWizard: React.FC = () => {
               </Col>
               <Col span={8}>
                 <Form.Item name="exchangeRate" label="Exchange Rate" rules={[{ required: true, message: 'Exchange Rate is required' }]}>
-                  <Input type="number" step="0.0001" placeholder="1.0" defaultValue="1.0" />
+                  <Input type="number" step="0.0001" placeholder="1.0" />
                 </Form.Item>
               </Col>
             </Row>

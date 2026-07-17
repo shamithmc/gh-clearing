@@ -1,0 +1,9 @@
+{
+  "gate_name": "Phase 3 Gate",
+  "required_proofs": ["UNIT", "E2E"],
+  "coverage_threshold": 90.0,
+  "test_suites": [
+    "backend-tests",
+    "playwright-e2e"
+  ]
+}
