@@ -5,6 +5,7 @@ owner: Shamith
 paths:
   - "gates/phase-3-gate.json"
   - "e2e/tests/invoices.spec.ts"
+  - "e2e/tests/contracts.spec.ts"
   - "backend/src/main/java/com/airline/security/DevAuthFilter.java"
   - "backend/src/main/resources/db/migration/V9__invoice_schema.sql"
   - "e2e/playwright.config.ts"
