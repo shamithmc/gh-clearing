@@ -12,6 +12,7 @@ paths:
   - "frontend/src/pages/InvoicesList.tsx"
   - "e2e/tests/invoice-approval.spec.ts"
   - "tasks/task-021-invoice-approval.md"
+  - ".gitignore"
 proof: INTEGRATION
 invariants:
   - INV-08
