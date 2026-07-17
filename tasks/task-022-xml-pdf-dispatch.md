@@ -30,6 +30,14 @@ paths:
   - "backend/src/test/java/com/airline/invoices/CrossCurrencyValidationTest.java"
   - "backend/src/test/java/com/airline/pricing/MtowLookupTest.java"
   - "frontend/src/pages/InvoicesList.tsx"
+  - "frontend/src/pages/InvoiceWizard.tsx"
+  - "backend/src/main/java/com/airline/config/SpaWebMvcConfig.java"
+  - "backend/src/main/java/com/airline/repository/InvoiceRepository.java"
+  - "backend/src/main/java/com/airline/repository/ContractRepository.java"
+  - "backend/src/main/java/com/airline/service/ContractService.java"
+  - "e2e/playwright.config.ts"
+  - "e2e/tests/invoice-approval.spec.ts"
+  - "e2e/tests/invoices.spec.ts"
 proof: INTEGRATION
 invariants:
   - INV-09
