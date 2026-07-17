@@ -25,6 +25,9 @@ public class InvoiceAuditLog {
     @Column(name = "user_id", nullable = false, length = 50)
     private String userId;
 
+    @Column(name = "comments", length = 1000)
+    private String comments;
+
     @Column(name = "timestamp", nullable = false)
     private OffsetDateTime timestamp;
 

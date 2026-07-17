@@ -1,0 +1,3 @@
+ALTER TABLE invoices ADD COLUMN comments VARCHAR(1000);
+ALTER TABLE invoice_audit_logs ADD COLUMN comments VARCHAR(1000);
+ALTER TABLE invoices ALTER COLUMN status TYPE VARCHAR(30);
