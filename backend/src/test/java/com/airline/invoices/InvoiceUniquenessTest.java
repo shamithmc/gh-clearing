@@ -117,6 +117,6 @@ public class InvoiceUniquenessTest {
 
         assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Invoice issue date is outside the contract validity period");
+                .hasMessageContaining("Invoice issue date must fall within contract validity period");
     }
 }

@@ -41,8 +41,11 @@ public class InvoiceController {
     }
 
     @PutMapping("/{id}/status")
-    public Invoice updateInvoiceStatus(@PathVariable String id, @RequestParam InvoiceStatus status) {
-        return invoiceService.updateInvoiceStatus(id, status);
+    public Invoice updateInvoiceStatus(
+            @PathVariable String id,
+            @RequestParam InvoiceStatus status,
+            @RequestParam(required = false) String comments) {
+        return invoiceService.updateInvoiceStatus(id, status, comments);
     }
 
     @DeleteMapping("/{id}")

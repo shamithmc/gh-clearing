@@ -51,6 +51,9 @@ public class Invoice {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "comments", length = 1000)
+    private String comments;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

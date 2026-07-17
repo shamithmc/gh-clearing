@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, Typography, Table, Tag, Select, Space, Row, Col } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Button, Card, Typography, Table, Tag, Select, Space, Row, Col, Modal, Input, message } from 'antd';
+import { PlusOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SendOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 const { Option } = Select;
+const { TextArea } = Input;
 
 interface InvoiceLineItem {
   id: string;
@@ -32,6 +33,7 @@ interface Invoice {
   dueDate: string;
   status: string;
   totalAmount: number;
+  comments?: string;
   lineItems: InvoiceLineItem[];
 }
 
@@ -40,6 +42,11 @@ const InvoicesList: React.FC = () => {
   const [simTenantId, setSimTenantId] = useState<string>(localStorage.getItem('simTenantId') || 'SWISSPORT');
   const [simTenantType, setSimTenantType] = useState<string>(localStorage.getItem('simTenantType') || 'GROUND_HANDLER');
   
+  // Modal states for requesting modifications
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [modificationComments, setModificationComments] = useState('');
+
   const navigate = useNavigate();
 
   const fetchInvoices = useCallback(() => {
@@ -75,6 +82,39 @@ const InvoicesList: React.FC = () => {
     }
   };
 
+  const handleStatusChange = (id: string, status: string, comments?: string) => {
+    let url = `/api/invoices/${id}/status?status=${status}`;
+    if (comments) {
+      url += `&comments=${encodeURIComponent(comments)}`;
+    }
+
+    fetch(url, {
+      method: 'PUT',
+      headers: {
+        'X-Mock-Tenant-Id': simTenantId,
+        'X-Mock-Tenant-Type': simTenantType,
+      }
+    })
+      .then(async res => {
+        if (res.ok) {
+          message.success(`Invoice status updated to ${status}`);
+          fetchInvoices();
+          setIsModalVisible(false);
+          setModificationComments('');
+          setSelectedInvoiceId(null);
+        } else {
+          const errText = await res.text();
+          message.error(errText || 'Failed to update status');
+        }
+      })
+      .catch(() => message.error('Server error occurred'));
+  };
+
+  const showModificationModal = (id: string) => {
+    setSelectedInvoiceId(id);
+    setIsModalVisible(true);
+  };
+
   const columns = [
     { title: 'Invoice ID', dataIndex: 'id', key: 'id', render: (id: string) => id.substring(0, 8) + '...' },
     { title: 'Invoice Number', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
@@ -91,11 +131,42 @@ const InvoicesList: React.FC = () => {
       render: (status: string) => {
         let color = 'default';
         if (status === 'PAID') color = 'success';
+        if (status === 'APPROVED') color = 'success';
         if (status === 'SENT') color = 'blue';
         if (status === 'DRAFT') color = 'processing';
+        if (status === 'FINALIZED') color = 'cyan';
+        if (status === 'MODIFICATION_REQUESTED') color = 'warning';
         if (status === 'DISPUTED') color = 'error';
         return <Tag color={color}>{status}</Tag>;
       }
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, record: Invoice) => (
+        <Space size="middle">
+          {simTenantType === 'GROUND_HANDLER' && (record.status === 'DRAFT' || record.status === 'MODIFICATION_REQUESTED') && (
+            <Button size="small" type="primary" onClick={() => handleStatusChange(record.id, 'FINALIZED')}>
+              Finalize
+            </Button>
+          )}
+          {simTenantType === 'GROUND_HANDLER' && record.status === 'APPROVED' && (
+            <Button size="small" type="dashed" icon={<SendOutlined />} onClick={() => handleStatusChange(record.id, 'SENT')}>
+              Send to Airline
+            </Button>
+          )}
+          {simTenantType === 'AIRLINE' && record.status === 'FINALIZED' && (
+            <>
+              <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleStatusChange(record.id, 'APPROVED')}>
+                Approve
+              </Button>
+              <Button size="small" danger icon={<ExclamationCircleOutlined />} onClick={() => showModificationModal(record.id)}>
+                Request Modification
+              </Button>
+            </>
+          )}
+        </Space>
+      )
     }
   ];
 
@@ -112,12 +183,19 @@ const InvoicesList: React.FC = () => {
     ];
 
     return (
-      <Table 
-        columns={itemColumns} 
-        dataSource={record.lineItems} 
-        pagination={false} 
-        rowKey="id" 
-      />
+      <div>
+        {record.comments && (
+          <div style={{ marginBottom: 12, padding: 12, backgroundColor: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 4 }}>
+            <strong>Modification Request Feedback:</strong> {record.comments}
+          </div>
+        )}
+        <Table 
+          columns={itemColumns} 
+          dataSource={record.lineItems} 
+          pagination={false} 
+          rowKey="id" 
+        />
+      </div>
     );
   };
 
@@ -156,6 +234,29 @@ const InvoicesList: React.FC = () => {
           locale={{ emptyText: 'No invoices found' }} 
         />
       </Card>
+
+      <Modal
+        title="Request Invoice Modification"
+        open={isModalVisible}
+        onOk={() => selectedInvoiceId && handleStatusChange(selectedInvoiceId, 'MODIFICATION_REQUESTED', modificationComments)}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setModificationComments('');
+          setSelectedInvoiceId(null);
+        }}
+        okText="Submit Request"
+        cancelText="Cancel"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <p>Please enter details/reasons for requesting modification of this invoice:</p>
+          <TextArea
+            rows={4}
+            value={modificationComments}
+            onChange={(e) => setModificationComments(e.target.value)}
+            placeholder="Type comments/reasons here..."
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

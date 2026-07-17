@@ -129,10 +129,45 @@ public class InvoiceService {
 
     @Transactional
     public Invoice updateInvoiceStatus(String id, InvoiceStatus targetStatus) {
+        return updateInvoiceStatus(id, targetStatus, null);
+    }
+
+    @Transactional
+    public Invoice updateInvoiceStatus(String id, InvoiceStatus targetStatus, String comments) {
         Invoice existing = getInvoice(id);
+        InvoiceStatus currentStatus = existing.getStatus();
+
+        if (currentStatus == targetStatus) {
+            return existing;
+        }
+
+        // Validate transitions
+        if (targetStatus == InvoiceStatus.FINALIZED) {
+            if (currentStatus != InvoiceStatus.DRAFT && currentStatus != InvoiceStatus.MODIFICATION_REQUESTED) {
+                throw new IllegalStateException("Only DRAFT or MODIFICATION_REQUESTED invoices can be FINALIZED");
+            }
+            existing.setComments(null); // Clear previous comments upon re-finalization
+        } else if (targetStatus == InvoiceStatus.APPROVED) {
+            if (currentStatus != InvoiceStatus.FINALIZED) {
+                throw new IllegalStateException("Only FINALIZED invoices can be APPROVED");
+            }
+        } else if (targetStatus == InvoiceStatus.MODIFICATION_REQUESTED) {
+            if (currentStatus != InvoiceStatus.FINALIZED) {
+                throw new IllegalStateException("Only FINALIZED invoices can be marked for MODIFICATION_REQUESTED");
+            }
+            if (comments == null || comments.trim().isEmpty()) {
+                throw new IllegalArgumentException("Comments are required when requesting modification");
+            }
+            existing.setComments(comments);
+        } else if (targetStatus == InvoiceStatus.SENT) {
+            if (currentStatus != InvoiceStatus.APPROVED) {
+                throw new IllegalStateException("Only APPROVED invoices can be SENT");
+            }
+        }
+
         existing.setStatus(targetStatus);
         Invoice saved = invoiceRepository.save(existing);
-        audit(saved.getId(), "STATUS_CHANGED");
+        audit(saved.getId(), targetStatus.name(), comments);
         return saved;
     }
 
@@ -158,8 +193,8 @@ public class InvoiceService {
                 throw new IllegalArgumentException("Invoice number must be unique per airline-supplier pair");
             }
         } else {
-            Invoice existing = invoiceRepository.findById(invoice.getId()).orElse(null);
-            if (existing != null && !existing.getInvoiceNumber().equals(invoice.getInvoiceNumber())) {
+            Invoice persisted = invoiceRepository.findById(invoice.getId()).orElse(null);
+            if (persisted != null && !persisted.getInvoiceNumber().equals(invoice.getInvoiceNumber())) {
                 if (invoiceRepository.existsByInvoiceNumberAndAirlineIdAndSupplierId(
                         invoice.getInvoiceNumber(), invoice.getAirlineId(), invoice.getSupplierId())) {
                     throw new IllegalArgumentException("Invoice number must be unique per airline-supplier pair");
@@ -170,33 +205,26 @@ public class InvoiceService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         if (invoice.getLineItems() != null) {
-            for (InvoiceLineItem item : invoice.getLineItems()) {
-                if (item.getContractId() == null) {
-                    throw new IllegalArgumentException("Line item must reference a contract");
-                }
-                Contract contract = contractRepository.findById(item.getContractId())
-                        .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + item.getContractId()));
+            for (com.airline.domain.InvoiceLineItem item : invoice.getLineItems()) {
+                com.airline.domain.Contract contract = contractRepository.findById(item.getContractId())
+                        .orElseThrow(() -> new IllegalArgumentException("Contract not found for id: " + item.getContractId()));
 
-                if (contract.getStatus() != com.airline.domain.ContractStatus.APPROVED) {
-                    throw new IllegalArgumentException("Contract must be APPROVED to create invoice line items");
-                }
-
+                // Enforce contract validity check
                 if (invoice.getIssueDate().isBefore(contract.getStartDate()) || invoice.getIssueDate().isAfter(contract.getEndDate())) {
-                    throw new IllegalArgumentException("Invoice issue date is outside the contract validity period");
+                    throw new IllegalArgumentException("Invoice issue date must fall within contract validity period");
                 }
 
-                ServiceConfiguration serviceConfig = contract.getServices().stream()
+                com.airline.domain.ServiceConfiguration serviceConfig = contract.getServices().stream()
                         .filter(s -> s.getChargeCode().equals(item.getChargeCode()))
                         .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Service with charge code " + item.getChargeCode() + " not found in contract"));
+                        .orElseThrow(() -> new IllegalArgumentException("Charge code " + item.getChargeCode() + " not configured on contract"));
 
                 Map<String, Object> flightInputs = parseQuantityDrivers(item.getQuantityDrivers());
 
                 // Enforce INV-05: PF-07 Tail ID Requirement
                 if (serviceConfig.getFormulaType() == com.airline.domain.FormulaType.PF_07) {
-                    Object tailNumber = flightInputs.get("tailNumber");
-                    if (tailNumber == null || tailNumber.toString().trim().isEmpty()) {
-                        throw new IllegalArgumentException("PF-07 requires 'tailNumber' input in quantity drivers");
+                    if (item.getAircraftReg() == null || item.getAircraftReg().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Aircraft registration is required for formula type PF-07");
                     }
                 }
 
@@ -233,6 +261,10 @@ public class InvoiceService {
     }
 
     private void audit(String invoiceId, String action) {
+        audit(invoiceId, action, null);
+    }
+
+    private void audit(String invoiceId, String action, String comments) {
         String currentUserId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ?
                 org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
         com.airline.domain.InvoiceAuditLog auditLog = com.airline.domain.InvoiceAuditLog.builder()
@@ -240,6 +272,7 @@ public class InvoiceService {
                 .invoiceId(invoiceId)
                 .action(action)
                 .userId(currentUserId)
+                .comments(comments)
                 .timestamp(java.time.OffsetDateTime.now())
                 .build();
         invoiceAuditLogRepository.save(auditLog);
