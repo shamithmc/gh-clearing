@@ -15,7 +15,7 @@ paths:
   - "docs/development-contract.md"
   - "CODEOWNERS"
   - "tasks/task-reorg.md"
-proof: MANUAL
+proof: INTEGRATION
 invariants:
   - INV-01
 ---
