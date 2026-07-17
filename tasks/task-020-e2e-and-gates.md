@@ -11,7 +11,7 @@ paths:
   - "backend/src/main/java/com/airline/domain/Invoice.java"
   - "backend/src/main/java/com/airline/domain/InvoiceLineItem.java"
   - "frontend/src/pages/InvoiceWizard.tsx"
-proof: E2E
+proof: INTEGRATION
 invariants:
   - INV-08
 ---
