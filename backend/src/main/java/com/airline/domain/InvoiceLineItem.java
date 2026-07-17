@@ -21,6 +21,7 @@ public class InvoiceLineItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Invoice invoice;
 
     @Column(name = "flight_date", nullable = false)

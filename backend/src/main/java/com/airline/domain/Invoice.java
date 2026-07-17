@@ -54,7 +54,7 @@ public class Invoice {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
