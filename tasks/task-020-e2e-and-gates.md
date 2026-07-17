@@ -14,6 +14,8 @@ paths:
   - ".github/workflows/ci.yml"
   - "start-dev.ps1"
   - "stop-dev.ps1"
+  - "start-dev.sh"
+  - "stop-dev.sh"
 proof: INTEGRATION
 invariants:
   - INV-08
