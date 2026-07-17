@@ -174,6 +174,7 @@ public class InvoiceAuditLogTest {
                 .invoiceNumber("INV-200")
                 .supplierId("SWISSPORT")
                 .airlineId("EK")
+                .status(InvoiceStatus.APPROVED)
                 .build();
 
         when(securityContext.getAuthentication()).thenReturn(authentication);
@@ -190,7 +191,7 @@ public class InvoiceAuditLogTest {
 
         InvoiceAuditLog log = logCaptor.getValue();
         assertThat(log.getInvoiceId()).isEqualTo("inv-uuid-2");
-        assertThat(log.getAction()).isEqualTo("STATUS_CHANGED");
+        assertThat(log.getAction()).isEqualTo("SENT");
         assertThat(log.getUserId()).isEqualTo("test-user-3");
     }
 }

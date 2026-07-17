@@ -90,6 +90,6 @@ public class MtowLookupTest {
 
         assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("PF-07 requires 'tailNumber' input in quantity drivers");
+                .hasMessageContaining("Aircraft registration is required for formula type PF-07");
     }
 }
