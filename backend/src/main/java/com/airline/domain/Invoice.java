@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,20 @@ public class Invoice {
 
     @Column(name = "comments", length = 1000)
     private String comments;
+
+    @Column(name = "xml_document")
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] xmlDocument;
+
+    @Column(name = "pdf_document")
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] pdfDocument;
+
+    @Column(name = "xml_generated_at")
+    private LocalDateTime xmlGeneratedAt;
+
+    @Column(name = "pdf_generated_at")
+    private LocalDateTime pdfGeneratedAt;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

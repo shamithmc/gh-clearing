@@ -93,9 +93,9 @@ public class ContractService {
 
         if ("GROUND_HANDLER".equals(tenantType)) {
             if (status != null) {
-                contracts = contractRepository.findByGroundHandlerIdAndStatus(tenantId, status);
+                contracts = contractRepository.findByGroundHandlerIdAndStatusOrderByCreatedAtDesc(tenantId, status);
             } else {
-                contracts = contractRepository.findByGroundHandlerId(tenantId);
+                contracts = contractRepository.findByGroundHandlerIdOrderByCreatedAtDesc(tenantId);
             }
         } else if ("AIRLINE".equals(tenantType)) {
             // Invisible to counterparty if DRAFT
@@ -103,9 +103,9 @@ public class ContractService {
                 if (status == ContractStatus.DRAFT) {
                     return java.util.List.of();
                 }
-                contracts = contractRepository.findByAirlineIdAndStatusAndStatusNot(tenantId, status, ContractStatus.DRAFT);
+                contracts = contractRepository.findByAirlineIdAndStatusAndStatusNotOrderByCreatedAtDesc(tenantId, status, ContractStatus.DRAFT);
             } else {
-                contracts = contractRepository.findByAirlineIdAndStatusNot(tenantId, ContractStatus.DRAFT);
+                contracts = contractRepository.findByAirlineIdAndStatusNotOrderByCreatedAtDesc(tenantId, ContractStatus.DRAFT);
             }
         } else {
             throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");

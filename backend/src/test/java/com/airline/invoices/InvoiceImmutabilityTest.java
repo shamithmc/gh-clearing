@@ -4,6 +4,9 @@ import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceStatus;
 import com.airline.repository.InvoiceRepository;
 import com.airline.security.TenantContext;
+import com.airline.pdf.InvoicePdfService;
+import com.airline.service.InvoiceDispatchService;
+import com.airline.xml.IsXmlGeneratorService;
 import com.airline.service.InvoiceService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +39,15 @@ public class InvoiceImmutabilityTest {
 
     @Mock
     private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
+
+    @Mock
+    private IsXmlGeneratorService xmlGeneratorService;
+
+    @Mock
+    private InvoicePdfService pdfService;
+
+    @Mock
+    private InvoiceDispatchService dispatchService;
 
     @InjectMocks
     private InvoiceService invoiceService;

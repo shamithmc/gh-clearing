@@ -5,10 +5,12 @@ import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceLineItem;
 import com.airline.domain.InvoiceStatus;
 import com.airline.domain.ServiceConfiguration;
+import com.airline.pdf.InvoicePdfService;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
 import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
+import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,19 +32,28 @@ public class InvoiceService {
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
+    private final IsXmlGeneratorService xmlGeneratorService;
+    private final InvoicePdfService pdfService;
+    private final InvoiceDispatchService dispatchService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
                           PricingEngine pricingEngine,
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
-                          com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository) {
+                          com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
+                          IsXmlGeneratorService xmlGeneratorService,
+                          InvoicePdfService pdfService,
+                          InvoiceDispatchService dispatchService) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.invoiceAuditLogRepository = invoiceAuditLogRepository;
+        this.xmlGeneratorService = xmlGeneratorService;
+        this.pdfService = pdfService;
+        this.dispatchService = dispatchService;
     }
 
     @Transactional
@@ -163,6 +175,18 @@ public class InvoiceService {
             if (currentStatus != InvoiceStatus.APPROVED) {
                 throw new IllegalStateException("Only APPROVED invoices can be SENT");
             }
+            // Generate IS-XML and PDF, then dispatch (INV-09)
+            byte[] xmlBytes = xmlGeneratorService.generate(existing);
+            byte[] pdfBytes = pdfService.generate(existing);
+            existing.setXmlDocument(xmlBytes);
+            existing.setPdfDocument(pdfBytes);
+            existing.setXmlGeneratedAt(LocalDateTime.now());
+            existing.setPdfGeneratedAt(LocalDateTime.now());
+            existing.setStatus(targetStatus);
+            Invoice saved = invoiceRepository.save(existing);
+            audit(saved.getId(), targetStatus.name(), comments);
+            dispatchService.dispatch(saved, xmlBytes, pdfBytes);
+            return saved;
         }
 
         existing.setStatus(targetStatus);
@@ -235,7 +259,7 @@ public class InvoiceService {
 
                 // Enforce INV-06: Cross-Currency Exchange Rate Mandate
                 BigDecimal finalAmount;
-                if (!contract.getCurrency().equals(invoice.getCurrency())) {
+                if (!contract.getCurrency().equalsIgnoreCase(invoice.getCurrency())) {
                     if (invoice.getExchangeRate() == null || invoice.getExchangeRate().compareTo(BigDecimal.ZERO) <= 0) {
                         throw new IllegalArgumentException("Exchange rate must be provided and positive when invoice and contract currencies differ");
                     }

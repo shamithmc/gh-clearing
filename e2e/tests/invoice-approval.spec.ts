@@ -83,6 +83,8 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await page.fill('#currency', 'AED');
     await page.click('.ant-select-item-option-content:has-text("AED")');
 
+    await page.fill('#exchangeRate', '1.0');
+
     await page.click('#issueDate');
     await page.keyboard.press('Control+A');
     await page.keyboard.insertText('2026-07-01');
@@ -124,6 +126,10 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await expect(page).toHaveURL(/\/invoices/);
     await expect(page.locator('body')).toContainText('Invoice drafted successfully!');
 
+    // Reload the page to fetch the latest data from the backend
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
     const invoiceRow = page.locator('tr').filter({ hasText: invoiceNum }).first();
     await expect(invoiceRow).toContainText('DRAFT');
 
@@ -153,7 +159,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
 
     // Expand the row to see comments
     await invoiceRow.locator('button.ant-table-row-expand-icon').click();
-    await expect(invoiceRow.locator('xpath=following-sibling::tr')).toContainText(comment);
+    await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText(comment);
 
     // 4. Switch back to Swissport to re-finalize
     await page.locator('.ant-select').filter({ hasText: 'Emirates' }).first().click();

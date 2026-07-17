@@ -245,7 +245,7 @@ const InvoiceWizard: React.FC = () => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name="invoiceNumber" label="Invoice Number" rules={[{ required: true, message: 'Invoice Number is required' }]}>
-                  <Input placeholder="INV-2026-0001" />
+                  <Input id="invoiceNumber" placeholder="INV-2026-0001" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -259,7 +259,7 @@ const InvoiceWizard: React.FC = () => {
               </Col>
               <Col span={8}>
                 <Form.Item name="exchangeRate" label="Exchange Rate" rules={[{ required: true, message: 'Exchange Rate is required' }]}>
-                  <Input type="number" step="0.0001" placeholder="1.0" />
+                  <Input id="exchangeRate" type="number" step="0.0001" placeholder="1.0" />
                 </Form.Item>
               </Col>
             </Row>
