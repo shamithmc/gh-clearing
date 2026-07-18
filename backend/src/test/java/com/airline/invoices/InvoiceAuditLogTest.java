@@ -1,12 +1,15 @@
 package com.airline.invoices;
 
 import com.airline.domain.*;
+import com.airline.pdf.InvoicePdfService;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
 import com.airline.repository.InvoiceAuditLogRepository;
 import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
+import com.airline.service.InvoiceDispatchService;
 import com.airline.service.InvoiceService;
+import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +56,15 @@ public class InvoiceAuditLogTest {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private IsXmlGeneratorService xmlGeneratorService;
+
+    @Mock
+    private InvoicePdfService pdfService;
+
+    @Mock
+    private InvoiceDispatchService dispatchService;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();

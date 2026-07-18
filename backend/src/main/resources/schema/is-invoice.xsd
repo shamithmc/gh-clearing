@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="urn:iata:is:invoice:1.0"
+           xmlns:tns="urn:iata:is:invoice:1.0">
+
+    <xs:element name="Invoice" type="tns:InvoiceType"/>
+
+    <xs:complexType name="InvoiceType">
+        <xs:sequence>
+            <xs:element name="InvoiceHeader" type="tns:InvoiceHeaderType"/>
+            <xs:element name="LineItems" type="tns:LineItemsType"/>
+            <xs:element name="InvoiceTotals" type="tns:InvoiceTotalsType"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" fixed="1.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="InvoiceHeaderType">
+        <xs:sequence>
+            <xs:element name="InvoiceNumber" type="xs:string"/>
+            <xs:element name="IssueDate" type="xs:date"/>
+            <xs:element name="DueDate" type="xs:date"/>
+            <xs:element name="Currency" type="tns:CurrencyCodeType"/>
+            <xs:element name="ExchangeRate" type="xs:decimal" minOccurs="0"/>
+            <xs:element name="Supplier" type="tns:PartyType"/>
+            <xs:element name="Buyer" type="tns:PartyType"/>
+            <xs:element name="ServicePeriod" type="tns:PeriodType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PartyType">
+        <xs:sequence>
+            <xs:element name="TenantId" type="xs:string"/>
+            <xs:element name="Name" type="xs:string"/>
+            <xs:element name="IATACode" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PeriodType">
+        <xs:sequence>
+            <xs:element name="StartDate" type="xs:date"/>
+            <xs:element name="EndDate" type="xs:date"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="LineItemsType">
+        <xs:sequence>
+            <xs:element name="LineItem" type="tns:LineItemType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="LineItemType">
+        <xs:sequence>
+            <xs:element name="LineNumber"    type="xs:positiveInteger"/>
+            <xs:element name="ChargeCode"    type="xs:string"/>
+            <xs:element name="ServiceType"   type="xs:string"/>
+            <xs:element name="FlightDetails" type="tns:FlightDetailsType" minOccurs="0"/>
+            <xs:element name="Quantity"      type="xs:decimal"/>
+            <xs:element name="UnitOfMeasure" type="xs:string"/>
+            <xs:element name="UnitRate"      type="xs:decimal"/>
+            <xs:element name="CalculatedAmount" type="xs:decimal"/>
+            <xs:element name="LineCurrency"  type="tns:CurrencyCodeType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FlightDetailsType">
+        <xs:sequence>
+            <xs:element name="FlightNumber"     type="xs:string"  minOccurs="0"/>
+            <xs:element name="FlightDate"       type="xs:date"    minOccurs="0"/>
+            <xs:element name="AircraftReg"      type="xs:string"  minOccurs="0"/>
+            <xs:element name="DepartureAirport" type="xs:string"  minOccurs="0"/>
+            <xs:element name="ArrivalAirport"   type="xs:string"  minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InvoiceTotalsType">
+        <xs:sequence>
+            <xs:element name="TotalAmount"  type="xs:decimal"/>
+            <xs:element name="TotalCurrency" type="tns:CurrencyCodeType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="CurrencyCodeType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

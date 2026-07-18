@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card, Typography, Table, Tag, Select, Space, Row, Col, Modal, Input, message } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SendOutlined } from '@ant-design/icons';
+import { PlusOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SendOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
@@ -162,6 +162,28 @@ const InvoicesList: React.FC = () => {
               </Button>
               <Button size="small" danger icon={<ExclamationCircleOutlined />} onClick={() => showModificationModal(record.id)}>
                 Request Modification
+              </Button>
+            </>
+          )}
+          {(record.status === 'SENT' || record.status === 'PAID') && (
+            <>
+              <Button
+                size="small"
+                icon={<DownloadOutlined />}
+                href={`/api/invoices/${record.id}/xml`}
+                target="_blank"
+                download
+              >
+                XML
+              </Button>
+              <Button
+                size="small"
+                icon={<DownloadOutlined />}
+                href={`/api/invoices/${record.id}/pdf`}
+                target="_blank"
+                download
+              >
+                PDF
               </Button>
             </>
           )}

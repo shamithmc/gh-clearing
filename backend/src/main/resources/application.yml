@@ -31,6 +31,19 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/gh-clearing}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/gh-clearing/protocol/openid-connect/certs}
 
+  # Spring Mail — uses Mailhog locally (docker-compose port 1025)
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASS:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
 # Multi-tenancy metadata parameters
 multitenancy:
   strategy: DISCRIMINATOR_COLUMN
@@ -41,3 +54,9 @@ server:
   port: 8080
   error:
     include-message: always
+
+# Application-level mail settings
+app:
+  mail:
+    from: noreply@ghcp.internal
+    dispatch-enabled: true

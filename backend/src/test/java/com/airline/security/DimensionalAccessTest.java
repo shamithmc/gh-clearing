@@ -110,7 +110,7 @@ class DimensionalAccessTest {
         Contract c1 = Contract.builder().id("c1").airportCode("DXB").airlineId("EK").services(new ArrayList<>()).build();
         Contract c2 = Contract.builder().id("c2").airportCode("LHR").airlineId("EK").services(new ArrayList<>()).build();
 
-        when(contractRepository.findByGroundHandlerId("SWISSPORT")).thenReturn(List.of(c1, c2));
+        when(contractRepository.findByGroundHandlerIdOrderByCreatedAtDesc("SWISSPORT")).thenReturn(List.of(c1, c2));
 
         when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
         when(dimensionalSecurityEvaluator.isAirportPermitted("LHR")).thenReturn(false); // restricted
@@ -130,7 +130,7 @@ class DimensionalAccessTest {
         Contract c1 = Contract.builder().id("c1").airportCode("DXB").airlineId("EK").services(new ArrayList<>()).build();
         Contract c2 = Contract.builder().id("c2").airportCode("DXB").airlineId("LH").services(new ArrayList<>()).build();
 
-        when(contractRepository.findByGroundHandlerId("SWISSPORT")).thenReturn(List.of(c1, c2));
+        when(contractRepository.findByGroundHandlerIdOrderByCreatedAtDesc("SWISSPORT")).thenReturn(List.of(c1, c2));
 
         when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
         when(dimensionalSecurityEvaluator.isAirlinePermitted("EK")).thenReturn(true);
@@ -156,7 +156,7 @@ class DimensionalAccessTest {
         Contract c2 = Contract.builder().id("c2").airportCode("DXB").airlineId("EK").services(new ArrayList<>()).build();
         c2.addService(s2);
 
-        when(contractRepository.findByGroundHandlerId("SWISSPORT")).thenReturn(List.of(c1, c2));
+        when(contractRepository.findByGroundHandlerIdOrderByCreatedAtDesc("SWISSPORT")).thenReturn(List.of(c1, c2));
 
         when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
         when(dimensionalSecurityEvaluator.isAirlinePermitted("EK")).thenReturn(true);

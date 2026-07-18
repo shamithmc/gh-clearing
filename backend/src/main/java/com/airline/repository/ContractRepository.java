@@ -11,7 +11,11 @@ import java.util.List;
 public interface ContractRepository extends JpaRepository<Contract, String> {
     List<Contract> findByGroundHandlerId(String groundHandlerId);
     List<Contract> findByGroundHandlerIdAndStatus(String groundHandlerId, ContractStatus status);
-    
     List<Contract> findByAirlineIdAndStatusNot(String airlineId, ContractStatus status);
     List<Contract> findByAirlineIdAndStatusAndStatusNot(String airlineId, ContractStatus status, ContractStatus excludeStatus);
+
+    List<Contract> findByGroundHandlerIdOrderByCreatedAtDesc(String groundHandlerId);
+    List<Contract> findByGroundHandlerIdAndStatusOrderByCreatedAtDesc(String groundHandlerId, ContractStatus status);
+    List<Contract> findByAirlineIdAndStatusNotOrderByCreatedAtDesc(String airlineId, ContractStatus status);
+    List<Contract> findByAirlineIdAndStatusAndStatusNotOrderByCreatedAtDesc(String airlineId, ContractStatus status, ContractStatus excludeStatus);
 }

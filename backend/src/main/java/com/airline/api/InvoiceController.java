@@ -4,7 +4,10 @@ import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceStatus;
 import com.airline.service.InvoiceService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,4 +56,39 @@ public class InvoiceController {
     public void deleteInvoice(@PathVariable String id) {
         invoiceService.deleteInvoice(id);
     }
+
+    /**
+     * Download the IATA IS-XML file for a dispatched invoice.
+     * Available once the invoice has been transitioned to SENT.
+     */
+    @GetMapping("/{id}/xml")
+    public ResponseEntity<byte[]> downloadXml(@PathVariable String id) {
+        Invoice invoice = invoiceService.getInvoice(id);
+        if (invoice.getXmlDocument() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String filename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_XML)
+                .body(invoice.getXmlDocument());
+    }
+
+    /**
+     * Download the PDF invoice for a dispatched invoice.
+     * Available once the invoice has been transitioned to SENT.
+     */
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable String id) {
+        Invoice invoice = invoiceService.getInvoice(id);
+        if (invoice.getPdfDocument() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String filename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(invoice.getPdfDocument());
+    }
 }
+

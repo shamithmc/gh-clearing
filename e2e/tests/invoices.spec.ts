@@ -137,6 +137,10 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     // Should redirect to Invoices list
     await page.waitForURL('/invoices');
 
+    // Reload the page to fetch the latest data from the backend
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
     // Verify draft invoice appears in the list
     await expect(page.locator('table').first()).toContainText(invoiceNum);
     await expect(page.locator('table').first()).toContainText('DRAFT');
