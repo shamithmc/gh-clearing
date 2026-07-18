@@ -59,16 +59,7 @@ public class InvoiceAuditLogTest {
     private Authentication authentication;
 
     @Mock
-    private IsXmlGeneratorService xmlGeneratorService;
-
-    @Mock
-    private InvoicePdfService pdfService;
-
-    @Mock
-    private InvoiceDispatchService dispatchService;
-
-    @Mock
-    private FileStorageService fileStorageService;
+    private com.airline.service.DocumentGenerationJob documentGenerationJob;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
