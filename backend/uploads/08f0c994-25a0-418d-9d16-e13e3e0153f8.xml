@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Invoice xmlns="urn:iata:is:invoice:1.0" version="1.0">
+    <InvoiceHeader>
+        <InvoiceNumber>INV-APP-512363</InvoiceNumber>
+        <IssueDate>2026-07-01</IssueDate>
+        <DueDate>2026-07-31</DueDate>
+        <Currency>AED</Currency>
+        <ExchangeRate>1.0000</ExchangeRate>
+        <Supplier>
+            <TenantId>SWISSPORT</TenantId>
+            <Name>SWISSPORT</Name>
+            <IATACode>DXB</IATACode>
+        </Supplier>
+        <Buyer>
+            <TenantId>EK</TenantId>
+            <Name>EK</Name>
+            <IATACode>EK</IATACode>
+        </Buyer>
+    </InvoiceHeader>
+    <LineItems>
+        <LineItem>
+            <LineNumber>1</LineNumber>
+            <ChargeCode>PASSENGER_HANDLING</ChargeCode>
+            <ServiceType>Passenger Handling</ServiceType>
+            <FlightDetails>
+                <FlightNumber>EK302</FlightNumber>
+                <FlightDate>2026-07-02</FlightDate>
+                <AircraftReg>A6-EEO</AircraftReg>
+                <DepartureAirport>DXB</DepartureAirport>
+                <ArrivalAirport>FRA</ArrivalAirport>
+            </FlightDetails>
+            <Quantity>150</Quantity>
+            <UnitOfMeasure>UNIT</UnitOfMeasure>
+            <UnitRate>1</UnitRate>
+            <CalculatedAmount>1500.00</CalculatedAmount>
+            <LineCurrency>AED</LineCurrency>
+        </LineItem>
+    </LineItems>
+    <InvoiceTotals>
+        <TotalAmount>1500.00</TotalAmount>
+        <TotalCurrency>AED</TotalCurrency>
+    </InvoiceTotals>
+</Invoice>
