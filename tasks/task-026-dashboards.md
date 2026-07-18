@@ -11,7 +11,7 @@ paths:
   - "backend/src/test/java/com/airline/service/DashboardServiceTest.java"
 proof: INTEGRATION
 invariants:
-  - INV-13
+  - INV-02
 ---
 
 ## Scope
