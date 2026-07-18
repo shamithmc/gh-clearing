@@ -16,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.airline.api.dto.InvoiceDisputeRequest;
 import com.airline.api.dto.LineItemDisputeRequest;
 import com.airline.domain.DisputeCategory;
@@ -35,10 +37,7 @@ public class InvoiceService {
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
-    private final IsXmlGeneratorService xmlGeneratorService;
-    private final InvoicePdfService pdfService;
-    private final InvoiceDispatchService dispatchService;
-    private final FileStorageService fileStorageService;
+    private final DocumentGenerationJob documentGenerationJob;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
@@ -46,20 +45,14 @@ public class InvoiceService {
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
                           com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
-                          IsXmlGeneratorService xmlGeneratorService,
-                          InvoicePdfService pdfService,
-                          InvoiceDispatchService dispatchService,
-                          FileStorageService fileStorageService) {
+                          DocumentGenerationJob documentGenerationJob) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.invoiceAuditLogRepository = invoiceAuditLogRepository;
-        this.xmlGeneratorService = xmlGeneratorService;
-        this.pdfService = pdfService;
-        this.dispatchService = dispatchService;
-        this.fileStorageService = fileStorageService;
+        this.documentGenerationJob = documentGenerationJob;
     }
 
     @Transactional
@@ -181,21 +174,22 @@ public class InvoiceService {
             if (currentStatus != InvoiceStatus.APPROVED) {
                 throw new IllegalStateException("Only APPROVED invoices can be SENT");
             }
-            // Generate IS-XML and PDF, then dispatch (INV-09)
-            byte[] xmlBytes = xmlGeneratorService.generate(existing);
-            byte[] pdfBytes = pdfService.generate(existing);
-            
-            String xmlKey = fileStorageService.store(existing.getInvoiceNumber() + ".xml", xmlBytes);
-            String pdfKey = fileStorageService.store(existing.getInvoiceNumber() + ".pdf", pdfBytes);
-            
-            existing.setXmlFileKey(xmlKey);
-            existing.setPdfFileKey(pdfKey);
-            existing.setXmlGeneratedAt(LocalDateTime.now());
-            existing.setPdfGeneratedAt(LocalDateTime.now());
             existing.setStatus(targetStatus);
             Invoice saved = invoiceRepository.save(existing);
             audit(saved.getId(), targetStatus.name(), comments);
-            dispatchService.dispatch(saved, xmlBytes, pdfBytes);
+            
+            final String invoiceId = saved.getId();
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        documentGenerationJob.generateAndDispatch(invoiceId);
+                    }
+                });
+            } else {
+                documentGenerationJob.generateAndDispatch(invoiceId);
+            }
+            
             return saved;
         } else if (targetStatus == InvoiceStatus.DISPUTED) {
             // INV-10: An Airline user MUST NOT initiate a Dispute against an Invoice that is in DRAFT or FINALIZED status
