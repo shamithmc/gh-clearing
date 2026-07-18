@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'mvn -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=default',
+    command: 'mvn -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=default -Dspring-boot.run.arguments=--app.mail.dispatch-enabled=false',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
