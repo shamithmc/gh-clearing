@@ -16,6 +16,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.airline.api.dto.InvoiceDisputeRequest;
+import com.airline.api.dto.LineItemDisputeRequest;
+import com.airline.domain.DisputeCategory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -187,11 +190,80 @@ public class InvoiceService {
             audit(saved.getId(), targetStatus.name(), comments);
             dispatchService.dispatch(saved, xmlBytes, pdfBytes);
             return saved;
+        } else if (targetStatus == InvoiceStatus.DISPUTED) {
+            // INV-10: An Airline user MUST NOT initiate a Dispute against an Invoice that is in DRAFT or FINALIZED status
+            if (currentStatus != InvoiceStatus.SENT) {
+                throw new IllegalStateException("Only SENT invoices can be DISPUTED");
+            }
+        } else if (targetStatus == InvoiceStatus.PAID) {
+            if (currentStatus != InvoiceStatus.SENT && currentStatus != InvoiceStatus.DISPUTED) {
+                throw new IllegalStateException("Only SENT or DISPUTED invoices can be marked as PAID");
+            }
         }
 
         existing.setStatus(targetStatus);
         Invoice saved = invoiceRepository.save(existing);
         audit(saved.getId(), targetStatus.name(), comments);
+        return saved;
+    }
+
+    @Transactional
+    public Invoice disputeInvoice(String id, InvoiceDisputeRequest request) {
+        Invoice existing = getInvoice(id);
+        InvoiceStatus currentStatus = existing.getStatus();
+
+        // INV-10: An Airline user MUST NOT initiate a Dispute against an Invoice that is in DRAFT or FINALIZED status
+        if (currentStatus == InvoiceStatus.DRAFT || currentStatus == InvoiceStatus.FINALIZED) {
+            throw new IllegalStateException("Cannot dispute invoices in DRAFT or FINALIZED status");
+        }
+        if (currentStatus != InvoiceStatus.SENT) {
+            throw new IllegalStateException("Only SENT invoices can be disputed");
+        }
+
+        if (request.getLineItems() == null || request.getLineItems().isEmpty()) {
+            throw new IllegalArgumentException("At least one line item must be disputed");
+        }
+
+        for (LineItemDisputeRequest itemDispute : request.getLineItems()) {
+            InvoiceLineItem lineItem = existing.getLineItems().stream()
+                    .filter(li -> li.getId().equals(itemDispute.getLineItemId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Line item not found: " + itemDispute.getLineItemId()));
+
+            if (itemDispute.getCategory() == null) {
+                throw new IllegalArgumentException("Dispute category is required");
+            }
+
+            lineItem.setDisputed(true);
+            lineItem.setDisputeCategory(itemDispute.getCategory());
+            lineItem.setDisputeComment(itemDispute.getComment());
+        }
+
+        existing.setStatus(InvoiceStatus.DISPUTED);
+        Invoice saved = invoiceRepository.save(existing);
+        audit(saved.getId(), "DISPUTED", "Dispute raised against " + request.getLineItems().size() + " line items");
+        return saved;
+    }
+
+    @Transactional
+    public Invoice generateCreditNote(String id, BigDecimal amount, String reason) {
+        Invoice existing = getInvoice(id);
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Credit note amount must be positive");
+        }
+
+        BigDecimal newTotalCredit = (existing.getCreditNoteAmount() == null ? BigDecimal.ZERO : existing.getCreditNoteAmount())
+                .add(amount);
+
+        // INV-11: The total value of all Credit Notes generated for a disputed Invoice MUST NOT exceed the total value of the original Invoice
+        if (newTotalCredit.compareTo(existing.getTotalAmount()) > 0) {
+            throw new IllegalArgumentException("Total value of credit notes cannot exceed original invoice total amount");
+        }
+
+        existing.setCreditNoteAmount(newTotalCredit);
+        Invoice saved = invoiceRepository.save(existing);
+        audit(saved.getId(), "CREDIT_NOTE_GENERATED", "Credit note of " + amount + " generated. Reason: " + reason);
         return saved;
     }
 
