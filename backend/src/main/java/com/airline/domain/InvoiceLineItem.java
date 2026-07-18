@@ -56,4 +56,14 @@ public class InvoiceLineItem {
 
     @Column(name = "contract_id", length = 50)
     private String contractId;
+
+    @Column(name = "disputed")
+    private Boolean disputed = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dispute_category", length = 50)
+    private DisputeCategory disputeCategory;
+
+    @Column(name = "dispute_comment", length = 500)
+    private String disputeComment;
 }

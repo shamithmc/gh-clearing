@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.math.BigDecimal;
+import com.airline.api.dto.InvoiceDisputeRequest;
 
 @RestController
 @RequestMapping("/api/invoices")
@@ -89,6 +91,19 @@ public class InvoiceController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(invoice.getPdfDocument());
+    }
+
+    @PutMapping("/{id}/dispute")
+    public Invoice disputeInvoice(@PathVariable String id, @RequestBody InvoiceDisputeRequest request) {
+        return invoiceService.disputeInvoice(id, request);
+    }
+
+    @PutMapping("/{id}/credit-note")
+    public Invoice generateCreditNote(
+            @PathVariable String id,
+            @RequestParam BigDecimal amount,
+            @RequestParam String reason) {
+        return invoiceService.generateCreditNote(id, amount, reason);
     }
 }
 

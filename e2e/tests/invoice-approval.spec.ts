@@ -142,6 +142,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // 3. Switch Simulated Tenant User to Emirates (Airline)
     await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
     await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
+    await page.waitForLoadState('networkidle');
 
     // Verify actions
     await expect(invoiceRow.locator('button:has-text("Approve")')).toBeVisible();
@@ -164,6 +165,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // 4. Switch back to Swissport to re-finalize
     await page.locator('.ant-select').filter({ hasText: 'Emirates' }).first().click();
     await page.click('.ant-select-item-option-content:has-text("Swissport (Ground Handler)")');
+    await page.waitForLoadState('networkidle');
 
     // Re-finalize
     await invoiceRow.locator('button:has-text("Finalize")').click();
@@ -173,6 +175,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // 5. Switch to Emirates to Approve
     await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
     await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
+    await page.waitForLoadState('networkidle');
 
     // Approve the invoice
     await invoiceRow.locator('button:has-text("Approve")').click();
@@ -182,10 +185,35 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // 6. Switch back to Swissport to Send
     await page.locator('.ant-select').filter({ hasText: 'Emirates' }).first().click();
     await page.click('.ant-select-item-option-content:has-text("Swissport (Ground Handler)")');
+    await page.waitForLoadState('networkidle');
 
     // Send the invoice
     await invoiceRow.locator('button:has-text("Send to Airline")').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to SENT');
     await expect(invoiceRow).toContainText('SENT');
+
+    // 7. Switch to Emirates to Dispute
+    await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
+    await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
+    await page.waitForLoadState('networkidle');
+
+    // Click Dispute button
+    await invoiceRow.locator('button:has-text("Dispute")').click();
+
+    // Fill dispute details in the modal
+    await page.locator('input[type="checkbox"]').first().check();
+    await page.locator('.ant-modal-body .ant-select').first().click();
+    await page.click('.ant-select-item-option-content:has-text("Operational data mismatch")');
+    const disputeComment = 'Operational data is incorrect';
+    await page.fill('textarea[placeholder="Provide details of the dispute..."]', disputeComment);
+    await page.click('.ant-modal-footer button:has-text("Submit Dispute")');
+
+    // Verify status transitions to DISPUTED
+    await expect(page.locator('body')).toContainText('Invoice disputed successfully');
+    await expect(invoiceRow).toContainText('DISPUTED');
+
+    // Expand the row to see dispute status
+    await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText('OPERATIONAL DATA MISMATCH');
+    await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText(disputeComment);
   });
 });

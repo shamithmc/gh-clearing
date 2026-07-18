@@ -55,6 +55,9 @@ public class Invoice {
     @Column(name = "comments", length = 1000)
     private String comments;
 
+    @Column(name = "credit_note_amount", precision = 15, scale = 2)
+    private BigDecimal creditNoteAmount = BigDecimal.ZERO;
+
     @Column(name = "xml_document")
     @Basic(fetch = FetchType.LAZY)
     private byte[] xmlDocument;
