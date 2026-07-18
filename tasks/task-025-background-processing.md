@@ -4,9 +4,11 @@ title: "Phase 4.8: Background Processing"
 owner: Shamith
 paths:
   - "tasks/task-025-background-processing.md"
+  - "backend/src/main/java/com/airline/GhClearingApplication.java"
   - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/main/java/com/airline/service/DocumentGenerationJob.java"
   - "backend/src/test/java/com/airline/service/DocumentGenerationJobTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceAuditLogTest.java"
 proof: INTEGRATION
 invariants:
   - INV-08
