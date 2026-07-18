@@ -38,6 +38,7 @@ public class InvoiceService {
     private final IsXmlGeneratorService xmlGeneratorService;
     private final InvoicePdfService pdfService;
     private final InvoiceDispatchService dispatchService;
+    private final FileStorageService fileStorageService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
@@ -47,7 +48,8 @@ public class InvoiceService {
                           com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
                           IsXmlGeneratorService xmlGeneratorService,
                           InvoicePdfService pdfService,
-                          InvoiceDispatchService dispatchService) {
+                          InvoiceDispatchService dispatchService,
+                          FileStorageService fileStorageService) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
@@ -57,6 +59,7 @@ public class InvoiceService {
         this.xmlGeneratorService = xmlGeneratorService;
         this.pdfService = pdfService;
         this.dispatchService = dispatchService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -181,8 +184,12 @@ public class InvoiceService {
             // Generate IS-XML and PDF, then dispatch (INV-09)
             byte[] xmlBytes = xmlGeneratorService.generate(existing);
             byte[] pdfBytes = pdfService.generate(existing);
-            existing.setXmlDocument(xmlBytes);
-            existing.setPdfDocument(pdfBytes);
+            
+            String xmlKey = fileStorageService.store(existing.getInvoiceNumber() + ".xml", xmlBytes);
+            String pdfKey = fileStorageService.store(existing.getInvoiceNumber() + ".pdf", pdfBytes);
+            
+            existing.setXmlFileKey(xmlKey);
+            existing.setPdfFileKey(pdfKey);
             existing.setXmlGeneratedAt(LocalDateTime.now());
             existing.setPdfGeneratedAt(LocalDateTime.now());
             existing.setStatus(targetStatus);

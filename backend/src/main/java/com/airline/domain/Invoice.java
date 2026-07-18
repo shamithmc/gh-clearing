@@ -58,13 +58,11 @@ public class Invoice {
     @Column(name = "credit_note_amount", precision = 15, scale = 2)
     private BigDecimal creditNoteAmount = BigDecimal.ZERO;
 
-    @Column(name = "xml_document")
-    @Basic(fetch = FetchType.LAZY)
-    private byte[] xmlDocument;
+    @Column(name = "xml_file_key", length = 255)
+    private String xmlFileKey;
 
-    @Column(name = "pdf_document")
-    @Basic(fetch = FetchType.LAZY)
-    private byte[] pdfDocument;
+    @Column(name = "pdf_file_key", length = 255)
+    private String pdfFileKey;
 
     @Column(name = "xml_generated_at")
     private LocalDateTime xmlGeneratedAt;

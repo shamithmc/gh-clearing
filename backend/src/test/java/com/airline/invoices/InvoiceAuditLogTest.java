@@ -9,6 +9,7 @@ import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
 import com.airline.service.InvoiceDispatchService;
 import com.airline.service.InvoiceService;
+import com.airline.service.FileStorageService;
 import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +66,9 @@ public class InvoiceAuditLogTest {
 
     @Mock
     private InvoiceDispatchService dispatchService;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();

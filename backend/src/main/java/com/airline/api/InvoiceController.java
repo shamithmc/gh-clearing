@@ -19,9 +19,11 @@ import com.airline.api.dto.InvoiceDisputeRequest;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+    private final com.airline.service.FileStorageService fileStorageService;
 
-    public InvoiceController(InvoiceService invoiceService) {
+    public InvoiceController(InvoiceService invoiceService, com.airline.service.FileStorageService fileStorageService) {
         this.invoiceService = invoiceService;
+        this.fileStorageService = fileStorageService;
     }
 
     @PostMapping
@@ -66,14 +68,15 @@ public class InvoiceController {
     @GetMapping("/{id}/xml")
     public ResponseEntity<byte[]> downloadXml(@PathVariable String id) {
         Invoice invoice = invoiceService.getInvoice(id);
-        if (invoice.getXmlDocument() == null) {
+        if (invoice.getXmlFileKey() == null) {
             return ResponseEntity.notFound().build();
         }
+        byte[] xmlBytes = fileStorageService.load(invoice.getXmlFileKey());
         String filename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_XML)
-                .body(invoice.getXmlDocument());
+                .body(xmlBytes);
     }
 
     /**
@@ -83,14 +86,15 @@ public class InvoiceController {
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable String id) {
         Invoice invoice = invoiceService.getInvoice(id);
-        if (invoice.getPdfDocument() == null) {
+        if (invoice.getPdfFileKey() == null) {
             return ResponseEntity.notFound().build();
         }
+        byte[] pdfBytes = fileStorageService.load(invoice.getPdfFileKey());
         String filename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
-                .body(invoice.getPdfDocument());
+                .body(pdfBytes);
     }
 
     @PutMapping("/{id}/dispute")
