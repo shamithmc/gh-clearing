@@ -4,6 +4,7 @@ import com.airline.api.dto.DashboardDtos.*;
 import com.airline.domain.*;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
+import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +35,9 @@ class DashboardServiceTest {
     @Mock
     private TenantContext tenantContext;
 
+    @Mock
+    private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private DashboardService dashboardService;
 
@@ -40,6 +45,9 @@ class DashboardServiceTest {
     void setUp() {
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        // Default permit everything for dimensional access
+        when(dimensionalSecurityEvaluator.isAirportPermitted(anyString())).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isAirlinePermitted(anyString())).thenReturn(true);
     }
 
     @Test
@@ -77,7 +85,7 @@ class DashboardServiceTest {
 
         when(invoiceRepository.findAllByTenantId("SWISSPORT")).thenReturn(Arrays.asList(invoice1, invoice2, invoiceDraft));
 
-        ReceivablesSummary summary = dashboardService.getReceivablesSummary();
+        ReceivablesSummary summary = dashboardService.getReceivablesSummary(null, null, null, null);
 
         // 1000 - 100 + 500 = 1400
         assertThat(summary.getTotalOutstanding()).isEqualByComparingTo("1400.00");
@@ -91,6 +99,39 @@ class DashboardServiceTest {
     }
 
     @Test
+    void getReceivablesSummary_filtersByAirportAndAirlineCorrectly() {
+        Invoice invoice1 = Invoice.builder()
+                .id("inv-1")
+                .supplierId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(InvoiceStatus.SENT)
+                .totalAmount(new BigDecimal("1000.00"))
+                .issueDate(LocalDate.now().minusDays(10))
+                .build();
+
+        Invoice invoice2 = Invoice.builder()
+                .id("inv-2")
+                .supplierId("SWISSPORT")
+                .airlineId("LH")
+                .airportCode("LHR")
+                .status(InvoiceStatus.SENT)
+                .totalAmount(new BigDecimal("500.00"))
+                .issueDate(LocalDate.now().minusDays(10))
+                .build();
+
+        when(invoiceRepository.findAllByTenantId("SWISSPORT")).thenReturn(Arrays.asList(invoice1, invoice2));
+
+        // Filter by Airport DXB
+        ReceivablesSummary summaryDxb = dashboardService.getReceivablesSummary(null, "DXB", null, null);
+        assertThat(summaryDxb.getTotalOutstanding()).isEqualByComparingTo("1000.00");
+
+        // Filter by Airline LH
+        ReceivablesSummary summaryLh = dashboardService.getReceivablesSummary("LH", null, null, null);
+        assertThat(summaryLh.getTotalOutstanding()).isEqualByComparingTo("500.00");
+    }
+
+    @Test
     void getInvoicedTrend_groupsCorrectly() {
         Invoice invoice = Invoice.builder()
                 .id("inv-1")
@@ -98,11 +139,13 @@ class DashboardServiceTest {
                 .totalAmount(new BigDecimal("1200.00"))
                 .issueDate(LocalDate.of(2026, 7, 10))
                 .supplierId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
                 .build();
 
         when(invoiceRepository.findAllByTenantId("SWISSPORT")).thenReturn(Collections.singletonList(invoice));
 
-        List<InvoicedTrend> trend = dashboardService.getInvoicedTrend();
+        List<InvoicedTrend> trend = dashboardService.getInvoicedTrend(null, null, null, null);
 
         assertThat(trend).hasSize(1);
         assertThat(trend.get(0).getMonth()).isEqualTo("2026-07");
@@ -131,7 +174,7 @@ class DashboardServiceTest {
 
         when(contractRepository.findByGroundHandlerId("SWISSPORT")).thenReturn(Arrays.asList(activeExpiring, activeFar));
 
-        List<ExpiringContract> expiring = dashboardService.getExpiringContracts();
+        List<ExpiringContract> expiring = dashboardService.getExpiringContracts(null, null);
 
         assertThat(expiring).hasSize(1);
         assertThat(expiring.get(0).getId()).isEqualTo("c-1");

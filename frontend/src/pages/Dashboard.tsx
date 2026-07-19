@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Statistic, Typography, Table, Tag, Empty, Spin } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Table, Tag, Empty, Spin, Select, DatePicker, Space } from 'antd';
 import { 
   FileDoneOutlined, 
   FileTextOutlined, 
@@ -9,6 +9,7 @@ import {
 import axios from 'axios';
 
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 interface GroupedReceivable {
   key: string;
@@ -54,6 +55,12 @@ const Dashboard: React.FC = () => {
   const [revenueTrend, setRevenueTrend] = useState<RevenuePerFlightTrend[]>([]);
   const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>([]);
 
+  // Dimension Filters State
+  const [selectedAirline, setSelectedAirline] = useState<string | undefined>(undefined);
+  const [selectedAirport, setSelectedAirport] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
+
   // Simulated tenant state to fetch headers properly if configured
   const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
   const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
@@ -65,11 +72,23 @@ const Dashboard: React.FC = () => {
       'X-Mock-Tenant-Type': simTenantType
     };
 
+    const params: any = {};
+    if (selectedAirline) params.airlineId = selectedAirline;
+    if (selectedAirport) params.airportCode = selectedAirport;
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
     Promise.all([
-      axios.get('/api/dashboard/receivables', { headers }),
-      axios.get('/api/dashboard/invoiced-monthly', { headers }),
-      axios.get('/api/dashboard/revenue-per-flight', { headers }),
-      axios.get('/api/dashboard/expiring-contracts', { headers })
+      axios.get('/api/dashboard/receivables', { headers, params }),
+      axios.get('/api/dashboard/invoiced-monthly', { headers, params }),
+      axios.get('/api/dashboard/revenue-per-flight', { headers, params }),
+      axios.get('/api/dashboard/expiring-contracts', { 
+        headers, 
+        params: { 
+          airlineId: selectedAirline, 
+          airportCode: selectedAirport 
+        } 
+      })
     ])
       .then(([recRes, invRes, revRes, expRes]) => {
         setReceivables(recRes.data);
@@ -82,15 +101,7 @@ const Dashboard: React.FC = () => {
         console.error('Failed to load dashboard data', err);
         setLoading(false);
       });
-  }, [simTenantId, simTenantType]);
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <Spin size="large" tip="Loading analytics..." />
-      </div>
-    );
-  }
+  }, [simTenantId, simTenantType, selectedAirline, selectedAirport, startDate, endDate]);
 
   // Calculate sum of invoicing trends
   const totalInvoicedThisMonth = invoicedTrend.length > 0 
@@ -338,150 +349,209 @@ const Dashboard: React.FC = () => {
           Simulated View: {simTenantId} ({simTenantType === 'GROUND_HANDLER' ? 'Ground Handler' : 'Airline'})
         </Tag>
       </div>
-      
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Statistic 
-              title="Outstanding Receivables" 
-              value={receivables ? receivables.totalOutstanding : 0} 
-              precision={2}
-              suffix="AED"
-              prefix={<WarningOutlined style={{ color: '#ff4d4f' }} />} 
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Statistic 
-              title="Invoiced This Month" 
-              value={totalInvoicedThisMonth} 
-              precision={2}
-              suffix="AED"
-              prefix={<FileDoneOutlined style={{ color: '#1890ff' }} />} 
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Statistic 
-              title="Active Disputes" 
-              value={receivables ? receivables.byAirline.length : 0} 
-              prefix={<FileTextOutlined style={{ color: '#faad14' }} />} 
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Statistic 
-              title="Collections Success" 
-              value={"94%"} 
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />} 
-            />
-          </Card>
-        </Col>
-      </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} lg={12}>
-          <Card title="Receivables Share by Airline" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}>
-            {renderDonutChart()}
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="Receivables Aging Profile" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}>
-            {receivables ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '10px 0' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text strong>0 - 30 Days</Text>
-                    <Text>{receivables.aging.zeroToThirty.toLocaleString()} AED</Text>
-                  </div>
-                  <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{
-                      width: receivables.totalOutstanding > 0 ? `${(receivables.aging.zeroToThirty / receivables.totalOutstanding) * 100}%` : '0%',
-                      height: '100%',
-                      background: '#1890ff',
-                      borderRadius: 5
-                    }} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text strong>31 - 60 Days</Text>
-                    <Text>{receivables.aging.thirtyOneToSixty.toLocaleString()} AED</Text>
-                  </div>
-                  <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{
-                      width: receivables.totalOutstanding > 0 ? `${(receivables.aging.thirtyOneToSixty / receivables.totalOutstanding) * 100}%` : '0%',
-                      height: '100%',
-                      background: '#2fc25b',
-                      borderRadius: 5
-                    }} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text strong>61 - 90 Days</Text>
-                    <Text>{receivables.aging.sixtyOneToNinety.toLocaleString()} AED</Text>
-                  </div>
-                  <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{
-                      width: receivables.totalOutstanding > 0 ? `${(receivables.aging.sixtyOneToNinety / receivables.totalOutstanding) * 100}%` : '0%',
-                      height: '100%',
-                      background: '#facc14',
-                      borderRadius: 5
-                    }} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text strong>90+ Days (Overdue)</Text>
-                    <Text>{receivables.aging.ninetyPlus.toLocaleString()} AED</Text>
-                  </div>
-                  <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{
-                      width: receivables.totalOutstanding > 0 ? `${(receivables.aging.ninetyPlus / receivables.totalOutstanding) * 100}%` : '0%',
-                      height: '100%',
-                      background: '#ff4d4f',
-                      borderRadius: 5
-                    }} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </Card>
-        </Col>
-      </Row>
+      {/* Reusable Dashboard Layout Dimension Filters Bar */}
+      <div style={{ background: '#fff', padding: '16px 20px', borderRadius: 8, marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <Space size="large" wrap>
+          <div>
+            <span style={{ marginRight: 8, fontWeight: 500, color: '#595959' }}>Airline:</span>
+            <Select
+              placeholder="All Airlines"
+              allowClear
+              style={{ width: 140 }}
+              onChange={(val) => setSelectedAirline(val)}
+              value={selectedAirline}
+            >
+              <Select.Option value="EK">Emirates (EK)</Select.Option>
+              <Select.Option value="LH">Lufthansa (LH)</Select.Option>
+              <Select.Option value="QF">Qantas (QF)</Select.Option>
+            </Select>
+          </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} lg={12}>
-          <Card title="Monthly Invoiced Trends" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            {renderBarChart()}
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="Average Revenue per Flight" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            {renderLineChart()}
-          </Card>
-        </Col>
-      </Row>
+          <div>
+            <span style={{ marginRight: 8, fontWeight: 500, color: '#595959' }}>Airport:</span>
+            <Select
+              placeholder="All Airports"
+              allowClear
+              style={{ width: 140 }}
+              onChange={(val) => setSelectedAirport(val)}
+              value={selectedAirport}
+            >
+              <Select.Option value="DXB">Dubai (DXB)</Select.Option>
+              <Select.Option value="LHR">London (LHR)</Select.Option>
+              <Select.Option value="SYD">Sydney (SYD)</Select.Option>
+            </Select>
+          </div>
 
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <Card title="Contracts Up for Expiry (Within 90 Days)" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Table 
-              dataSource={expiringContracts} 
-              columns={contractColumns} 
-              pagination={false} 
-              rowKey="id"
-              locale={{ emptyText: <Empty description="No contracts expiring soon" /> }}
+          <div>
+            <span style={{ marginRight: 8, fontWeight: 500, color: '#595959' }}>Date Range:</span>
+            <RangePicker
+              style={{ width: 250 }}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  setStartDate(dates[0].format('YYYY-MM-DD'));
+                  setEndDate(dates[1].format('YYYY-MM-DD'));
+                } else {
+                  setStartDate(undefined);
+                  setEndDate(undefined);
+                }
+              }}
             />
-          </Card>
-        </Col>
-      </Row>
+          </div>
+        </Space>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+          <Spin size="large" tip="Loading analytics..." />
+        </div>
+      ) : (
+        <>
+          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Col xs={24} sm={12} md={6}>
+              <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <Statistic 
+                  title="Outstanding Receivables" 
+                  value={receivables ? receivables.totalOutstanding : 0} 
+                  precision={2}
+                  suffix="AED"
+                  prefix={<WarningOutlined style={{ color: '#ff4d4f' }} />} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <Statistic 
+                  title="Invoiced This Month" 
+                  value={totalInvoicedThisMonth} 
+                  precision={2}
+                  suffix="AED"
+                  prefix={<FileDoneOutlined style={{ color: '#1890ff' }} />} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <Statistic 
+                  title="Active Disputes" 
+                  value={receivables ? receivables.byAirline.length : 0} 
+                  prefix={<FileTextOutlined style={{ color: '#faad14' }} />} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <Statistic 
+                  title="Collections Success" 
+                  value="94%" 
+                  prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />} 
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Col xs={24} lg={12}>
+              <Card title="Receivables Share by Airline" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}>
+                {renderDonutChart()}
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="Receivables Aging Profile" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}>
+                {receivables ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '10px 0' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text strong>0 - 30 Days</Text>
+                        <Text>{receivables.aging.zeroToThirty.toLocaleString()} AED</Text>
+                      </div>
+                      <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
+                        <div style={{
+                          width: receivables.totalOutstanding > 0 ? `${(receivables.aging.zeroToThirty / receivables.totalOutstanding) * 100}%` : '0%',
+                          height: '100%',
+                          background: '#1890ff',
+                          borderRadius: 5
+                        }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text strong>31 - 60 Days</Text>
+                        <Text>{receivables.aging.thirtyOneToSixty.toLocaleString()} AED</Text>
+                      </div>
+                      <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
+                        <div style={{
+                          width: receivables.totalOutstanding > 0 ? `${(receivables.aging.thirtyOneToSixty / receivables.totalOutstanding) * 100}%` : '0%',
+                          height: '100%',
+                          background: '#2fc25b',
+                          borderRadius: 5
+                        }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text strong>61 - 90 Days</Text>
+                        <Text>{receivables.aging.sixtyOneToNinety.toLocaleString()} AED</Text>
+                      </div>
+                      <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
+                        <div style={{
+                          width: receivables.totalOutstanding > 0 ? `${(receivables.aging.sixtyOneToNinety / receivables.totalOutstanding) * 100}%` : '0%',
+                          height: '100%',
+                          background: '#facc14',
+                          borderRadius: 5
+                        }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text strong>90+ Days (Overdue)</Text>
+                        <Text>{receivables.aging.ninetyPlus.toLocaleString()} AED</Text>
+                      </div>
+                      <div style={{ height: 10, background: '#f5f5f5', borderRadius: 5, overflow: 'hidden' }}>
+                        <div style={{
+                          width: receivables.totalOutstanding > 0 ? `${(receivables.aging.ninetyPlus / receivables.totalOutstanding) * 100}%` : '0%',
+                          height: '100%',
+                          background: '#ff4d4f',
+                          borderRadius: 5
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Empty />
+                )}
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Col xs={24} lg={12}>
+              <Card title="Monthly Invoiced Trends" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                {renderBarChart()}
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="Average Revenue per Flight" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                {renderLineChart()}
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Card title="Contracts Up for Expiry (Within 90 Days)" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <Table 
+                  dataSource={expiringContracts} 
+                  columns={contractColumns} 
+                  pagination={false} 
+                  rowKey="id"
+                  locale={{ emptyText: <Empty description="No contracts expiring soon" /> }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
     </div>
   );
 };
