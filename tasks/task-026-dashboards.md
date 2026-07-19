@@ -9,6 +9,7 @@ paths:
   - "backend/src/main/java/com/airline/api/DashboardController.java"
   - "frontend/src/pages/Dashboard.tsx"
   - "backend/src/test/java/com/airline/service/DashboardServiceTest.java"
+  - "e2e/tests/dashboard.spec.ts"
 proof: INTEGRATION
 invariants:
   - INV-02
