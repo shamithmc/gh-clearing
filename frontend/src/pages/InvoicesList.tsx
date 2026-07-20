@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card, Typography, Table, Tag, Select, Space, Row, Col, Modal, Input, message } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SendOutlined, DownloadOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -44,6 +45,7 @@ const InvoicesList: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [simTenantId, setSimTenantId] = useState<string>(localStorage.getItem('simTenantId') || 'SWISSPORT');
   const [simTenantType, setSimTenantType] = useState<string>(localStorage.getItem('simTenantType') || 'GROUND_HANDLER');
+  const [simUserId, setSimUserId] = useState<string>(() => getSimulatedUserId(localStorage.getItem('simTenantId') || 'SWISSPORT'));
   
   // Modal states for requesting modifications
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -59,10 +61,7 @@ const InvoicesList: React.FC = () => {
 
   const fetchInvoices = useCallback(() => {
     fetch('/api/invoices', {
-      headers: {
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
-      }
+      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
     })
       .then(res => {
         if (res.ok) return res.json();
@@ -70,13 +69,14 @@ const InvoicesList: React.FC = () => {
       })
       .then(data => setInvoices(data))
       .catch(() => setInvoices([]));
-  }, [simTenantId, simTenantType]);
+  }, [simTenantId, simTenantType, simUserId]);
 
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
 
   const handleTenantChange = (value: string) => {
+    const userId = unrestrictedUserId(value);
     if (value === 'SWISSPORT') {
       setSimTenantId('SWISSPORT');
       setSimTenantType('GROUND_HANDLER');
@@ -88,6 +88,13 @@ const InvoicesList: React.FC = () => {
       localStorage.setItem('simTenantId', 'EK');
       localStorage.setItem('simTenantType', 'AIRLINE');
     }
+    setSimUserId(userId);
+    setSimulatedUserId(userId);
+  };
+
+  const handlePersonaChange = (userId: string) => {
+    setSimUserId(userId);
+    setSimulatedUserId(userId);
   };
 
   const handleStatusChange = (id: string, status: string, comments?: string) => {
@@ -98,10 +105,7 @@ const InvoicesList: React.FC = () => {
 
     fetch(url, {
       method: 'PUT',
-      headers: {
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
-      }
+      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
     })
       .then(async res => {
         if (res.ok) {
@@ -138,8 +142,7 @@ const InvoicesList: React.FC = () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
+        ...simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
       },
       body: JSON.stringify({ lineItems: payloadItems })
     })
@@ -161,6 +164,26 @@ const InvoicesList: React.FC = () => {
   const showModificationModal = (id: string) => {
     setSelectedInvoiceId(id);
     setIsModalVisible(true);
+  };
+
+  const handleDownload = async (record: Invoice, format: 'xml' | 'pdf') => {
+    try {
+      const response = await fetch(`/api/invoices/${record.id}/${format}`, {
+        headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
+      });
+      if (!response.ok) {
+        message.error(`Unable to download ${format.toUpperCase()} invoice`);
+        return;
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `invoice-${record.invoiceNumber}.${format}`;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      message.error(`Unable to download ${format.toUpperCase()} invoice`);
+    }
   };
 
   const columns = [
@@ -241,18 +264,14 @@ const InvoicesList: React.FC = () => {
               <Button
                 size="small"
                 icon={<DownloadOutlined />}
-                href={`/api/invoices/${record.id}/xml`}
-                target="_blank"
-                download
+                onClick={() => handleDownload(record, 'xml')}
               >
                 XML
               </Button>
               <Button
                 size="small"
                 icon={<DownloadOutlined />}
-                href={`/api/invoices/${record.id}/pdf`}
-                target="_blank"
-                download
+                onClick={() => handleDownload(record, 'pdf')}
               >
                 PDF
               </Button>
@@ -315,13 +334,17 @@ const InvoicesList: React.FC = () => {
 
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16} align="middle">
-          <Col span={12}></Col>
-          <Col span={12} style={{ textAlign: 'right' }}>
-            <Space>
+          <Col span={24} style={{ textAlign: 'right' }}>
+            <Space wrap>
               <span>Simulate Tenant User:</span>
               <Select value={simTenantId} style={{ width: 220 }} onChange={handleTenantChange}>
                 <Option value="SWISSPORT">Swissport (Ground Handler)</Option>
                 <Option value="EK">Emirates (Airline)</Option>
+              </Select>
+              <span>Access Scope:</span>
+              <Select value={simUserId} style={{ width: 250 }} onChange={handlePersonaChange}>
+                <Option value={unrestrictedUserId(simTenantId)}>Unrestricted</Option>
+                <Option value={scopedUserId(simTenantId)}>DXB / EK / BAGGAGE only</Option>
               </Select>
             </Space>
           </Col>

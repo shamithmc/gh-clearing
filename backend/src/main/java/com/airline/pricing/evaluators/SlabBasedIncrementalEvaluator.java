@@ -3,6 +3,7 @@ package com.airline.pricing.evaluators;
 import com.airline.domain.FormulaType;
 import com.airline.domain.ServiceConfiguration;
 import com.airline.pricing.FormulaEvaluator;
+import com.airline.pricing.PricingValidation;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -28,7 +29,7 @@ public class SlabBasedIncrementalEvaluator implements FormulaEvaluator {
         if (qtyObj == null) {
             throw new IllegalArgumentException("Missing flight input for driver: " + driverKey);
         }
-        BigDecimal totalQuantity = new BigDecimal(qtyObj.toString());
+        BigDecimal totalQuantity = PricingValidation.nonNegativeDecimal(qtyObj, "PF-03 quantity " + driverKey);
         
         List<Map<String, Object>> tiers = (List<Map<String, Object>>) config.getRateDetails().get("tiers");
         if (tiers == null || tiers.isEmpty()) {
@@ -42,7 +43,7 @@ public class SlabBasedIncrementalEvaluator implements FormulaEvaluator {
         for (Map<String, Object> tier : tiers) {
             if (remainingQuantity.compareTo(BigDecimal.ZERO) <= 0) break;
             
-            BigDecimal rate = new BigDecimal(tier.get("rate").toString());
+            BigDecimal rate = PricingValidation.nonNegativeDecimal(tier.get("rate"), "PF-03 tier rate");
             Object uptoObj = tier.get("upto");
             
             if (uptoObj == null) {
@@ -51,7 +52,10 @@ public class SlabBasedIncrementalEvaluator implements FormulaEvaluator {
                 remainingQuantity = BigDecimal.ZERO;
                 break;
             } else {
-                BigDecimal upto = new BigDecimal(uptoObj.toString());
+                BigDecimal upto = PricingValidation.nonNegativeDecimal(uptoObj, "PF-03 tier threshold");
+                if (upto.compareTo(previousUpto) <= 0) {
+                    throw new IllegalArgumentException("PF-03 tier thresholds must be strictly increasing");
+                }
                 BigDecimal bandSize = upto.subtract(previousUpto);
                 
                 BigDecimal qtyInBand = remainingQuantity.min(bandSize);
@@ -62,6 +66,9 @@ public class SlabBasedIncrementalEvaluator implements FormulaEvaluator {
             }
         }
 
+        if (remainingQuantity.compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException("PF-03 tiers do not cover the requested quantity");
+        }
         return totalCharge;
     }
 }

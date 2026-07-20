@@ -46,6 +46,8 @@ public class DashboardService {
                 // ABAC enforcement
                 .filter(i -> dimensionalSecurityEvaluator.isAirportPermitted(i.getAirportCode()))
                 .filter(i -> dimensionalSecurityEvaluator.isAirlinePermitted(i.getAirlineId()))
+                .filter(i -> i.getLineItems() == null || i.getLineItems().stream()
+                        .allMatch(item -> dimensionalSecurityEvaluator.isChargeCodePermitted(item.getChargeCode())))
                 // Optional Dimension Filters
                 .filter(i -> airlineId == null || i.getAirlineId().equals(airlineId))
                 .filter(i -> airportCode == null || i.getAirportCode().equals(airportCode))
@@ -61,16 +63,19 @@ public class DashboardService {
         List<Contract> allContracts;
         if ("GROUND_HANDLER".equals(tenantType)) {
             allContracts = contractRepository.findByGroundHandlerId(tenantId);
+        } else if ("AIRLINE".equals(tenantType)) {
+            allContracts = contractRepository.findByAirlineId(tenantId);
         } else {
-            allContracts = contractRepository.findAll().stream()
-                    .filter(c -> c.getAirlineId().equals(tenantId))
-                    .collect(Collectors.toList());
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Dashboards are only available to ground-handler and airline tenants");
         }
 
         return allContracts.stream()
                 // ABAC enforcement
                 .filter(c -> dimensionalSecurityEvaluator.isAirportPermitted(c.getAirportCode()))
                 .filter(c -> dimensionalSecurityEvaluator.isAirlinePermitted(c.getAirlineId()))
+                .filter(c -> c.getServices() == null || c.getServices().stream()
+                        .allMatch(service -> dimensionalSecurityEvaluator.isChargeCodePermitted(service.getChargeCode())))
                 // Optional Dimension Filters
                 .filter(c -> airlineId == null || c.getAirlineId().equals(airlineId))
                 .filter(c -> airportCode == null || c.getAirportCode().equals(airportCode))

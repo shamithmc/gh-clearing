@@ -50,8 +50,8 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // Approve the contract
     const approveContractRes = await request.put(`/api/contracts/${contractId}/status`, {
       headers: {
-        'X-Mock-Tenant-Id': 'EK',
-        'X-Mock-Tenant-Type': 'AIRLINE',
+        'X-Mock-Tenant-Id': 'SWISSPORT',
+        'X-Mock-Tenant-Type': 'GROUND_HANDLER',
         'Content-Type': 'application/json',
       },
       data: {
@@ -84,6 +84,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await page.click('.ant-select-item-option-content:has-text("AED")');
 
     await page.fill('#exchangeRate', '1.0');
+    await page.fill('#exchangeRateSource', 'E2E reference rate');
 
     await page.click('#issueDate');
     await page.keyboard.press('Control+A');

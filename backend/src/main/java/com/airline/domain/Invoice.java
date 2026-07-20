@@ -24,7 +24,7 @@ public class Invoice {
     @Column(name = "invoice_number", nullable = false, length = 50)
     private String invoiceNumber;
 
-    @Column(name = "supplier_id", nullable = false, length = 50)
+    @Column(name = "tenant_id", nullable = false, length = 50)
     private String supplierId;
 
     @Column(name = "airline_id", nullable = false, length = 50)
@@ -38,6 +38,9 @@ public class Invoice {
 
     @Column(name = "exchange_rate", precision = 10, scale = 4)
     private BigDecimal exchangeRate;
+
+    @Column(name = "exchange_rate_source", length = 100)
+    private String exchangeRateSource;
 
     @Column(name = "issue_date", nullable = false)
     private LocalDate issueDate;

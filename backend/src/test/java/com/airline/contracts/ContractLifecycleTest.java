@@ -6,11 +6,15 @@ import com.airline.repository.ContractRepository;
 import com.airline.security.TenantContext;
 import com.airline.service.ContractService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
@@ -41,6 +45,17 @@ public class ContractLifecycleTest {
     @InjectMocks
     private ContractService contractService;
 
+    @BeforeEach
+    void authenticateContractRoles() {
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(
+                "user-1", "n/a", "CONTRACT_ENTRY", "CONTRACT_APPROVER", "CONTRACT_REVIEWER"));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void ghCanSubmitDraftContract() {
         Contract contract = Contract.builder()
@@ -50,9 +65,9 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.DRAFT)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
 
         contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL);
 
@@ -70,9 +85,9 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.DRAFT)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
 
         assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.APPROVED))
                 .isInstanceOf(IllegalStateException.class)
@@ -80,7 +95,7 @@ public class ContractLifecycleTest {
     }
 
     @Test
-    void airlineCanApprovePendingContract() {
+    void groundHandlerApproverCanApprovePendingContract() {
         Contract contract = Contract.builder()
                 .id("c-001")
                 .groundHandlerId("SWISSPORT")
@@ -88,9 +103,9 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.PENDING_APPROVAL)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
-        when(tenantContext.getCurrentTenantId()).thenReturn("EK");
-        when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
 
         contractService.updateContractStatus("c-001", ContractStatus.APPROVED);
 
@@ -108,15 +123,47 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.PENDING_APPROVAL)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        when(contractRepository.findByIdAndTenantId("c-001", "EK")).thenReturn(Optional.of(contract));
 
         contractService.updateContractStatus("c-001", ContractStatus.REVIEW_REQUESTED);
 
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.REVIEW_REQUESTED);
         verify(contractRepository).save(contract);
         verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
+    }
+
+    @Test
+    void airlineCannotApprovePendingContract() {
+        Contract contract = Contract.builder()
+                .id("c-001").groundHandlerId("SWISSPORT").airlineId("EK")
+                .status(ContractStatus.PENDING_APPROVAL).build();
+        when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        when(contractRepository.findByIdAndTenantId("c-001", "EK")).thenReturn(Optional.of(contract));
+
+        assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.APPROVED))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("cannot approve");
+        verify(contractRepository, never()).save(any());
+    }
+
+    @Test
+    void transitionWithoutRequiredRoleFailsClosed() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken("viewer", "n/a", "MIS_VIEWER"));
+        Contract contract = Contract.builder()
+                .id("c-001").groundHandlerId("SWISSPORT").airlineId("EK")
+                .status(ContractStatus.DRAFT).build();
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
+
+        assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("CONTRACT_ENTRY");
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -128,9 +175,9 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.REVIEW_REQUESTED)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
 
         contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL);
 
@@ -148,7 +195,9 @@ public class ContractLifecycleTest {
                 .status(ContractStatus.APPROVED)
                 .build();
 
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
 
         assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL))
                 .isInstanceOf(IllegalStateException.class)
@@ -157,19 +206,14 @@ public class ContractLifecycleTest {
 
     @Test
     void crossTenantTransitionShouldFail() {
-        Contract contract = Contract.builder()
-                .id("c-001")
-                .groundHandlerId("SWISSPORT")
-                .airlineId("EK")
-                .status(ContractStatus.DRAFT)
-                .build();
-
-        when(contractRepository.findById("c-001")).thenReturn(Optional.of(contract));
         when(tenantContext.getCurrentTenantId()).thenReturn("OTHER_GH");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "OTHER_GH")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Contract does not belong to this tenant");
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining("Contract not found");
+        verify(contractRepository, never()).findById("c-001");
+        verify(contractRepository, never()).save(any());
     }
 }

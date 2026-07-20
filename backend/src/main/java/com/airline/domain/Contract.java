@@ -23,7 +23,7 @@ public class Contract {
     @Column(length = 50)
     private String id;
 
-    @Column(name = "ground_handler_id", nullable = false, length = 50)
+    @Column(name = "tenant_id", nullable = false, length = 50)
     private String groundHandlerId;
 
     @Column(name = "airline_id", nullable = false, length = 50)

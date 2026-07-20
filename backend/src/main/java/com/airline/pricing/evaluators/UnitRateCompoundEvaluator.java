@@ -3,6 +3,7 @@ package com.airline.pricing.evaluators;
 import com.airline.domain.FormulaType;
 import com.airline.domain.ServiceConfiguration;
 import com.airline.pricing.FormulaEvaluator;
+import com.airline.pricing.PricingValidation;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -23,7 +24,7 @@ public class UnitRateCompoundEvaluator implements FormulaEvaluator {
         if (rateObj == null) {
             throw new IllegalArgumentException("PF-02 requires 'rate' in rateDetails");
         }
-        BigDecimal rate = new BigDecimal(rateObj.toString());
+        BigDecimal rate = PricingValidation.nonNegativeDecimal(rateObj, "PF-02 rate");
 
         // For compound, quantityDriver contains multiple drivers separated by comma, e.g., "passengers,bags"
         String[] drivers = config.getQuantityDriver().split(",");
@@ -38,7 +39,7 @@ public class UnitRateCompoundEvaluator implements FormulaEvaluator {
             if (qtyObj == null) {
                 throw new IllegalArgumentException("Missing flight input for driver: " + key);
             }
-            BigDecimal quantity = new BigDecimal(qtyObj.toString());
+            BigDecimal quantity = PricingValidation.nonNegativeDecimal(qtyObj, "PF-02 quantity " + key);
             total = total.multiply(quantity);
         }
 

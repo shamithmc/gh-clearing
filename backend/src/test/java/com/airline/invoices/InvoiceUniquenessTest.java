@@ -59,6 +59,9 @@ public class InvoiceUniquenessTest {
     @Mock
     private InvoiceDispatchService dispatchService;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -125,7 +128,7 @@ public class InvoiceUniquenessTest {
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
-        when(contractRepository.findById("c-100")).thenReturn(Optional.of(approvedContract));
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
 
         assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
                 .isInstanceOf(IllegalArgumentException.class)

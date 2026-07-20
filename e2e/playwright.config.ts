@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8080';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -9,7 +11,7 @@ export default defineConfig({
   reporter: 'html',
   expect: { timeout: 15000 },
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -20,8 +22,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'mvn -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=default -Dspring-boot.run.arguments=--app.mail.dispatch-enabled=false',
-    url: 'http://localhost:8080',
+    command: 'mvn -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=e2e -Dspring-boot.run.arguments=--app.mail.dispatch-enabled=false',
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

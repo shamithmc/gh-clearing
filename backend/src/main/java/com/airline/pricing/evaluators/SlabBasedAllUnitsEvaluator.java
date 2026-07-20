@@ -3,6 +3,7 @@ package com.airline.pricing.evaluators;
 import com.airline.domain.FormulaType;
 import com.airline.domain.ServiceConfiguration;
 import com.airline.pricing.FormulaEvaluator;
+import com.airline.pricing.PricingValidation;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -26,7 +27,7 @@ public class SlabBasedAllUnitsEvaluator implements FormulaEvaluator {
         if (qtyObj == null) {
             throw new IllegalArgumentException("Missing flight input for driver: " + driverKey);
         }
-        BigDecimal totalQuantity = new BigDecimal(qtyObj.toString());
+        BigDecimal totalQuantity = PricingValidation.nonNegativeDecimal(qtyObj, "PF-04 quantity " + driverKey);
         
         List<Map<String, Object>> tiers = (List<Map<String, Object>>) config.getRateDetails().get("tiers");
         if (tiers == null || tiers.isEmpty()) {
@@ -34,17 +35,27 @@ public class SlabBasedAllUnitsEvaluator implements FormulaEvaluator {
         }
 
         BigDecimal applicableRate = null;
+        BigDecimal previousUpto = BigDecimal.ZERO;
+        boolean terminalTierSeen = false;
 
-        for (Map<String, Object> tier : tiers) {
-            BigDecimal rate = new BigDecimal(tier.get("rate").toString());
+        for (int index = 0; index < tiers.size(); index++) {
+            Map<String, Object> tier = tiers.get(index);
+            BigDecimal rate = PricingValidation.nonNegativeDecimal(tier.get("rate"), "PF-04 tier rate");
             Object uptoObj = tier.get("upto");
             
             if (uptoObj == null) {
-                // Last tier (infinity)
+                if (index != tiers.size() - 1) {
+                    throw new IllegalArgumentException("PF-04 terminal tier must be last");
+                }
+                terminalTierSeen = true;
                 applicableRate = rate;
                 break;
             } else {
-                BigDecimal upto = new BigDecimal(uptoObj.toString());
+                BigDecimal upto = PricingValidation.nonNegativeDecimal(uptoObj, "PF-04 tier threshold");
+                if (upto.compareTo(previousUpto) <= 0) {
+                    throw new IllegalArgumentException("PF-04 tier thresholds must be strictly increasing");
+                }
+                previousUpto = upto;
                 if (totalQuantity.compareTo(upto) <= 0) {
                     applicableRate = rate;
                     break;
@@ -52,7 +63,7 @@ public class SlabBasedAllUnitsEvaluator implements FormulaEvaluator {
             }
         }
 
-        if (applicableRate == null) {
+        if (applicableRate == null || (totalQuantity.compareTo(previousUpto) > 0 && !terminalTierSeen)) {
             throw new IllegalStateException("Could not determine applicable tier for quantity: " + totalQuantity);
         }
 

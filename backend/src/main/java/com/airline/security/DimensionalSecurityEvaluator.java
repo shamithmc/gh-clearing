@@ -7,40 +7,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
 import java.util.Set;
 
 @Component
 public class DimensionalSecurityEvaluator {
 
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
-    public DimensionalSecurityEvaluator(UserRepository userRepository) {
+    public DimensionalSecurityEvaluator(UserRepository userRepository, TenantContext tenantContext) {
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
 
     public void verifyAccess(String airportCode, String airlineId, Set<String> serviceChargeCodes) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth instanceof JwtAuthenticationToken jwtAuth)) {
-            return;
-        }
-
-        String userId = jwtAuth.getToken().getSubject();
-        if (userId == null) {
-            return;
-        }
-
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            return;
-        }
-
-        User user = userOpt.get();
+        User user = getCurrentUser();
 
         // 1. Verify Airport Restriction
         Set<String> airports = user.getAirportRestrictions();
-        if (airports != null && !airports.isEmpty() && airportCode != null) {
-            if (!airports.contains(airportCode)) {
+        if (airports != null && !airports.isEmpty()) {
+            if (airportCode == null || !airports.contains(airportCode)) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "User is restricted from accessing airport: " + airportCode);
             }
@@ -48,8 +34,8 @@ public class DimensionalSecurityEvaluator {
 
         // 2. Verify Airline Restriction
         Set<String> airlines = user.getAirlineRestrictions();
-        if (airlines != null && !airlines.isEmpty() && airlineId != null) {
-            if (!airlines.contains(airlineId)) {
+        if (airlines != null && !airlines.isEmpty()) {
+            if (airlineId == null || !airlines.contains(airlineId)) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "User is restricted from accessing airline: " + airlineId);
             }
@@ -57,9 +43,13 @@ public class DimensionalSecurityEvaluator {
 
         // 3. Verify Service Type (Charge Code) Restrictions
         Set<String> chargeCodes = user.getChargeCodeRestrictions();
-        if (chargeCodes != null && !chargeCodes.isEmpty() && serviceChargeCodes != null) {
+        if (chargeCodes != null && !chargeCodes.isEmpty()) {
+            if (serviceChargeCodes == null) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Charge-code scope cannot be determined");
+            }
             for (String code : serviceChargeCodes) {
-                if (!chargeCodes.contains(code)) {
+                if (code == null || !chargeCodes.contains(code)) {
                     throw new org.springframework.security.access.AccessDeniedException(
                             "User is restricted from accessing charge code: " + code);
                 }
@@ -68,50 +58,42 @@ public class DimensionalSecurityEvaluator {
     }
 
     public boolean isAirportPermitted(String airportCode) {
-        if (airportCode == null) return true;
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            String userId = jwtAuth.getToken().getSubject();
-            if (userId != null) {
-                Optional<User> userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent()) {
-                    Set<String> airports = userOpt.get().getAirportRestrictions();
-                    return airports == null || airports.isEmpty() || airports.contains(airportCode);
-                }
-            }
-        }
-        return true;
+        Set<String> airports = getCurrentUser().getAirportRestrictions();
+        return airports == null || airports.isEmpty() || (airportCode != null && airports.contains(airportCode));
     }
 
     public boolean isAirlinePermitted(String airlineId) {
-        if (airlineId == null) return true;
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            String userId = jwtAuth.getToken().getSubject();
-            if (userId != null) {
-                Optional<User> userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent()) {
-                    Set<String> airlines = userOpt.get().getAirlineRestrictions();
-                    return airlines == null || airlines.isEmpty() || airlines.contains(airlineId);
-                }
-            }
-        }
-        return true;
+        Set<String> airlines = getCurrentUser().getAirlineRestrictions();
+        return airlines == null || airlines.isEmpty() || (airlineId != null && airlines.contains(airlineId));
     }
 
     public boolean isChargeCodePermitted(String chargeCode) {
-        if (chargeCode == null) return true;
+        Set<String> chargeCodes = getCurrentUser().getChargeCodeRestrictions();
+        return chargeCodes == null || chargeCodes.isEmpty() || (chargeCode != null && chargeCodes.contains(chargeCode));
+    }
+
+    private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            String userId = jwtAuth.getToken().getSubject();
-            if (userId != null) {
-                Optional<User> userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent()) {
-                    Set<String> chargeCodes = userOpt.get().getChargeCodeRestrictions();
-                    return chargeCodes == null || chargeCodes.isEmpty() || chargeCodes.contains(chargeCode);
-                }
-            }
+        if (!(auth instanceof JwtAuthenticationToken jwtAuth)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Dimensional access requires JWT authentication");
         }
-        return true;
+
+        String userId = jwtAuth.getToken().getSubject();
+        if (userId == null || userId.isBlank()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Authenticated user identifier is missing");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "Authenticated user is not provisioned"));
+
+        if (!tenantContext.getCurrentTenantId().equals(user.getTenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Authenticated user does not belong to the current tenant");
+        }
+
+        return user;
     }
 }

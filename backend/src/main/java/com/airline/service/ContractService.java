@@ -37,6 +37,7 @@ public class ContractService {
         if (!"GROUND_HANDLER".equals(tenantContext.getCurrentTenantType())) {
             throw new org.springframework.security.access.AccessDeniedException("Only ground handlers can create contracts");
         }
+        requireRole("CONTRACT_ENTRY");
 
         java.util.Set<String> requestChargeCodes = request.getServices() != null ?
                 request.getServices().stream().map(ServiceConfigurationDTO::getChargeCode).collect(Collectors.toSet()) :
@@ -121,12 +122,17 @@ public class ContractService {
 
     @Transactional
     public ContractResponse updateContractStatus(String id, ContractStatus targetStatus) {
-        Contract contract = contractRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Contract not found"));
-
+        if (targetStatus == null) {
+            throw new IllegalArgumentException("Target contract status is required");
+        }
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
+        Contract contract = contractRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Contract not found"));
         ContractStatus currentStatus = contract.getStatus();
+        if (currentStatus == null) {
+            throw new IllegalStateException("Contract has no current status");
+        }
 
         java.util.Set<String> contractChargeCodes = contract.getServices() != null ?
                 contract.getServices().stream().map(com.airline.domain.ServiceConfiguration::getChargeCode).collect(Collectors.toSet()) :
@@ -136,18 +142,28 @@ public class ContractService {
         if (currentStatus == ContractStatus.APPROVED || currentStatus == ContractStatus.EXPIRED) {
             throw new IllegalStateException("Cannot change status of a contract that is " + currentStatus);
         }
+        if (currentStatus == targetStatus) {
+            throw new IllegalStateException("Contract is already in " + currentStatus + " status");
+        }
 
         if ("GROUND_HANDLER".equals(tenantType)) {
             if (!contract.getGroundHandlerId().equals(tenantId)) {
                 throw new org.springframework.security.access.AccessDeniedException("Contract does not belong to this tenant");
             }
             if (currentStatus == ContractStatus.DRAFT) {
+                requireRole("CONTRACT_ENTRY");
                 if (targetStatus != ContractStatus.PENDING_APPROVAL) {
                     throw new IllegalStateException("Draft contracts can only transition to PENDING_APPROVAL");
                 }
             } else if (currentStatus == ContractStatus.REVIEW_REQUESTED) {
+                requireRole("CONTRACT_ENTRY");
                 if (targetStatus != ContractStatus.PENDING_APPROVAL) {
                     throw new IllegalStateException("Review requested contracts can only transition to PENDING_APPROVAL");
+                }
+            } else if (currentStatus == ContractStatus.PENDING_APPROVAL) {
+                requireRole("CONTRACT_APPROVER");
+                if (targetStatus != ContractStatus.APPROVED && targetStatus != ContractStatus.REVIEW_REQUESTED) {
+                    throw new IllegalStateException("Pending contracts can only transition to APPROVED or REVIEW_REQUESTED");
                 }
             } else {
                 throw new org.springframework.security.access.AccessDeniedException("Ground handlers cannot perform status changes on contracts in " + currentStatus + " status");
@@ -157,8 +173,10 @@ public class ContractService {
                 throw new org.springframework.security.access.AccessDeniedException("Contract does not belong to this tenant");
             }
             if (currentStatus == ContractStatus.PENDING_APPROVAL) {
-                if (targetStatus != ContractStatus.APPROVED && targetStatus != ContractStatus.REVIEW_REQUESTED) {
-                    throw new IllegalStateException("Pending contracts can only transition to APPROVED or REVIEW_REQUESTED");
+                requireRole("CONTRACT_REVIEWER");
+                if (targetStatus != ContractStatus.REVIEW_REQUESTED) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "Airlines may request review but cannot approve contracts");
                 }
             } else {
                 throw new org.springframework.security.access.AccessDeniedException("Airlines cannot perform status changes on contracts in " + currentStatus + " status");
@@ -191,6 +209,19 @@ public class ContractService {
         contractAuditLogRepository.save(auditLog);
 
         return mapToResponse(contract);
+    }
+
+    private void requireRole(String requiredRole) {
+        org.springframework.security.core.Authentication authentication =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean permitted = authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                        .anyMatch(authority -> requiredRole.equals(authority.getAuthority()));
+        if (!permitted) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Required role is missing: " + requiredRole);
+        }
     }
 
     private ContractResponse mapToResponse(Contract contract) {

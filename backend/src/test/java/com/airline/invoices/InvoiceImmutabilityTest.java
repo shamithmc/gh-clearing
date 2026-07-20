@@ -49,6 +49,9 @@ public class InvoiceImmutabilityTest {
     @Mock
     private InvoiceDispatchService dispatchService;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -106,8 +109,8 @@ public class InvoiceImmutabilityTest {
                 .invoiceNumber("INV-101")
                 .build();
 
-        when(invoiceRepository.findById("inv-001")).thenReturn(Optional.of(existing));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(invoiceRepository.findByIdAndTenantId("inv-001", "SWISSPORT")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> invoiceService.updateInvoice("inv-001", update))
                 .isInstanceOf(IllegalStateException.class)
@@ -124,8 +127,8 @@ public class InvoiceImmutabilityTest {
                 .status(InvoiceStatus.PAID)
                 .build();
 
-        when(invoiceRepository.findById("inv-001")).thenReturn(Optional.of(existing));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(invoiceRepository.findByIdAndTenantId("inv-001", "SWISSPORT")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> invoiceService.deleteInvoice("inv-001"))
                 .isInstanceOf(IllegalStateException.class)

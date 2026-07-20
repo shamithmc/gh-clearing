@@ -35,6 +35,9 @@ class DisputeValidationTest {
     @Mock
     private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -48,8 +51,8 @@ class DisputeValidationTest {
                 .lineItems(new ArrayList<>())
                 .build();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "EK")).thenReturn(Optional.of(invoice));
 
         InvoiceDisputeRequest request = new InvoiceDisputeRequest();
         LineItemDisputeRequest itemRequest = new LineItemDisputeRequest();
@@ -74,8 +77,8 @@ class DisputeValidationTest {
                 .lineItems(new ArrayList<>())
                 .build();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "EK")).thenReturn(Optional.of(invoice));
 
         InvoiceDisputeRequest request = new InvoiceDisputeRequest();
         LineItemDisputeRequest itemRequest = new LineItemDisputeRequest();
@@ -100,8 +103,8 @@ class DisputeValidationTest {
                 .lineItems(new ArrayList<>())
                 .build();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "EK")).thenReturn(Optional.of(invoice));
 
         InvoiceDisputeRequest request = new InvoiceDisputeRequest();
         LineItemDisputeRequest itemRequest = new LineItemDisputeRequest();
