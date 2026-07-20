@@ -6,7 +6,12 @@ paths:
   - "tasks/task-027-airline-onboarding.md"
   - "backend/src/main/java/com/airline/api/UserController.java"
   - "backend/src/main/java/com/airline/service/UserService.java"
+  - "backend/src/test/java/com/airline/api/UserControllerTest.java"
+  - "backend/src/test/java/com/airline/service/UserServiceTest.java"
+  - "frontend/src/App.tsx"
+  - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/AirlineDashboard.tsx"
+  - "e2e/tests/airline-dashboard.spec.ts"
 proof: INTEGRATION
 invariants:
   - INV-01
