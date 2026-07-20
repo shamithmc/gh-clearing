@@ -88,13 +88,9 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await expect(contractRow).toContainText('PENDING_APPROVAL');
     await expect(contractRow.locator('button:has-text("Submit for Approval")')).not.toBeVisible();
 
-    // 6. Switch simulated role to Emirates (Airline)
-    await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
-    await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
-
-    // Verify row actions now display Reject and Approve buttons for this pending contract
+    // Verify internal contract approver actions are available to Swissport
     await expect(contractRow.locator('button:has-text("Approve")')).toBeVisible();
-    await expect(contractRow.locator('button:has-text("Reject / Review")')).toBeVisible();
+    await expect(contractRow.locator('button:has-text("Request Review")')).toBeVisible();
 
     // Click Approve
     await contractRow.locator('button:has-text("Approve")').click();
@@ -105,6 +101,6 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     
     // Explicitly assert that the action buttons are not visible (ignoring the row expansion button)
     await expect(contractRow.locator('button:has-text("Approve")')).not.toBeVisible();
-    await expect(contractRow.locator('button:has-text("Reject / Review")')).not.toBeVisible();
+    await expect(contractRow.locator('button:has-text("Request Review")')).not.toBeVisible();
   });
 });

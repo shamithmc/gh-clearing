@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Steps, Button, Form, Input, Select, DatePicker, message, Row, Col, Typography, Divider, Table } from 'antd';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -42,29 +43,30 @@ const InvoiceWizard: React.FC = () => {
 
   const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
   const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+  const simUserId = getSimulatedUserId(simTenantId);
 
   // Fetch airlines and airports references
   useEffect(() => {
     fetch('/api/reference/airlines', {
-      headers: { 'X-Mock-Tenant-Id': simTenantId, 'X-Mock-Tenant-Type': simTenantType }
+      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
     })
       .then(res => res.json())
       .then(data => setAirlines(data))
       .catch(() => setAirlines([{ iataCode: 'EK', name: 'Emirates' }, { iataCode: 'LH', name: 'Lufthansa' }]));
 
     fetch('/api/reference/airports', {
-      headers: { 'X-Mock-Tenant-Id': simTenantId, 'X-Mock-Tenant-Type': simTenantType }
+      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
     })
       .then(res => res.json())
       .then(data => setAirports(data))
       .catch(() => setAirports([{ iataCode: 'DXB', name: 'Dubai' }, { iataCode: 'FRA', name: 'Frankfurt' }]));
-  }, [simTenantId, simTenantType]);
+  }, [simTenantId, simTenantType, simUserId]);
 
   // Fetch approved contracts when airline or airport changes
   useEffect(() => {
     if (selectedAirline && selectedAirport) {
       fetch('/api/contracts?status=APPROVED', {
-        headers: { 'X-Mock-Tenant-Id': simTenantId, 'X-Mock-Tenant-Type': simTenantType }
+        headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
       })
         .then(res => res.json())
         .then((contracts: Contract[]) => {
@@ -83,7 +85,7 @@ const InvoiceWizard: React.FC = () => {
       setApprovedContracts([]);
       setSelectedContractServices([]);
     }
-  }, [selectedAirline, selectedAirport, simTenantId, simTenantType]);
+  }, [selectedAirline, selectedAirport, simTenantId, simTenantType, simUserId]);
 
   const handleAirlineChange = (val: string) => {
     setSelectedAirline(val);
@@ -179,6 +181,7 @@ const InvoiceWizard: React.FC = () => {
       airportCode: values.airportCode,
       currency: values.currency,
       exchangeRate: parseFloat(values.exchangeRate) || 1.0,
+      exchangeRateSource: values.exchangeRateSource,
       issueDate: values.issueDate.format('YYYY-MM-DD'),
       dueDate: values.dueDate.format('YYYY-MM-DD'),
       totalAmount: lineItemsPayload.reduce((sum: number, i: any) => sum + i.calculatedAmount, 0),
@@ -189,8 +192,7 @@ const InvoiceWizard: React.FC = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
+        ...simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
       },
       body: JSON.stringify(payload)
     }).then(res => {
@@ -260,6 +262,11 @@ const InvoiceWizard: React.FC = () => {
               <Col span={8}>
                 <Form.Item name="exchangeRate" label="Exchange Rate" rules={[{ required: true, message: 'Exchange Rate is required' }]}>
                   <Input id="exchangeRate" type="number" step="0.0001" placeholder="1.0" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="exchangeRateSource" label="Exchange Rate Source" rules={[{ required: true, message: 'Exchange Rate Source is required' }]}>
+                  <Input id="exchangeRateSource" placeholder="ECB, central bank, contract rate" />
                 </Form.Item>
               </Col>
             </Row>

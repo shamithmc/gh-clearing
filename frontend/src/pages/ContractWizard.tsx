@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Steps, Button, Form, Input, Select, DatePicker, message, Row, Col, Typography, Divider } from 'antd';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -45,8 +46,7 @@ const ContractWizard: React.FC = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
+        ...simulatedAuthHeaders(simTenantId, simTenantType),
       },
       body: JSON.stringify(payload)
     }).then(res => {
@@ -54,7 +54,9 @@ const ContractWizard: React.FC = () => {
         message.success('Contract drafted successfully!');
         navigate('/contracts');
       } else {
-        message.error('Failed to create contract.');
+        res.json()
+          .then(data => message.error(data.message || 'Failed to create contract.'))
+          .catch(() => message.error('Failed to create contract.'));
       }
     });
   };

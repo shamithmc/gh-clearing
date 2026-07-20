@@ -180,4 +180,46 @@ class DashboardServiceTest {
         assertThat(expiring.get(0).getId()).isEqualTo("c-1");
         assertThat(expiring.get(0).getDaysRemaining()).isEqualTo(15);
     }
+
+    @Test
+    void receivables_excludesInvoiceContainingRestrictedChargeCode() {
+        InvoiceLineItem restrictedLine = InvoiceLineItem.builder()
+                .chargeCode("CATERING")
+                .calculatedAmount(new BigDecimal("1000.00"))
+                .build();
+        Invoice invoice = Invoice.builder()
+                .id("inv-restricted")
+                .supplierId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(InvoiceStatus.SENT)
+                .totalAmount(new BigDecimal("1000.00"))
+                .issueDate(LocalDate.now())
+                .lineItems(List.of(restrictedLine))
+                .build();
+        when(invoiceRepository.findAllByTenantId("SWISSPORT")).thenReturn(List.of(invoice));
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("CATERING")).thenReturn(false);
+
+        ReceivablesSummary summary = dashboardService.getReceivablesSummary(null, null, null, null);
+
+        assertThat(summary.getTotalOutstanding()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void expiringContracts_excludesContractContainingRestrictedChargeCode() {
+        ServiceConfiguration service = ServiceConfiguration.builder().chargeCode("CATERING").build();
+        Contract contract = Contract.builder()
+                .id("c-restricted")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(ContractStatus.APPROVED)
+                .endDate(LocalDate.now().plusDays(15))
+                .services(List.of(service))
+                .build();
+        when(contractRepository.findByGroundHandlerId("SWISSPORT")).thenReturn(List.of(contract));
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("CATERING")).thenReturn(false);
+
+        assertThat(dashboardService.getExpiringContracts(null, null)).isEmpty();
+    }
 }

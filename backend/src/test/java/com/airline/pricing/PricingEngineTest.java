@@ -17,10 +17,13 @@ class PricingEngineTest {
     private PricingEngine pricingEngine;
 
     private com.airline.repository.MtowRecordRepository mtowRecordRepository;
+    private com.airline.repository.AircraftTypeMtowDefaultRepository aircraftTypeMtowDefaultRepository;
 
     @BeforeEach
     void setUp() {
         mtowRecordRepository = org.mockito.Mockito.mock(com.airline.repository.MtowRecordRepository.class);
+        aircraftTypeMtowDefaultRepository = org.mockito.Mockito.mock(
+                com.airline.repository.AircraftTypeMtowDefaultRepository.class);
         pricingEngine = new PricingEngine(List.of(
                 new UnitRateEvaluator(),
                 new UnitRateCompoundEvaluator(),
@@ -28,7 +31,7 @@ class PricingEngineTest {
                 new SlabBasedAllUnitsEvaluator(),
                 new TimeBasedEvaluator(),
                 new DayBasedEvaluator(),
-                new MtowBasedEvaluator(mtowRecordRepository)
+                new MtowBasedEvaluator(mtowRecordRepository, aircraftTypeMtowDefaultRepository)
         ));
     }
 
@@ -163,5 +166,58 @@ class PricingEngineTest {
         
         // 380.0 * 20 = 7600.0
         assertEquals(new BigDecimal("7600.0"), charge);
+    }
+
+    @Test
+    void negativeRateFailsClosed() {
+        ServiceConfiguration config = new ServiceConfiguration();
+        config.setId("negative-rate");
+        config.setFormulaType(FormulaType.PF_01);
+        config.setQuantityDriver("passengers");
+        config.setRateDetails(Map.of("rate", "-1.00"));
+
+        PricingEvaluationException exception = assertThrows(PricingEvaluationException.class,
+                () -> pricingEngine.calculateCharge(config, Map.of("passengers", 10)));
+
+        assertTrue(exception.getCause() instanceof IllegalArgumentException);
+        assertTrue(exception.getCause().getMessage().contains("must not be negative"));
+    }
+
+    @Test
+    void doubleNegativeCompoundInputsCannotProducePositiveCharge() {
+        ServiceConfiguration config = new ServiceConfiguration();
+        config.setId("negative-quantities");
+        config.setFormulaType(FormulaType.PF_02);
+        config.setQuantityDriver("days,bags");
+        config.setRateDetails(Map.of("rate", "2.00"));
+
+        assertThrows(PricingEvaluationException.class,
+                () -> pricingEngine.calculateCharge(config, Map.of("days", -3, "bags", -5)));
+    }
+
+    @Test
+    void nonNumericDriverFailsClosed() {
+        ServiceConfiguration config = new ServiceConfiguration();
+        config.setId("non-numeric");
+        config.setFormulaType(FormulaType.PF_01);
+        config.setQuantityDriver("passengers");
+        config.setRateDetails(Map.of("rate", "10"));
+
+        assertThrows(PricingEvaluationException.class,
+                () -> pricingEngine.calculateCharge(config, Map.of("passengers", "not-a-number")));
+    }
+
+    @Test
+    void incrementalTiersMustBeStrictlyIncreasingAndCoverQuantity() {
+        ServiceConfiguration config = new ServiceConfiguration();
+        config.setId("bad-tiers");
+        config.setFormulaType(FormulaType.PF_03);
+        config.setQuantityDriver("weight");
+        config.setRateDetails(Map.of("tiers", List.of(
+                Map.of("upto", 100, "rate", 10),
+                Map.of("upto", 90, "rate", 8))));
+
+        assertThrows(PricingEvaluationException.class,
+                () -> pricingEngine.calculateCharge(config, Map.of("weight", 150)));
     }
 }

@@ -7,6 +7,7 @@ import com.airline.pdf.InvoicePdfService;
 import com.airline.service.InvoiceDispatchService;
 import com.airline.xml.IsXmlGeneratorService;
 import com.airline.service.InvoiceService;
+import com.airline.pricing.evaluators.MtowBasedEvaluator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,10 +17,13 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -55,6 +59,15 @@ public class MtowLookupTest {
 
     @Mock
     private InvoiceDispatchService dispatchService;
+
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
+    @Mock
+    private com.airline.repository.MtowRecordRepository mtowRecordRepository;
+
+    @Mock
+    private com.airline.repository.AircraftTypeMtowDefaultRepository aircraftTypeMtowDefaultRepository;
 
     @InjectMocks
     private InvoiceService invoiceService;
@@ -98,10 +111,45 @@ public class MtowLookupTest {
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
-        when(contractRepository.findById("c-100")).thenReturn(Optional.of(approvedContract));
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
 
         assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Aircraft registration is required for formula type PF-07");
+    }
+
+    @Test
+    void unknownTailFallsBackToAircraftTypeReferenceWeight_INV_05() {
+        when(mtowRecordRepository.findById("UNKNOWN-TAIL")).thenReturn(Optional.empty());
+        when(aircraftTypeMtowDefaultRepository.findById("A380")).thenReturn(Optional.of(
+                AircraftTypeMtowDefault.builder().aircraftType("A380")
+                        .weight(new BigDecimal("575.00")).build()));
+        ServiceConfiguration config = ServiceConfiguration.builder()
+                .formulaType(FormulaType.PF_07)
+                .rateDetails(Map.of("rate", "2.00"))
+                .build();
+        MtowBasedEvaluator evaluator = new MtowBasedEvaluator(
+                mtowRecordRepository, aircraftTypeMtowDefaultRepository);
+
+        assertThat(evaluator.evaluate(config,
+                Map.of("tailNumber", "unknown-tail", "aircraftType", "a380")))
+                .isEqualByComparingTo("1150.00");
+    }
+
+    @Test
+    void unknownTailAndAircraftTypeFailClosed_INV_05() {
+        when(mtowRecordRepository.findById("UNKNOWN-TAIL")).thenReturn(Optional.empty());
+        when(aircraftTypeMtowDefaultRepository.findById("A380")).thenReturn(Optional.empty());
+        ServiceConfiguration config = ServiceConfiguration.builder()
+                .formulaType(FormulaType.PF_07)
+                .rateDetails(Map.of("rate", "2.00"))
+                .build();
+        MtowBasedEvaluator evaluator = new MtowBasedEvaluator(
+                mtowRecordRepository, aircraftTypeMtowDefaultRepository);
+
+        assertThatThrownBy(() -> evaluator.evaluate(config,
+                Map.of("tailNumber", "unknown-tail", "aircraftType", "a380")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No aircraft-type fallback");
     }
 }

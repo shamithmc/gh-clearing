@@ -3,6 +3,7 @@ package com.airline.pricing.evaluators;
 import com.airline.domain.FormulaType;
 import com.airline.domain.ServiceConfiguration;
 import com.airline.pricing.FormulaEvaluator;
+import com.airline.pricing.PricingValidation;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -50,7 +51,7 @@ public class TimeBasedEvaluator implements FormulaEvaluator {
             }
             
             if (inBand) {
-                applicableRate = new BigDecimal(band.get("rate").toString());
+                applicableRate = PricingValidation.nonNegativeDecimal(band.get("rate"), "PF-05 time-band rate");
                 break;
             }
         }
@@ -64,7 +65,7 @@ public class TimeBasedEvaluator implements FormulaEvaluator {
         if (qtyObj == null) {
             throw new IllegalArgumentException("Missing flight input for driver: " + driverKey);
         }
-        BigDecimal quantity = new BigDecimal(qtyObj.toString());
+        BigDecimal quantity = PricingValidation.nonNegativeDecimal(qtyObj, "PF-05 quantity " + driverKey);
 
         return applicableRate.multiply(quantity);
     }

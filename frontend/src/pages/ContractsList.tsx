@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card, Typography, Table, Tag, Select, Space, Row, Col, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -35,16 +36,14 @@ const ContractsList: React.FC = () => {
   // Simulated Tenant Role Selector (GROUND_HANDLER or AIRLINE)
   const [simTenantId, setSimTenantId] = useState<string>(localStorage.getItem('simTenantId') || 'SWISSPORT');
   const [simTenantType, setSimTenantType] = useState<string>(localStorage.getItem('simTenantType') || 'GROUND_HANDLER');
+  const [simUserId, setSimUserId] = useState<string>(() => getSimulatedUserId(localStorage.getItem('simTenantId') || 'SWISSPORT'));
   
   const navigate = useNavigate();
 
   const fetchContracts = useCallback(() => {
     const url = statusFilter === 'ALL' ? '/api/contracts' : `/api/contracts?status=${statusFilter}`;
     fetch(url, {
-      headers: {
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
-      }
+      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
     })
       .then(res => {
         if (res.ok) return res.json();
@@ -52,7 +51,7 @@ const ContractsList: React.FC = () => {
       })
       .then(data => setContracts(data))
       .catch(() => setContracts([]));
-  }, [statusFilter, simTenantId, simTenantType]);
+  }, [statusFilter, simTenantId, simTenantType, simUserId]);
 
   useEffect(() => {
     fetchContracts();
@@ -63,8 +62,7 @@ const ContractsList: React.FC = () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Mock-Tenant-Id': simTenantId,
-        'X-Mock-Tenant-Type': simTenantType,
+        ...simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
       },
       body: JSON.stringify({ status: newStatus }),
     })
@@ -80,6 +78,7 @@ const ContractsList: React.FC = () => {
   };
 
   const handleTenantChange = (value: string) => {
+    const userId = unrestrictedUserId(value);
     if (value === 'SWISSPORT') {
       setSimTenantId('SWISSPORT');
       setSimTenantType('GROUND_HANDLER');
@@ -91,6 +90,13 @@ const ContractsList: React.FC = () => {
       localStorage.setItem('simTenantId', 'EK');
       localStorage.setItem('simTenantType', 'AIRLINE');
     }
+    setSimUserId(userId);
+    setSimulatedUserId(userId);
+  };
+
+  const handlePersonaChange = (userId: string) => {
+    setSimUserId(userId);
+    setSimulatedUserId(userId);
   };
 
   const columns = [
@@ -129,18 +135,21 @@ const ContractsList: React.FC = () => {
               </Button>
             );
           }
-        } else if (simTenantType === 'AIRLINE') {
           if (record.status === 'PENDING_APPROVAL') {
             return (
               <Space>
-                <Button type="primary" danger size="small" onClick={() => handleStatusTransition(record.id, 'REVIEW_REQUESTED')}>
-                  Reject / Review
+                <Button danger size="small" onClick={() => handleStatusTransition(record.id, 'REVIEW_REQUESTED')}>
+                  Request Review
                 </Button>
                 <Button type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} size="small" onClick={() => handleStatusTransition(record.id, 'APPROVED')}>
                   Approve
                 </Button>
               </Space>
             );
+          }
+        } else if (simTenantType === 'AIRLINE') {
+          if (record.status === 'PENDING_APPROVAL') {
+            return <Button danger size="small" onClick={() => handleStatusTransition(record.id, 'REVIEW_REQUESTED')}>Request Review</Button>;
           }
         }
         return null;
@@ -195,7 +204,7 @@ const ContractsList: React.FC = () => {
 
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16} align="middle">
-          <Col span={12}>
+          <Col span={9}>
             <Space>
               <span>Filter by Status:</span>
               <Select value={statusFilter} style={{ width: 180 }} onChange={setStatusFilter}>
@@ -208,12 +217,17 @@ const ContractsList: React.FC = () => {
               </Select>
             </Space>
           </Col>
-          <Col span={12} style={{ textAlign: 'right' }}>
-            <Space>
+          <Col span={15} style={{ textAlign: 'right' }}>
+            <Space wrap>
               <span>Simulate Tenant User:</span>
               <Select value={simTenantId} style={{ width: 220 }} onChange={handleTenantChange}>
                 <Option value="SWISSPORT">Swissport (Ground Handler)</Option>
                 <Option value="EK">Emirates (Airline)</Option>
+              </Select>
+              <span>Access Scope:</span>
+              <Select value={simUserId} style={{ width: 250 }} onChange={handlePersonaChange}>
+                <Option value={unrestrictedUserId(simTenantId)}>Unrestricted</Option>
+                <Option value={scopedUserId(simTenantId)}>DXB / EK / BAGGAGE only</Option>
               </Select>
             </Space>
           </Col>

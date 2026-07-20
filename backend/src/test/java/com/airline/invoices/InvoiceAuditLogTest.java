@@ -64,6 +64,12 @@ public class InvoiceAuditLogTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
+    @Mock
+    private IsXmlGeneratorService xmlGeneratorService;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -117,7 +123,7 @@ public class InvoiceAuditLogTest {
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
-        when(contractRepository.findById("c-100")).thenReturn(Optional.of(approvedContract));
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
         when(pricingEngine.calculateCharge(any(), any())).thenReturn(new BigDecimal("1000.00"));
         when(invoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -160,7 +166,7 @@ public class InvoiceAuditLogTest {
         when(authentication.getName()).thenReturn("test-user-2");
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
-        when(invoiceRepository.findById("inv-uuid")).thenReturn(Optional.of(existing));
+        when(invoiceRepository.findByIdAndTenantId("inv-uuid", "SWISSPORT")).thenReturn(Optional.of(existing));
         when(invoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         invoiceService.updateInvoice("inv-uuid", updated);
@@ -188,7 +194,7 @@ public class InvoiceAuditLogTest {
         when(authentication.getName()).thenReturn("test-user-3");
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
-        when(invoiceRepository.findById("inv-uuid-2")).thenReturn(Optional.of(existing));
+        when(invoiceRepository.findByIdAndTenantId("inv-uuid-2", "SWISSPORT")).thenReturn(Optional.of(existing));
         when(invoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         invoiceService.updateInvoiceStatus("inv-uuid-2", InvoiceStatus.SENT);

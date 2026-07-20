@@ -62,6 +62,9 @@ public class CrossCurrencyValidationTest {
     @Mock
     private InvoiceDispatchService dispatchService;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -110,7 +113,7 @@ public class CrossCurrencyValidationTest {
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
-        when(contractRepository.findById("c-100")).thenReturn(Optional.of(approvedContract));
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
         when(pricingEngine.calculateCharge(any(), any())).thenReturn(new BigDecimal("1500.00"));
 
         assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
@@ -135,12 +138,13 @@ public class CrossCurrencyValidationTest {
                 .dueDate(LocalDate.now().plusDays(30))
                 .currency("USD") // Contract currency is AED
                 .exchangeRate(new BigDecimal("0.27")) // 1 AED = 0.27 USD
+                .exchangeRateSource("ECB")
                 .lineItems(List.of(item))
                 .build();
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
-        when(contractRepository.findById("c-100")).thenReturn(Optional.of(approvedContract));
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
         when(pricingEngine.calculateCharge(any(), any())).thenReturn(new BigDecimal("1000.00"));
         when(invoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -149,5 +153,23 @@ public class CrossCurrencyValidationTest {
         // 1000.00 AED * 0.27 = 270.00 USD
         assertThat(result.getTotalAmount()).isEqualTo(new BigDecimal("270.00"));
         assertThat(result.getLineItems().get(0).getCalculatedAmount()).isEqualTo(new BigDecimal("270.00"));
+    }
+
+    @Test
+    void crossCurrencyMissingExchangeRateSourceFails_INV_06() {
+        InvoiceLineItem item = InvoiceLineItem.builder().contractId("c-100").chargeCode("PAX")
+                .quantityDrivers("{\"passengers\": 100}").build();
+        Invoice invoice = Invoice.builder().invoiceNumber("INV-101").supplierId("SWISSPORT")
+                .airlineId("EK").airportCode("DXB").issueDate(LocalDate.now())
+                .dueDate(LocalDate.now().plusDays(30)).currency("USD")
+                .exchangeRate(new BigDecimal("0.27")).lineItems(List.of(item)).build();
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-100", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
+        when(pricingEngine.calculateCharge(any(), any())).thenReturn(new BigDecimal("1000.00"));
+
+        assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Exchange rate source");
     }
 }

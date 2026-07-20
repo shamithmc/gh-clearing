@@ -34,6 +34,9 @@ class CreditNoteValueLimitTest {
     @Mock
     private com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
 
+    @Mock
+    private com.airline.security.DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -48,8 +51,8 @@ class CreditNoteValueLimitTest {
                 .creditNoteAmount(new BigDecimal("900.00"))
                 .build();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "EK")).thenReturn(Optional.of(invoice));
 
         assertThatThrownBy(() -> invoiceService.generateCreditNote("inv-1", new BigDecimal("150.00"), "Operational mismatch"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -69,8 +72,8 @@ class CreditNoteValueLimitTest {
                 .creditNoteAmount(new BigDecimal("800.00"))
                 .build();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "EK")).thenReturn(Optional.of(invoice));
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Invoice result = invoiceService.generateCreditNote("inv-1", new BigDecimal("200.00"), "Final settlement");
