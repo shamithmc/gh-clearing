@@ -4,6 +4,7 @@ import com.airline.api.dto.DashboardDtos.*;
 import com.airline.domain.*;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
+import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,47 +24,61 @@ public class DashboardService {
     private final InvoiceRepository invoiceRepository;
     private final ContractRepository contractRepository;
     private final TenantContext tenantContext;
+    private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
     public DashboardService(InvoiceRepository invoiceRepository,
                             ContractRepository contractRepository,
-                            TenantContext tenantContext) {
+                            TenantContext tenantContext,
+                            DimensionalSecurityEvaluator dimensionalSecurityEvaluator) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.tenantContext = tenantContext;
+        this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
     }
 
-    private List<Invoice> getFilteredInvoices() {
+    private List<Invoice> getFilteredInvoices(String airlineId, String airportCode, LocalDate startDate, LocalDate endDate) {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
 
         List<Invoice> all = invoiceRepository.findAllByTenantId(tenantId);
-        if ("GROUND_HANDLER".equals(tenantType)) {
-            return all.stream()
-                    .filter(i -> i.getSupplierId().equals(tenantId))
-                    .collect(Collectors.toList());
-        } else {
-            return all.stream()
-                    .filter(i -> i.getAirlineId().equals(tenantId))
-                    .collect(Collectors.toList());
-        }
+        return all.stream()
+                .filter(i -> "GROUND_HANDLER".equals(tenantType) ? i.getSupplierId().equals(tenantId) : i.getAirlineId().equals(tenantId))
+                // ABAC enforcement
+                .filter(i -> dimensionalSecurityEvaluator.isAirportPermitted(i.getAirportCode()))
+                .filter(i -> dimensionalSecurityEvaluator.isAirlinePermitted(i.getAirlineId()))
+                // Optional Dimension Filters
+                .filter(i -> airlineId == null || i.getAirlineId().equals(airlineId))
+                .filter(i -> airportCode == null || i.getAirportCode().equals(airportCode))
+                .filter(i -> startDate == null || !i.getIssueDate().isBefore(startDate))
+                .filter(i -> endDate == null || !i.getIssueDate().isAfter(endDate))
+                .collect(Collectors.toList());
     }
 
-    private List<Contract> getFilteredContracts() {
+    private List<Contract> getFilteredContracts(String airlineId, String airportCode) {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
 
+        List<Contract> allContracts;
         if ("GROUND_HANDLER".equals(tenantType)) {
-            return contractRepository.findByGroundHandlerId(tenantId);
+            allContracts = contractRepository.findByGroundHandlerId(tenantId);
         } else {
-            // Find active/submitted contracts for the airline
-            return contractRepository.findAll().stream()
+            allContracts = contractRepository.findAll().stream()
                     .filter(c -> c.getAirlineId().equals(tenantId))
                     .collect(Collectors.toList());
         }
+
+        return allContracts.stream()
+                // ABAC enforcement
+                .filter(c -> dimensionalSecurityEvaluator.isAirportPermitted(c.getAirportCode()))
+                .filter(c -> dimensionalSecurityEvaluator.isAirlinePermitted(c.getAirlineId()))
+                // Optional Dimension Filters
+                .filter(c -> airlineId == null || c.getAirlineId().equals(airlineId))
+                .filter(c -> airportCode == null || c.getAirportCode().equals(airportCode))
+                .collect(Collectors.toList());
     }
 
-    public ReceivablesSummary getReceivablesSummary() {
-        List<Invoice> invoices = getFilteredInvoices().stream()
+    public ReceivablesSummary getReceivablesSummary(String airlineId, String airportCode, LocalDate startDate, LocalDate endDate) {
+        List<Invoice> invoices = getFilteredInvoices(airlineId, airportCode, startDate, endDate).stream()
                 .filter(i -> i.getStatus() == InvoiceStatus.SENT || i.getStatus() == InvoiceStatus.DISPUTED)
                 .collect(Collectors.toList());
 
@@ -131,8 +146,8 @@ public class DashboardService {
                 .build();
     }
 
-    public List<InvoicedTrend> getInvoicedTrend() {
-        List<Invoice> invoices = getFilteredInvoices().stream()
+    public List<InvoicedTrend> getInvoicedTrend(String airlineId, String airportCode, LocalDate startDate, LocalDate endDate) {
+        List<Invoice> invoices = getFilteredInvoices(airlineId, airportCode, startDate, endDate).stream()
                 .filter(i -> i.getStatus() != InvoiceStatus.DRAFT)
                 .collect(Collectors.toList());
 
@@ -148,8 +163,8 @@ public class DashboardService {
                 .collect(Collectors.toList());
     }
 
-    public List<RevenuePerFlightTrend> getRevenuePerFlightTrend() {
-        List<Invoice> invoices = getFilteredInvoices().stream()
+    public List<RevenuePerFlightTrend> getRevenuePerFlightTrend(String airlineId, String airportCode, LocalDate startDate, LocalDate endDate) {
+        List<Invoice> invoices = getFilteredInvoices(airlineId, airportCode, startDate, endDate).stream()
                 .filter(i -> i.getStatus() != InvoiceStatus.DRAFT)
                 .collect(Collectors.toList());
 
@@ -160,7 +175,7 @@ public class DashboardService {
             List<BigDecimal> amounts = monthlyFlightsMap.computeIfAbsent(month, k -> new ArrayList<>());
             if (invoice.getLineItems() != null) {
                 for (InvoiceLineItem item : invoice.getLineItems()) {
-                    if (item.getCalculatedAmount() != null) {
+                    if (item.getCalculatedAmount() != null && dimensionalSecurityEvaluator.isChargeCodePermitted(item.getChargeCode())) {
                         amounts.add(item.getCalculatedAmount());
                     }
                 }
@@ -181,8 +196,8 @@ public class DashboardService {
         return trend;
     }
 
-    public List<ExpiringContract> getExpiringContracts() {
-        List<Contract> contracts = getFilteredContracts().stream()
+    public List<ExpiringContract> getExpiringContracts(String airlineId, String airportCode) {
+        List<Contract> contracts = getFilteredContracts(airlineId, airportCode).stream()
                 .filter(c -> c.getStatus() == ContractStatus.APPROVED)
                 .collect(Collectors.toList());
 

@@ -17,3 +17,7 @@ invariants:
 
 ## Scope
 Implements supplier-facing analytics dashboard and widgets including receivables summary, monthly invoiced amount trends, revenue per flight, and expiring contracts. Enforces role-based report access.
+
+### Enhancements
+- Enforced Attribute-Based Access Control (ABAC) using `DimensionalSecurityEvaluator` checking if user permissions permit specific airports, airlines, and charge codes.
+- Added backend and frontend support for Dimension Filters (`airlineId`, `airportCode`, `startDate`, `endDate`) on all analytics dashboard endpoints.
