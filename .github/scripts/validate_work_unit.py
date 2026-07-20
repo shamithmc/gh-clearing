@@ -162,11 +162,31 @@ def main():
                 continue
             
             branch_name = ref.replace("origin/", "")
+
+            # Branches already merged (including squash-merged branches whose
+            # commits have patch-equivalents on main) no longer own locks.
+            cherry = subprocess.run(
+                ["git", "cherry", "origin/main", ref],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            has_unique_commits = any(
+                line.startswith("+") for line in cherry.stdout.splitlines()
+            )
+            if cherry.returncode == 0 and not has_unique_commits:
+                continue
             
-            # Check if tasks directory exists on that branch and check its files
+            # Only the task matching the remote branch represents that branch's
+            # active lock. Other task files are inherited history.
             try:
                 task_list_str = run_cmd(["git", "ls-tree", "-r", "--name-only", ref, "tasks"])
                 other_task_files = [f for f in task_list_str.splitlines() if f.endswith(".md")]
+                other_task_files = [
+                    f for f in other_task_files
+                    if branch_name in os.path.basename(f)
+                    or os.path.basename(f).replace("task-", "").replace(".md", "") in branch_name
+                ]
             except Exception:
                 # No tasks directory on other branch
                 continue

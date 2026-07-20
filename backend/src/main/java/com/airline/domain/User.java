@@ -19,6 +19,10 @@ import java.util.stream.Collectors;
 @Builder
 public class User {
 
+    private static Set<String> mutableCopy(Set<String> values) {
+        return values == null ? new HashSet<>() : new HashSet<>(values);
+    }
+
     @Id
     @Column(name = "id", length = 50)
     private String id;
@@ -62,6 +66,9 @@ public class User {
 
     @PrePersist
     protected void onCreate() {
+        airportRestrictions = mutableCopy(airportRestrictions);
+        airlineRestrictions = mutableCopy(airlineRestrictions);
+        chargeCodeRestrictions = mutableCopy(chargeCodeRestrictions);
         if (createdAt == null) {
             createdAt = OffsetDateTime.now();
         }
