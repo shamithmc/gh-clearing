@@ -14,6 +14,10 @@ echo -e "\e[36m2. Building React Frontend...\e[0m"
 
 # 3. Start Backend
 echo -e "\e[36m3. Starting Spring Boot Backend in background (logs redirected to backend.log)...\e[0m"
-(cd backend && nohup mvn spring-boot:run > ../backend.log 2>&1 &)
+if command -v lsof >/dev/null 2>&1 && lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null; then
+  echo "Port 8080 is already in use. Stop the existing backend and run this script again." >&2
+  exit 1
+fi
+(cd backend && nohup mvn clean spring-boot:run -Dspring-boot.run.profiles=dev > ../backend.log 2>&1 &)
 
 echo -e "\e[32m=== Dev Environment Ready at http://localhost:8080/ ===\e[0m"

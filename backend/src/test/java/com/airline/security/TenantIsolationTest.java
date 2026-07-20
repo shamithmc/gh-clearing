@@ -1,88 +1,113 @@
 package com.airline.security;
 
-import com.airline.domain.Tenant;
-import com.airline.repository.TenantRepository;
-import com.airline.service.TenantService;
-import com.airline.api.dto.TenantRequest;
+import com.airline.domain.Invoice;
+import com.airline.domain.InvoiceStatus;
+import com.airline.pricing.PricingEngine;
+import com.airline.repository.ContractRepository;
+import com.airline.repository.InvoiceAuditLogRepository;
+import com.airline.repository.InvoiceRepository;
+import com.airline.service.DocumentGenerationJob;
+import com.airline.service.InvoiceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.access.AccessDeniedException;
 
-import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * INV-01: Tenant Boundary Isolation
- * Verifies that tenant data is scoped by tenantId and cross-tenant access is blocked.
+ * INV-01: proves invoice reads and writes are scoped in the repository query
+ * and never load a record belonging to an unrelated tenant.
  */
 @ExtendWith(MockitoExtension.class)
 class TenantIsolationTest {
 
-    @Mock
-    private TenantRepository tenantRepository;
+    @Mock private InvoiceRepository invoiceRepository;
+    @Mock private ContractRepository contractRepository;
+    @Mock private PricingEngine pricingEngine;
+    @Mock private TenantContext tenantContext;
+    @Mock private ObjectMapper objectMapper;
+    @Mock private InvoiceAuditLogRepository invoiceAuditLogRepository;
+    @Mock private DocumentGenerationJob documentGenerationJob;
+    @Mock private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+    @Mock private com.airline.xml.IsXmlGeneratorService isXmlGeneratorService;
 
-    @InjectMocks
-    private TenantService tenantService;
+    private InvoiceService invoiceService;
 
-    @Test
-    void createTenant_withValidRequest_persistsTenant() {
-        TenantRequest req = new TenantRequest();
-        req.setId("gh-001");
-        req.setName("Swissport");
-        req.setType(Tenant.TenantType.GROUND_HANDLER);
-
-        Tenant saved = Tenant.builder()
-                .id("gh-001").name("Swissport")
-                .type(Tenant.TenantType.GROUND_HANDLER)
-                .status(Tenant.TenantStatus.ACTIVE).build();
-
-        when(tenantRepository.existsById("gh-001")).thenReturn(false);
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(saved);
-
-        Tenant result = tenantService.createTenant(req);
-
-        assertThat(result.getId()).isEqualTo("gh-001");
-        assertThat(result.getType()).isEqualTo(Tenant.TenantType.GROUND_HANDLER);
-        verify(tenantRepository).save(any(Tenant.class));
+    @BeforeEach
+    void setUp() {
+        invoiceService = new InvoiceService(
+                invoiceRepository,
+                contractRepository,
+                pricingEngine,
+                tenantContext,
+                objectMapper,
+                invoiceAuditLogRepository,
+                documentGenerationJob,
+                dimensionalSecurityEvaluator,
+                isXmlGeneratorService);
     }
 
     @Test
-    void createTenant_withDuplicateId_throwsConflict() {
-        TenantRequest req = new TenantRequest();
-        req.setId("gh-001");
-        req.setName("Duplicate");
-        req.setType(Tenant.TenantType.GROUND_HANDLER);
+    void tenantScopedReadUsesTenantPredicate() {
+        Invoice invoice = Invoice.builder()
+                .id("inv-1")
+                .supplierId("GH-1")
+                .airlineId("EK")
+                .status(InvoiceStatus.DRAFT)
+                .build();
+        when(tenantContext.getCurrentTenantId()).thenReturn("GH-1");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "GH-1"))
+                .thenReturn(Optional.of(invoice));
 
-        when(tenantRepository.existsById("gh-001")).thenReturn(true);
-
-        assertThatThrownBy(() -> tenantService.createTenant(req))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("already exists");
+        assertThat(invoiceService.getInvoice("inv-1")).isSameAs(invoice);
+        verify(invoiceRepository).findByIdAndTenantId("inv-1", "GH-1");
+        verify(invoiceRepository, never()).findById(anyString());
     }
 
     @Test
-    void getTenant_withUnknownId_throwsNotFound() {
-        when(tenantRepository.findById("unknown")).thenReturn(Optional.empty());
+    void crossTenantReadFailsClosedWithoutLoadingGlobalRecord() {
+        when(tenantContext.getCurrentTenantId()).thenReturn("GH-2");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "GH-2"))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> tenantService.getTenant("unknown"))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("not found");
+        assertThatThrownBy(() -> invoiceService.getInvoice("inv-1"))
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining("Invoice not found");
+        verify(invoiceRepository, never()).findById(anyString());
     }
 
     @Test
-    void listTenants_returnsAll() {
-        Tenant t1 = Tenant.builder().id("t1").name("T1").type(Tenant.TenantType.GROUND_HANDLER).status(Tenant.TenantStatus.ACTIVE).build();
-        Tenant t2 = Tenant.builder().id("t2").name("T2").type(Tenant.TenantType.AIRLINE).status(Tenant.TenantStatus.ACTIVE).build();
-        when(tenantRepository.findAll()).thenReturn(List.of(t1, t2));
+    void crossTenantWriteFailsBeforeSaving() {
+        when(tenantContext.getCurrentTenantId()).thenReturn("GH-2");
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "GH-2"))
+                .thenReturn(Optional.empty());
 
-        List<Tenant> result = tenantService.listTenants();
-        assertThat(result).hasSize(2);
+        assertThatThrownBy(() -> invoiceService.updateInvoice("inv-1", Invoice.builder().build()))
+                .isInstanceOf(java.util.NoSuchElementException.class);
+        verify(invoiceRepository, never()).save(any());
+        verify(invoiceRepository, never()).findById(anyString());
+    }
+
+    @Test
+    void tenantCannotCreateInvoiceForAnotherSupplier() {
+        Invoice invoice = Invoice.builder()
+                .supplierId("GH-2")
+                .airlineId("EK")
+                .build();
+        when(tenantContext.getCurrentTenantId()).thenReturn("GH-1");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+
+        assertThatThrownBy(() -> invoiceService.createInvoice(invoice))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("different supplier");
+        verify(invoiceRepository, never()).save(any());
     }
 }

@@ -47,11 +47,11 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     });
     expect(submitContractRes.status()).toBe(200);
 
-    // 3. Approve the contract via API (as AIRLINE counter-party)
+    // 3. Approve the contract via API (as internal GROUND_HANDLER approver)
     const approveContractRes = await request.put(`/api/contracts/${contractId}/status`, {
       headers: {
-        'X-Mock-Tenant-Id': 'EK',
-        'X-Mock-Tenant-Type': 'AIRLINE',
+        'X-Mock-Tenant-Id': 'SWISSPORT',
+        'X-Mock-Tenant-Type': 'GROUND_HANDLER',
         'Content-Type': 'application/json',
       },
       data: {
@@ -85,6 +85,7 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     await page.click('.ant-select-item-option-content:has-text("AED")');
 
     await page.fill('#exchangeRate', '1.0');
+    await page.fill('#exchangeRateSource', 'E2E reference rate');
 
     // Select Dates
     await page.click('#issueDate');
@@ -170,6 +171,7 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
 
     // Put negative exchange rate
     await page.fill('#exchangeRate', '-0.5');
+    await page.fill('#exchangeRateSource', 'E2E invalid rate');
 
     await page.click('#issueDate');
     await page.keyboard.press('Control+A');
@@ -203,7 +205,8 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     await page.click('button:has-text("Next")');
     await page.click('button:has-text("Submit Draft Invoice")');
 
-    // Assert that alert message appears or that we did not redirect
-    await expect(page.locator('.ant-message-notice')).toContainText('Failed to create invoice.');
+    await expect(page.locator('.ant-message-notice')).toContainText(
+      'Exchange rate must be provided and positive when invoice and contract currencies differ',
+    );
   });
 });

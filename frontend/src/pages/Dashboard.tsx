@@ -7,6 +7,7 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -64,13 +65,11 @@ const Dashboard: React.FC = () => {
   // Simulated tenant state to fetch headers properly if configured
   const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
   const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+  const [simUserId, setSimUserId] = useState<string>(() => getSimulatedUserId(simTenantId));
 
   useEffect(() => {
     setLoading(true);
-    const headers = {
-      'X-Mock-Tenant-Id': simTenantId,
-      'X-Mock-Tenant-Type': simTenantType
-    };
+    const headers = simulatedAuthHeaders(simTenantId, simTenantType, simUserId);
 
     const params: any = {};
     if (selectedAirline) params.airlineId = selectedAirline;
@@ -101,7 +100,12 @@ const Dashboard: React.FC = () => {
         console.error('Failed to load dashboard data', err);
         setLoading(false);
       });
-  }, [simTenantId, simTenantType, selectedAirline, selectedAirport, startDate, endDate]);
+  }, [simTenantId, simTenantType, simUserId, selectedAirline, selectedAirport, startDate, endDate]);
+
+  const handlePersonaChange = (userId: string) => {
+    setSimUserId(userId);
+    setSimulatedUserId(userId);
+  };
 
   // Calculate sum of invoicing trends
   const totalInvoicedThisMonth = invoicedTrend.length > 0 
@@ -353,6 +357,14 @@ const Dashboard: React.FC = () => {
       {/* Reusable Dashboard Layout Dimension Filters Bar */}
       <div style={{ background: '#fff', padding: '16px 20px', borderRadius: 8, marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
         <Space size="large" wrap>
+          <div>
+            <span style={{ marginRight: 8, fontWeight: 500, color: '#595959' }}>Access Scope:</span>
+            <Select value={simUserId} style={{ width: 250 }} onChange={handlePersonaChange}>
+              <Select.Option value={unrestrictedUserId(simTenantId)}>Unrestricted</Select.Option>
+              <Select.Option value={scopedUserId(simTenantId)}>DXB / EK / BAGGAGE only</Select.Option>
+            </Select>
+          </div>
+
           <div>
             <span style={{ marginRight: 8, fontWeight: 500, color: '#595959' }}>Airline:</span>
             <Select

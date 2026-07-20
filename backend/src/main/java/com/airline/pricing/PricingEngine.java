@@ -16,18 +16,30 @@ public class PricingEngine {
 
     public PricingEngine(List<FormulaEvaluator> evaluatorList) {
         for (FormulaEvaluator evaluator : evaluatorList) {
-            evaluators.put(evaluator.getSupportedType(), evaluator);
+            FormulaEvaluator duplicate = evaluators.putIfAbsent(evaluator.getSupportedType(), evaluator);
+            if (duplicate != null) {
+                throw new IllegalStateException("Duplicate evaluator for formula type: " + evaluator.getSupportedType());
+            }
         }
     }
 
     public BigDecimal calculateCharge(ServiceConfiguration config, Map<String, Object> flightInputs) {
-        FormulaEvaluator evaluator = evaluators.get(config.getFormulaType());
-        if (evaluator == null) {
-            throw new UnsupportedOperationException("No evaluator found for formula type: " + config.getFormulaType());
-        }
-        
         try {
-            return evaluator.evaluate(config, flightInputs);
+            if (config == null || config.getFormulaType() == null) {
+                throw new IllegalArgumentException("Pricing configuration and formula type are required");
+            }
+            if (flightInputs == null) {
+                throw new IllegalArgumentException("Flight inputs are required");
+            }
+            FormulaEvaluator evaluator = evaluators.get(config.getFormulaType());
+            if (evaluator == null) {
+                throw new UnsupportedOperationException("No evaluator found for formula type: " + config.getFormulaType());
+            }
+            BigDecimal charge = evaluator.evaluate(config, flightInputs);
+            if (charge == null || charge.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalStateException("Pricing calculation produced an invalid charge");
+            }
+            return charge;
         } catch (Exception e) {
             // Architecture Contract §4.1.3: The calculation MUST fail closed.
             throw new PricingEvaluationException("Pricing evaluation failed for config " + config.getId(), e);

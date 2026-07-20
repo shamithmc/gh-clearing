@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,10 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Builder
 public class User {
+
+    private static Set<String> mutableCopy(Set<String> values) {
+        return values == null ? new HashSet<>() : new HashSet<>(values);
+    }
 
     @Id
     @Column(name = "id", length = 50)
@@ -41,23 +46,29 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_airport_restrictions", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "airport_code")
-    private Set<String> airportRestrictions = Set.of();
+    @Builder.Default
+    private Set<String> airportRestrictions = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_airline_restrictions", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "airline_id")
-    private Set<String> airlineRestrictions = Set.of();
+    @Builder.Default
+    private Set<String> airlineRestrictions = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_charge_code_restrictions", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "charge_code")
-    private Set<String> chargeCodeRestrictions = Set.of();
+    @Builder.Default
+    private Set<String> chargeCodeRestrictions = new HashSet<>();
 
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
+        airportRestrictions = mutableCopy(airportRestrictions);
+        airlineRestrictions = mutableCopy(airlineRestrictions);
+        chargeCodeRestrictions = mutableCopy(chargeCodeRestrictions);
         if (createdAt == null) {
             createdAt = OffsetDateTime.now();
         }

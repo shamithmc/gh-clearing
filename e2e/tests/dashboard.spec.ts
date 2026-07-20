@@ -37,4 +37,23 @@ test.describe('Supplier MIS Dashboard E2E', () => {
     // Verify expiring contracts card/table exists
     await expect(page.locator('text=Contracts Up for Expiry')).toBeVisible();
   });
+
+  test('switches to the restricted ABAC persona through the UI', async ({ page }) => {
+    const scopedResponse = page.waitForResponse(response =>
+      response.url().includes('/api/dashboard/receivables')
+      && response.request().headers()['x-mock-user-id'] === 'dev-SWISSPORT-scoped'
+    );
+
+    const accessScope = page.locator('span', { hasText: 'Access Scope:' })
+      .locator('..')
+      .locator('.ant-select');
+    await accessScope.click();
+    await page.getByText('DXB / EK / BAGGAGE only', { exact: true }).last().click();
+
+    const response = await scopedResponse;
+    expect(response.ok()).toBeTruthy();
+    await expect(accessScope).toContainText('DXB / EK / BAGGAGE only');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('simUserId')))
+      .toBe('dev-SWISSPORT-scoped');
+  });
 });
