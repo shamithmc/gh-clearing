@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -111,7 +112,7 @@ public class ContractControllerTest {
                 .services(List.of())
                 .build();
 
-        when(contractService.getContracts(any())).thenReturn(List.of(response));
+        when(contractService.getContracts(any(), any(), any())).thenReturn(List.of(response));
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/contracts")
                         .with(jwt().jwt(builder -> builder.claim("tenant_id", "SWISSPORT").claim("tenant_type", "GROUND_HANDLER").claim("roles", List.of("CONTRACT_MANAGER")))))
@@ -119,6 +120,22 @@ public class ContractControllerTest {
                 .andExpect(jsonPath("$[0].id").value("test-contract-id"))
                 .andExpect(jsonPath("$[0].status").value("APPROVED"));
      }
+
+    @Test
+    void shouldPropagateAirlineDimensionFilters() throws Exception {
+        when(contractService.getContracts(null, "DXB", "BAGGAGE")).thenReturn(List.of());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/contracts")
+                        .queryParam("airportCode", "DXB")
+                        .queryParam("serviceType", "BAGGAGE")
+                        .with(jwt().jwt(builder -> builder
+                                .claim("tenant_id", "EK")
+                                .claim("tenant_type", "AIRLINE")
+                                .claim("roles", List.of("CONTRACT_VIEWER")))))
+                .andExpect(status().isOk());
+
+        verify(contractService).getContracts(null, "DXB", "BAGGAGE");
+    }
 
     @Test
     void shouldUpdateContractStatusSuccessfully() throws Exception {

@@ -10,9 +10,9 @@ const workspaceItems = [
   {
     title: 'Contracts',
     description: 'View supplier contracts and follow contract review activity.',
-    path: '/contracts',
+    path: '/airline/contracts',
     icon: <FileTextOutlined style={{ fontSize: 26, color: '#1677ff' }} />,
-    availability: 'Read-only views arrive in Phase 6.3',
+    availability: 'Read-only contract access',
   },
   {
     title: 'Invoices',
