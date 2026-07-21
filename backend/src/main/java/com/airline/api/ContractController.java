@@ -24,8 +24,11 @@ public class ContractController {
     }
 
     @GetMapping
-    public java.util.List<ContractResponse> listContracts(@RequestParam(required = false) com.airline.domain.ContractStatus status) {
-        return contractService.getContracts(status);
+    public java.util.List<ContractResponse> listContracts(
+            @RequestParam(required = false) com.airline.domain.ContractStatus status,
+            @RequestParam(required = false) String airportCode,
+            @RequestParam(required = false) String serviceType) {
+        return contractService.getContracts(status, airportCode, serviceType);
     }
 
     @PutMapping("/{id}/status")

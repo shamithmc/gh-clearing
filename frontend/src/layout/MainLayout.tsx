@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
 
   const airlineMenuItems = [
     { key: '/airline', icon: <DashboardOutlined />, label: 'Airline Home' },
-    { key: '/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
+    { key: '/airline/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
     { key: '/invoices', icon: <FileDoneOutlined />, label: 'Invoices' },
     { key: '/disputes', icon: <SafetyCertificateOutlined />, label: 'Disputes' },
   ];

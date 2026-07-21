@@ -87,6 +87,12 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public java.util.List<ContractResponse> getContracts(ContractStatus status) {
+        return getContracts(status, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<ContractResponse> getContracts(
+            ContractStatus status, String airportCode, String serviceType) {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
 
@@ -99,6 +105,7 @@ public class ContractService {
                 contracts = contractRepository.findByGroundHandlerIdOrderByCreatedAtDesc(tenantId);
             }
         } else if ("AIRLINE".equals(tenantType)) {
+            requireAnyRole(java.util.Set.of("CONTRACT_VIEWER", "CONTRACT_REVIEWER"));
             // Invisible to counterparty if DRAFT
             if (status != null) {
                 if (status == ContractStatus.DRAFT) {
@@ -112,10 +119,16 @@ public class ContractService {
             throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");
         }
 
+        String normalizedAirport = normalizeOptionalFilter(airportCode);
+        String normalizedServiceType = normalizeOptionalFilter(serviceType);
+
         return contracts.stream()
                 .filter(c -> dimensionalSecurityEvaluator.isAirportPermitted(c.getAirportCode()))
                 .filter(c -> dimensionalSecurityEvaluator.isAirlinePermitted(c.getAirlineId()))
                 .filter(c -> c.getServices().stream().allMatch(s -> dimensionalSecurityEvaluator.isChargeCodePermitted(s.getChargeCode())))
+                .filter(c -> normalizedAirport == null || normalizedAirport.equalsIgnoreCase(c.getAirportCode()))
+                .filter(c -> normalizedServiceType == null || c.getServices().stream()
+                        .anyMatch(service -> normalizedServiceType.equalsIgnoreCase(service.getChargeCode())))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -212,16 +225,27 @@ public class ContractService {
     }
 
     private void requireRole(String requiredRole) {
+        requireAnyRole(java.util.Set.of(requiredRole));
+    }
+
+    private void requireAnyRole(java.util.Set<String> requiredRoles) {
         org.springframework.security.core.Authentication authentication =
                 org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean permitted = authentication != null
                 && authentication.isAuthenticated()
                 && authentication.getAuthorities().stream()
-                        .anyMatch(authority -> requiredRole.equals(authority.getAuthority()));
+                        .anyMatch(authority -> requiredRoles.contains(authority.getAuthority()));
         if (!permitted) {
             throw new org.springframework.security.access.AccessDeniedException(
-                    "Required role is missing: " + requiredRole);
+                    "One of the required roles is missing: " + requiredRoles);
         }
+    }
+
+    private String normalizeOptionalFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(java.util.Locale.ROOT);
     }
 
     private ContractResponse mapToResponse(Contract contract) {
