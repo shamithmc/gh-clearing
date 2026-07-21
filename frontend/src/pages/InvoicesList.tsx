@@ -221,6 +221,16 @@ const InvoicesList: React.FC = () => {
               Finalize
             </Button>
           )}
+          {simTenantType === 'GROUND_HANDLER' && record.status === 'FINALIZED' && (
+            <>
+              <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleStatusChange(record.id, 'APPROVED')}>
+                Approve
+              </Button>
+              <Button size="small" danger icon={<ExclamationCircleOutlined />} onClick={() => showModificationModal(record.id)}>
+                Request Modification
+              </Button>
+            </>
+          )}
           {simTenantType === 'GROUND_HANDLER' && record.status === 'APPROVED' && (
             <Button size="small" type="dashed" icon={<SendOutlined />} onClick={() => handleStatusChange(record.id, 'SENT')}>
               Send to Airline
@@ -230,16 +240,6 @@ const InvoicesList: React.FC = () => {
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleStatusChange(record.id, 'PAID')}>
               Mark as Paid
             </Button>
-          )}
-          {simTenantType === 'AIRLINE' && record.status === 'FINALIZED' && (
-            <>
-              <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleStatusChange(record.id, 'APPROVED')}>
-                Approve
-              </Button>
-              <Button size="small" danger icon={<ExclamationCircleOutlined />} onClick={() => showModificationModal(record.id)}>
-                Request Modification
-              </Button>
-            </>
           )}
           {simTenantType === 'AIRLINE' && record.status === 'SENT' && (
             <>

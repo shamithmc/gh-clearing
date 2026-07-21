@@ -33,8 +33,11 @@ public class InvoiceController {
     }
 
     @GetMapping
-    public List<Invoice> listInvoices() {
-        return invoiceService.listInvoices();
+    public List<Invoice> listInvoices(
+            @RequestParam(required = false) InvoiceStatus status,
+            @RequestParam(required = false) String airportCode,
+            @RequestParam(required = false) String serviceType) {
+        return invoiceService.listInvoices(status, airportCode, serviceType);
     }
 
     @GetMapping("/{id}")
@@ -110,4 +113,3 @@ public class InvoiceController {
         return invoiceService.generateCreditNote(id, amount, reason);
     }
 }
-
