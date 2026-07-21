@@ -140,12 +140,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await expect(invoiceRow).toContainText('FINALIZED');
     await expect(invoiceRow.locator('button:has-text("Finalize")')).not.toBeVisible();
 
-    // 3. Switch Simulated Tenant User to Emirates (Airline)
-    await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
-    await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
-    await page.waitForLoadState('networkidle');
-
-    // Verify actions
+    // 3. Internal ground-handler approval review
     await expect(invoiceRow.locator('button:has-text("Approve")')).toBeVisible();
     await expect(invoiceRow.locator('button:has-text("Request Modification")')).toBeVisible();
 
@@ -163,32 +158,17 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await invoiceRow.locator('button.ant-table-row-expand-icon').click();
     await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText(comment);
 
-    // 4. Switch back to Swissport to re-finalize
-    await page.locator('.ant-select').filter({ hasText: 'Emirates' }).first().click();
-    await page.click('.ant-select-item-option-content:has-text("Swissport (Ground Handler)")');
-    await page.waitForLoadState('networkidle');
-
-    // Re-finalize
+    // 4. Re-finalize after the requested modification
     await invoiceRow.locator('button:has-text("Finalize")').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to FINALIZED');
     await expect(invoiceRow).toContainText('FINALIZED');
 
-    // 5. Switch to Emirates to Approve
-    await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
-    await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
-    await page.waitForLoadState('networkidle');
-
-    // Approve the invoice
+    // 5. Ground-handler approver approves the invoice
     await invoiceRow.locator('button:has-text("Approve")').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to APPROVED');
     await expect(invoiceRow).toContainText('APPROVED');
 
-    // 6. Switch back to Swissport to Send
-    await page.locator('.ant-select').filter({ hasText: 'Emirates' }).first().click();
-    await page.click('.ant-select-item-option-content:has-text("Swissport (Ground Handler)")');
-    await page.waitForLoadState('networkidle');
-
-    // Send the invoice
+    // 6. Send the approved invoice
     await invoiceRow.locator('button:has-text("Send to Airline")').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to SENT');
     await expect(invoiceRow).toContainText('SENT');

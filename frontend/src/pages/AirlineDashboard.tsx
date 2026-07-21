@@ -17,9 +17,9 @@ const workspaceItems = [
   {
     title: 'Invoices',
     description: 'Review dispatched invoices, documents, and payment status.',
-    path: '/invoices',
+    path: '/airline/invoices',
     icon: <FileDoneOutlined style={{ fontSize: 26, color: '#13a8a8' }} />,
-    availability: 'Airline views arrive in Phase 6.5',
+    availability: 'Dispatched invoice access',
   },
   {
     title: 'Disputes',

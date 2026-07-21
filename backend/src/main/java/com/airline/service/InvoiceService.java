@@ -101,15 +101,44 @@ public class InvoiceService {
         Invoice invoice = invoiceRepository.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Invoice not found: " + id));
 
+        if ("AIRLINE".equals(tenantContext.getCurrentTenantType())) {
+            requireRole("INVOICE_REVIEWER");
+            if (!tenantId.equals(invoice.getAirlineId()) || !isAirlineVisible(invoice)) {
+                throw new java.util.NoSuchElementException("Invoice not found: " + id);
+            }
+        }
         verifyDimensionalAccess(invoice);
         return invoice;
     }
 
     @Transactional(readOnly = true)
     public List<Invoice> listInvoices() {
+        return listInvoices(null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Invoice> listInvoices(
+            InvoiceStatus status, String airportCode, String serviceType) {
         String tenantId = tenantContext.getCurrentTenantId();
+        boolean airlineTenant = "AIRLINE".equals(tenantContext.getCurrentTenantType());
+        if (airlineTenant) {
+            requireRole("INVOICE_REVIEWER");
+            if (status != null && !isAirlineVisible(status)) {
+                return List.of();
+            }
+        }
+
+        String normalizedAirport = normalizeOptionalFilter(airportCode);
+        String normalizedServiceType = normalizeOptionalFilter(serviceType);
         return invoiceRepository.findAllByTenantId(tenantId).stream()
+                .filter(invoice -> !airlineTenant || isAirlineVisible(invoice))
                 .filter(this::isDimensionallyPermitted)
+                .filter(invoice -> status == null || invoice.getStatus() == status)
+                .filter(invoice -> normalizedAirport == null
+                        || normalizedAirport.equalsIgnoreCase(invoice.getAirportCode()))
+                .filter(invoice -> normalizedServiceType == null
+                        || invoice.getLineItems().stream().anyMatch(item ->
+                                normalizedServiceType.equalsIgnoreCase(item.getChargeCode())))
                 .collect(Collectors.toList());
     }
 
@@ -391,6 +420,35 @@ public class InvoiceService {
         }
         return invoice.getLineItems() == null || invoice.getLineItems().stream()
                 .allMatch(item -> dimensionalSecurityEvaluator.isChargeCodePermitted(item.getChargeCode()));
+    }
+
+    private boolean isAirlineVisible(Invoice invoice) {
+        return invoice != null && isAirlineVisible(invoice.getStatus());
+    }
+
+    private boolean isAirlineVisible(InvoiceStatus status) {
+        return status == InvoiceStatus.SENT
+                || status == InvoiceStatus.PAID
+                || status == InvoiceStatus.DISPUTED;
+    }
+
+    private String normalizeOptionalFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    private void requireRole(String role) {
+        org.springframework.security.core.Authentication authentication =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean permitted = authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                        .anyMatch(authority -> role.equals(authority.getAuthority()));
+        if (!permitted) {
+            throw new AccessDeniedException("Required role is missing: " + role);
+        }
     }
 
     private Map<String, Object> parseQuantityDrivers(String quantityDriversStr) {
