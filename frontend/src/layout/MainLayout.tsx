@@ -4,6 +4,7 @@ import {
   DashboardOutlined, 
   FileTextOutlined, 
   FileDoneOutlined,
+  SafetyCertificateOutlined,
   SettingOutlined,
   UserOutlined,
   LogoutOutlined
@@ -20,7 +21,11 @@ const MainLayout: React.FC = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  const menuItems = [
+  const storedTenantType = localStorage.getItem('simTenantType');
+  const isAirline = storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
+  const tenantId = isAirline ? localStorage.getItem('simTenantId') || 'EK' : localStorage.getItem('simTenantId') || 'SWISSPORT';
+
+  const groundHandlerMenuItems = [
     {
       key: '/',
       icon: <DashboardOutlined />,
@@ -43,6 +48,15 @@ const MainLayout: React.FC = () => {
     }
   ];
 
+  const airlineMenuItems = [
+    { key: '/airline', icon: <DashboardOutlined />, label: 'Airline Home' },
+    { key: '/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
+    { key: '/invoices', icon: <FileDoneOutlined />, label: 'Invoices' },
+    { key: '/disputes', icon: <SafetyCertificateOutlined />, label: 'Disputes' },
+  ];
+
+  const menuItems = isAirline ? airlineMenuItems : groundHandlerMenuItems;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider 
@@ -51,7 +65,9 @@ const MainLayout: React.FC = () => {
         theme="light"
       >
         <div style={{ padding: '16px', textAlign: 'center' }}>
-          <Title level={4} style={{ margin: 0, color: '#1677ff' }}>GH Clearing</Title>
+          <Title level={4} style={{ margin: 0, color: '#1677ff' }}>
+            {isAirline ? 'Airline Clearing' : 'GH Clearing'}
+          </Title>
         </div>
         <Menu 
           theme="light" 
@@ -66,8 +82,8 @@ const MainLayout: React.FC = () => {
           <Space size="large">
             <Space>
               <UserOutlined />
-              <Text strong>John Doe</Text>
-              <Text type="secondary">(Swissport Admin)</Text>
+              <Text strong>{tenantId}</Text>
+              <Text type="secondary">({isAirline ? 'Airline User' : 'Ground Handler User'})</Text>
             </Space>
             <Button type="text" icon={<LogoutOutlined />}>
               Logout

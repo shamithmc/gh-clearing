@@ -20,7 +20,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'GROUND_HANDLER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN', 'AIRLINE_ADMIN')")
     public ResponseEntity<UserResponse> createUser(
             @PathVariable String tenantId,
             @Valid @RequestBody UserRequest request) {
@@ -29,7 +29,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'GROUND_HANDLER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN', 'AIRLINE_ADMIN')")
     public ResponseEntity<List<UserResponse>> listUsers(@PathVariable String tenantId) {
         return ResponseEntity.ok(
                 userService.listUsers(tenantId).stream()
@@ -39,7 +39,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'GROUND_HANDLER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN', 'AIRLINE_ADMIN')")
     public ResponseEntity<UserResponse> getUser(
             @PathVariable String tenantId,
             @PathVariable String userId) {

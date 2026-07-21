@@ -7,16 +7,24 @@ import ContractsList from './pages/ContractsList';
 import ContractWizard from './pages/ContractWizard';
 import InvoicesList from './pages/InvoicesList';
 import InvoiceWizard from './pages/InvoiceWizard';
+import AirlineDashboard from './pages/AirlineDashboard';
+import { Empty } from 'antd';
+
+const TenantHome: React.FC = () => (
+  localStorage.getItem('simTenantType') === 'AIRLINE' ? <AirlineDashboard /> : <Dashboard />
+);
 
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<TenantHome />} />
+        <Route path="airline" element={<AirlineDashboard />} />
         <Route path="contracts" element={<ContractsList />} />
         <Route path="contracts/new" element={<ContractWizard />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceWizard />} />
+        <Route path="disputes" element={<Empty description="Airline dispute workspace is coming in a later Phase 6 slice" />} />
         <Route path="configuration" element={<div>Configuration Placeholder</div>} />
       </Route>
     </Routes>
