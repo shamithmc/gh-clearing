@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, Empty, message, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Empty, message, Popconfirm, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { Paragraph, Text, Title } = Typography;
@@ -121,6 +121,26 @@ const AirlineInvoices: React.FC = () => {
     }
   };
 
+  const markAsPaid = async (invoice: Invoice) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/status?status=PAID`, {
+        method: 'PUT',
+        headers,
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 403
+          ? 'Your role or access scope does not permit payment updates.'
+          : 'The invoice could not be marked as paid.');
+      }
+      message.success(`Invoice ${invoice.invoiceNumber} marked as paid`);
+      await loadInvoices();
+    } catch (requestError) {
+      message.error(requestError instanceof Error
+        ? requestError.message
+        : 'The invoice could not be marked as paid.');
+    }
+  };
+
   const columns: TableColumnsType<Invoice> = [
     { title: 'Invoice Number', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
     { title: 'Supplier', dataIndex: 'supplierId', key: 'supplierId' },
@@ -160,6 +180,23 @@ const AirlineInvoices: React.FC = () => {
           </Button>
         </Space>
       ),
+    },
+    {
+      title: 'Payment',
+      key: 'payment',
+      render: (_, invoice) => invoice.status === 'SENT' || invoice.status === 'DISPUTED' ? (
+        <Popconfirm
+          title="Mark invoice as paid?"
+          description="This status update is immediately visible to the supplier."
+          okText="Mark Paid"
+          cancelText="Cancel"
+          onConfirm={() => markAsPaid(invoice)}
+        >
+          <Button type="primary" icon={<CheckCircleOutlined />}>
+            Mark as Paid
+          </Button>
+        </Popconfirm>
+      ) : <Tag color="success">Paid</Tag>,
     },
   ];
 

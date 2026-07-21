@@ -117,9 +117,11 @@ test('airline views only dispatched invoices, filters them, and downloads XML an
   await expect(page).toHaveURL(/\/airline\/invoices$/);
   await expect(page.getByRole('heading', { name: 'My Invoices' })).toBeVisible();
   await expect(page.getByText(sentNumber)).toBeVisible();
+  const invoiceRow = page.getByRole('row').filter({ hasText: sentNumber });
   await expect(page.getByText(draftNumber)).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Create Invoice/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Approve|Pay|Dispute/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Approve|Dispute/i })).toHaveCount(0);
+  await expect(invoiceRow.getByRole('button', { name: 'Mark as Paid' })).toBeVisible();
 
   const statusSelect = page.getByTestId('invoice-status-filter');
   const statusFilter = statusSelect.getByRole('combobox', { name: 'Invoice status filter' });
@@ -165,4 +167,32 @@ test('airline views only dispatched invoices, filters them, and downloads XML an
     page.getByRole('button', { name: `Download PDF ${sentNumber}` }).click(),
   ]);
   expect(pdfDownload.suggestedFilename()).toBe(`invoice-${sentNumber}.pdf`);
+
+  await invoiceRow.getByRole('button', { name: 'Mark as Paid' }).click();
+  await page.getByRole('button', { name: 'Mark Paid', exact: true }).click();
+  await expect(page.getByText(`Invoice ${sentNumber} marked as paid`)).toBeVisible();
+  await expect(page.getByText(sentNumber)).toHaveCount(0);
+
+  await statusSelect.click();
+  await statusFilter.fill('PAID');
+  await statusFilter.press('Enter');
+  const paidRow = page.getByRole('row').filter({ hasText: sentNumber });
+  await expect(paidRow).toContainText('PAID');
+  await expect(paidRow.getByRole('button', { name: 'Mark as Paid' })).toHaveCount(0);
+
+  const supplierInvoiceResponse = await page.request.get(`/api/invoices/${sentInvoice.id}`, {
+    headers: groundHandlerHeaders,
+  });
+  expect(supplierInvoiceResponse.ok()).toBeTruthy();
+  expect((await supplierInvoiceResponse.json()).status).toBe('PAID');
+
+  await page.evaluate(() => {
+    localStorage.setItem('simTenantId', 'SWISSPORT');
+    localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+    localStorage.setItem('simUserId', 'dev-SWISSPORT');
+  });
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Invoices' }).click();
+  const supplierRow = page.getByRole('row').filter({ hasText: sentNumber });
+  await expect(supplierRow).toContainText('PAID');
 });
