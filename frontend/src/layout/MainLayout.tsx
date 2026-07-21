@@ -7,7 +7,8 @@ import {
   SafetyCertificateOutlined,
   SettingOutlined,
   UserOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  CommentOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -35,6 +36,11 @@ const MainLayout: React.FC = () => {
       key: '/contracts',
       icon: <FileTextOutlined />,
       label: 'Contracts',
+    },
+    {
+      key: '/review-requests',
+      icon: <CommentOutlined />,
+      label: 'Review Requests',
     },
     {
       key: '/invoices',

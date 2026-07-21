@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Card, Col, Empty, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Empty, Form, Input, message, Modal, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
@@ -58,6 +58,9 @@ const AirlineContracts: React.FC = () => {
   const [serviceType, setServiceType] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+  const [reviewContract, setReviewContract] = useState<Contract>();
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewForm] = Form.useForm<{ comment: string }>();
 
   useEffect(() => {
     Promise.all([
@@ -99,6 +102,31 @@ const AirlineContracts: React.FC = () => {
     fetchContracts();
   }, [fetchContracts]);
 
+  const submitReviewRequest = async () => {
+    if (!reviewContract) return;
+    const { comment } = await reviewForm.validateFields();
+    setSubmittingReview(true);
+    try {
+      const response = await fetch(`/api/contracts/${reviewContract.id}/review-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ comment }),
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 403
+          ? 'Your role or access scope does not permit this review request.'
+          : 'The review request could not be submitted.');
+      }
+      message.success('Review request sent to the ground handler');
+      setReviewContract(undefined);
+      reviewForm.resetFields();
+    } catch (requestError) {
+      message.error(requestError instanceof Error ? requestError.message : 'The review request could not be submitted.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const columns: TableColumnsType<Contract> = [
     { title: 'Contract', dataIndex: 'id', key: 'id', render: id => `${String(id).slice(0, 8)}…` },
     { title: 'Ground Handler', dataIndex: 'groundHandlerId', key: 'groundHandlerId' },
@@ -111,6 +139,21 @@ const AirlineContracts: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: status => <Tag color={statusColor(String(status))}>{String(status)}</Tag>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, contract) => contract.status === 'APPROVED' ? (
+        <Button
+          data-testid={`request-review-${contract.id}`}
+          onClick={() => {
+            reviewForm.resetFields();
+            setReviewContract(contract);
+          }}
+        >
+          Request Review
+        </Button>
+      ) : null,
     },
   ];
 
@@ -205,6 +248,42 @@ const AirlineContracts: React.FC = () => {
           />
         </Spin>
       </Card>
+
+      <Modal
+        title="Request contract review"
+        open={Boolean(reviewContract)}
+        okText="Send Request"
+        confirmLoading={submittingReview}
+        onOk={submitReviewRequest}
+        onCancel={() => {
+          setReviewContract(undefined);
+          reviewForm.resetFields();
+        }}
+        destroyOnClose
+      >
+        <Paragraph type="secondary">
+          The approved contract remains active and read-only. Your comment will be added to the ground handler's review queue.
+        </Paragraph>
+        <Form form={reviewForm} layout="vertical" preserve={false}>
+          <Form.Item
+            name="comment"
+            label="Review comment"
+            rules={[
+              { required: true, whitespace: true, message: 'Enter a review comment' },
+              { max: 2000, message: 'Comment must not exceed 2000 characters' },
+            ]}
+          >
+            <Input.TextArea
+              data-testid="review-comment"
+              aria-label="Review comment"
+              rows={5}
+              maxLength={2000}
+              showCount
+              placeholder="Describe the terms or rates that need review"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   );
 };
