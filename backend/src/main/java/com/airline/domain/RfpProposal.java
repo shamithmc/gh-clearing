@@ -52,6 +52,12 @@ public class RfpProposal {
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private OffsetDateTime submittedAt;
 
+    @Column(name = "decided_by", length = 100)
+    private String decidedBy;
+
+    @Column(name = "decided_at")
+    private OffsetDateTime decidedAt;
+
     @PrePersist
     protected void onCreate() {
         if (submittedAt == null) {

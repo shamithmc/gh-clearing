@@ -64,6 +64,9 @@ public class Rfp {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "awarded_proposal_id", length = 50)
+    private String awardedProposalId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "rfp_eligible_ground_handlers", joinColumns = @JoinColumn(name = "rfp_id"))
     @Column(name = "ground_handler_id", length = 50)
