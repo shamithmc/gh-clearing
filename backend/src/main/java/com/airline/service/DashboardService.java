@@ -6,6 +6,9 @@ import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,7 @@ public class DashboardService {
     private List<Invoice> getFilteredInvoices(String airlineId, String airportCode, LocalDate startDate, LocalDate endDate) {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
+        requireAirlineDashboardRole(tenantType);
 
         List<Invoice> all = invoiceRepository.findAllByTenantId(tenantId);
         return all.stream()
@@ -59,6 +63,7 @@ public class DashboardService {
     private List<Contract> getFilteredContracts(String airlineId, String airportCode) {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
+        requireAirlineDashboardRole(tenantType);
 
         List<Contract> allContracts;
         if ("GROUND_HANDLER".equals(tenantType)) {
@@ -224,5 +229,20 @@ public class DashboardService {
 
         list.sort(Comparator.comparingLong(ExpiringContract::getDaysRemaining));
         return list;
+    }
+
+    private void requireAirlineDashboardRole(String tenantType) {
+        if (!"AIRLINE".equals(tenantType)) {
+            return;
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean permitted = authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                        .anyMatch(authority -> "MIS_VIEWER".equals(authority.getAuthority()));
+        if (!permitted) {
+            throw new AccessDeniedException("Required role is missing: MIS_VIEWER");
+        }
     }
 }

@@ -6,12 +6,16 @@ import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,7 +24,11 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,8 +54,77 @@ class DashboardServiceTest {
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
         // Default permit everything for dimensional access
-        when(dimensionalSecurityEvaluator.isAirportPermitted(anyString())).thenReturn(true);
-        when(dimensionalSecurityEvaluator.isAirlinePermitted(anyString())).thenReturn(true);
+        lenient().when(dimensionalSecurityEvaluator.isAirportPermitted(anyString())).thenReturn(true);
+        lenient().when(dimensionalSecurityEvaluator.isAirlinePermitted(anyString())).thenReturn(true);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void airlineDashboard_requiresMisViewerBeforeLoadingTenantData() {
+        when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        authenticateAs("INVOICE_REVIEWER");
+
+        assertThatThrownBy(() -> dashboardService.getReceivablesSummary(null, null, null, null))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("MIS_VIEWER");
+
+        verify(invoiceRepository, never()).findAllByTenantId("EK");
+    }
+
+    @Test
+    void airlineExpiringContracts_requiresMisViewerBeforeLoadingTenantData() {
+        when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        authenticateAs("CONTRACT_VIEWER");
+
+        assertThatThrownBy(() -> dashboardService.getExpiringContracts(null, null))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("MIS_VIEWER");
+
+        verify(contractRepository, never()).findByAirlineId("EK");
+    }
+
+    @Test
+    void airlineDashboard_withMisViewerFiltersRestrictedDimensions() {
+        when(tenantContext.getCurrentTenantId()).thenReturn("EK");
+        when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
+        authenticateAs("MIS_VIEWER");
+
+        Invoice permitted = Invoice.builder()
+                .id("allowed")
+                .supplierId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(InvoiceStatus.SENT)
+                .totalAmount(new BigDecimal("750.00"))
+                .issueDate(LocalDate.now())
+                .lineItems(List.of(InvoiceLineItem.builder().chargeCode("BAGGAGE").build()))
+                .build();
+        Invoice restricted = Invoice.builder()
+                .id("restricted")
+                .supplierId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("LHR")
+                .status(InvoiceStatus.SENT)
+                .totalAmount(new BigDecimal("900.00"))
+                .issueDate(LocalDate.now())
+                .lineItems(List.of(InvoiceLineItem.builder().chargeCode("CATERING").build()))
+                .build();
+        when(invoiceRepository.findAllByTenantId("EK")).thenReturn(List.of(permitted, restricted));
+        when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isAirportPermitted("LHR")).thenReturn(false);
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("BAGGAGE")).thenReturn(true);
+
+        ReceivablesSummary summary = dashboardService.getReceivablesSummary(null, null, null, null);
+
+        assertThat(summary.getTotalOutstanding()).isEqualByComparingTo("750.00");
+        assertThat(summary.getByAirport()).extracting(GroupedReceivable::getKey)
+                .containsExactly("DXB");
     }
 
     @Test
@@ -221,5 +298,10 @@ class DashboardServiceTest {
         when(dimensionalSecurityEvaluator.isChargeCodePermitted("CATERING")).thenReturn(false);
 
         assertThat(dashboardService.getExpiringContracts(null, null)).isEmpty();
+    }
+
+    private void authenticateAs(String role) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken("airline-user", null, role));
     }
 }
