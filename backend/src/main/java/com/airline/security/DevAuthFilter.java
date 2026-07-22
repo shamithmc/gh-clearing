@@ -41,12 +41,17 @@ public class DevAuthFilter extends OncePerRequestFilter {
                 mockUserId = "dev-" + mockTenantId;
             }
 
-            List<String> roles = "GROUND_HANDLER".equals(mockTenantType)
-                    ? List.of("ADMIN", "CONTRACT_ENTRY", "CONTRACT_APPROVER", "INVOICE_ENTRY",
-                            "INVOICE_APPROVER", "STATUS_UPDATER", "MIS_VIEWER", "RFP_MONITOR",
-                            "DISPUTE_HANDLER", "DISPUTE_APPROVER")
-                    : List.of("INVOICE_REVIEWER", "INVOICE_DISPUTER", "CONTRACT_VIEWER",
-                            "CONTRACT_REVIEWER", "RFP_RAISER", "MIS_VIEWER", "PAYMENT_UPDATER");
+            List<String> roles;
+            if ("GROUND_HANDLER".equals(mockTenantType)) {
+                roles = List.of("ADMIN", "CONTRACT_ENTRY", "CONTRACT_APPROVER", "INVOICE_ENTRY",
+                        "INVOICE_APPROVER", "STATUS_UPDATER", "MIS_VIEWER", "RFP_MONITOR",
+                        "DISPUTE_HANDLER", "DISPUTE_APPROVER");
+            } else if ("PLATFORM_ADMIN".equals(mockTenantType)) {
+                roles = List.of("PLATFORM_ADMIN");
+            } else {
+                roles = List.of("INVOICE_REVIEWER", "INVOICE_DISPUTER", "CONTRACT_VIEWER",
+                        "CONTRACT_REVIEWER", "RFP_RAISER", "MIS_VIEWER", "PAYMENT_UPDATER");
+            }
 
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "none")

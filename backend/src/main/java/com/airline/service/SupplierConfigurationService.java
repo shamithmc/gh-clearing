@@ -8,6 +8,7 @@ import com.airline.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
@@ -19,12 +20,14 @@ public class SupplierConfigurationService {
     private final SupplierConfigurationRepository supplierConfigurationRepository;
     private final TenantRepository tenantRepository;
 
+    @Transactional
     public SupplierConfiguration getConfiguration(String tenantId) {
         verifyTenantIsGroundHandler(tenantId);
         return supplierConfigurationRepository.findById(tenantId)
                 .orElseGet(() -> createDefaultConfiguration(tenantId));
     }
 
+    @Transactional
     public SupplierConfiguration updateConfiguration(String tenantId, SupplierConfigurationRequest request) {
         verifyTenantIsGroundHandler(tenantId);
         
