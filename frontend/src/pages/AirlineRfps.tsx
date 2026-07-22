@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, DatePicker, Empty, Form, Input, message, Moda
 import type { TableColumnsType } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { SendOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { RangePicker } = DatePicker;
@@ -57,6 +58,7 @@ interface ProposalDecisionResponse {
 }
 
 const AirlineRfps: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const tenantId = localStorage.getItem('simTenantId') || 'EK';
   const userId = getSimulatedUserId(tenantId);
   const headers = useMemo(
@@ -108,6 +110,17 @@ const AirlineRfps: React.FC = () => {
     });
     loadRfps();
   }, [headers, loadRfps]);
+
+  useEffect(() => {
+    const airportCode = searchParams.get('airportCode');
+    const serviceType = searchParams.get('serviceType');
+    if (airportCode || serviceType) {
+      form.setFieldsValue({
+        ...(airportCode ? { airportCode } : {}),
+        ...(serviceType ? { serviceType } : {}),
+      });
+    }
+  }, [form, searchParams]);
 
   const publishRfp = async (values: RfpFormValues) => {
     setPublishing(true);
