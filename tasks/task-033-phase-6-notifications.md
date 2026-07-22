@@ -4,15 +4,23 @@ title: "Phase 6.8: Airline Workflow Notifications"
 owner: Shamith
 paths:
   - "tasks/task-033-phase-6-notifications.md"
-  - "backend/src/main/java/com/airline/notification/**"
+  - "backend/src/main/java/com/airline/notification/ContractReviewRequestedEvent.java"
+  - "backend/src/main/java/com/airline/notification/EmailNotificationListener.java"
+  - "backend/src/main/java/com/airline/notification/NotificationRecipientResolver.java"
+  - "backend/src/main/java/com/airline/notification/PaymentMarkedEvent.java"
   - "backend/src/main/java/com/airline/service/ContractReviewRequestService.java"
-  - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/main/java/com/airline/service/InvoiceDispatchService.java"
+  - "backend/src/main/java/com/airline/service/InvoiceService.java"
   - "backend/src/main/resources/application.yml"
-  - "backend/src/test/java/com/airline/notification/**"
   - "backend/src/test/java/com/airline/contracts/ContractReviewRequestServiceTest.java"
-  - "backend/src/test/java/com/airline/invoices/AirlinePaymentStatusTest.java"
   - "backend/src/test/java/com/airline/dispatch/InvoiceDispatchTest.java"
+  - "backend/src/test/java/com/airline/invoices/AirlineInvoiceViewerTest.java"
+  - "backend/src/test/java/com/airline/invoices/AirlinePaymentStatusTest.java"
+  - "backend/src/test/java/com/airline/notification/EmailNotificationListenerTest.java"
+  - "backend/src/test/java/com/airline/notification/NotificationRecipientResolverTest.java"
+  - "backend/src/test/java/com/airline/security/DimensionalAccessTest.java"
+  - "backend/src/test/java/com/airline/security/TenantIsolationTest.java"
+  - "backend/src/test/java/com/airline/xml/IataXmlComplianceTest.java"
 proof: INTEGRATION
 invariants:
   - INV-01
