@@ -73,7 +73,8 @@ class IataXmlComplianceTest {
                 mock(com.airline.repository.InvoiceAuditLogRepository.class),
                 mock(com.airline.service.DocumentGenerationJob.class),
                 mock(com.airline.security.DimensionalSecurityEvaluator.class),
-                generator);
+                generator,
+                mock(org.springframework.context.ApplicationEventPublisher.class));
         Invoice invoice = buildTestInvoice();
         invoice.setStatus(InvoiceStatus.APPROVED);
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");

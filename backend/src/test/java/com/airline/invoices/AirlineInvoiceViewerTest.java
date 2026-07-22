@@ -43,6 +43,7 @@ class AirlineInvoiceViewerTest {
     @Mock private DocumentGenerationJob documentGenerationJob;
     @Mock private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
     @Mock private IsXmlGeneratorService isXmlGeneratorService;
+    @Mock private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     private InvoiceService invoiceService;
 
@@ -50,7 +51,7 @@ class AirlineInvoiceViewerTest {
     void setUp() {
         invoiceService = new InvoiceService(invoiceRepository, contractRepository, pricingEngine,
                 tenantContext, new ObjectMapper(), invoiceAuditLogRepository, documentGenerationJob,
-                dimensionalSecurityEvaluator, isXmlGeneratorService);
+                dimensionalSecurityEvaluator, isXmlGeneratorService, applicationEventPublisher);
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("invoice-reviewer", "n/a", "INVOICE_REVIEWER"));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");

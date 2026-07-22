@@ -11,6 +11,7 @@ import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import com.airline.service.DocumentGenerationJob;
 import com.airline.service.InvoiceService;
+import com.airline.notification.PaymentMarkedEvent;
 import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -46,6 +48,7 @@ class AirlinePaymentStatusTest {
     @Mock private DocumentGenerationJob documentGenerationJob;
     @Mock private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
     @Mock private IsXmlGeneratorService isXmlGeneratorService;
+    @Mock private ApplicationEventPublisher applicationEventPublisher;
 
     private InvoiceService invoiceService;
 
@@ -53,7 +56,7 @@ class AirlinePaymentStatusTest {
     void setUp() {
         invoiceService = new InvoiceService(invoiceRepository, contractRepository, pricingEngine,
                 tenantContext, new ObjectMapper(), invoiceAuditLogRepository, documentGenerationJob,
-                dimensionalSecurityEvaluator, isXmlGeneratorService);
+                dimensionalSecurityEvaluator, isXmlGeneratorService, applicationEventPublisher);
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("payment-user", "n/a", "PAYMENT_UPDATER"));
         when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
@@ -82,6 +85,11 @@ class AirlinePaymentStatusTest {
         verify(invoiceAuditLogRepository).save(auditCaptor.capture());
         assertThat(auditCaptor.getValue().getAction()).isEqualTo("PAID");
         assertThat(auditCaptor.getValue().getUserId()).isEqualTo("payment-user");
+        ArgumentCaptor<PaymentMarkedEvent> eventCaptor =
+                ArgumentCaptor.forClass(PaymentMarkedEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().groundHandlerId()).isEqualTo("SWISSPORT");
+        assertThat(eventCaptor.getValue().invoiceNumber()).isEqualTo("INV-100");
     }
 
     @Test

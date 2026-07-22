@@ -3,6 +3,7 @@ package com.airline.dispatch;
 import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceStatus;
 import com.airline.service.InvoiceDispatchService;
+import com.airline.notification.NotificationRecipientResolver;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -28,12 +30,14 @@ class InvoiceDispatchTest {
 
     @Mock
     private JavaMailSender mailSender;
+    @Mock
+    private NotificationRecipientResolver recipientResolver;
 
     private InvoiceDispatchService dispatchService;
 
     @BeforeEach
     void setUp() {
-        dispatchService = new InvoiceDispatchService(mailSender);
+        dispatchService = new InvoiceDispatchService(mailSender, recipientResolver);
         // Inject @Value fields that are not populated outside Spring context
         ReflectionTestUtils.setField(dispatchService, "fromAddress", "noreply@ghcp.test");
         ReflectionTestUtils.setField(dispatchService, "dispatchEnabled", true);
@@ -43,6 +47,9 @@ class InvoiceDispatchTest {
     void testDispatchSendsEmailWithAttachments() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(recipientResolver.resolve(
+                "EK", java.util.Set.of("INVOICE_REVIEWER"), "DXB", "EK", java.util.Set.of()))
+                .thenReturn(List.of("airline-user@example.test"));
 
         Invoice invoice = buildTestInvoice();
         byte[] xmlBytes = "<Invoice/>".getBytes();

@@ -60,3 +60,4 @@ app:
   mail:
     from: noreply@ghcp.internal
     dispatch-enabled: true
+    notifications-enabled: ${NOTIFICATIONS_ENABLED:true}
