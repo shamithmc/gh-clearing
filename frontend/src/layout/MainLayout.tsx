@@ -49,6 +49,11 @@ const MainLayout: React.FC = () => {
       label: 'Invoices',
     },
     {
+      key: '/rfps',
+      icon: <SendOutlined />,
+      label: 'RFP Opportunities',
+    },
+    {
       key: '/configuration',
       icon: <SettingOutlined />,
       label: 'Configuration',

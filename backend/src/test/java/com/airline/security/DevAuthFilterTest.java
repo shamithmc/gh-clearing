@@ -60,4 +60,19 @@ class DevAuthFilterTest {
         JwtAuthenticationToken jwt = (JwtAuthenticationToken) authentication.get();
         assertThat(jwt.getToken().getSubject()).isEqualTo("dev-SWISSPORT-scoped");
     }
+
+    @Test
+    void platformAdminHeadersReceiveOnlyPlatformAdminAuthority() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Mock-Tenant-Id", "PLATFORM");
+        request.addHeader("X-Mock-Tenant-Type", "PLATFORM_ADMIN");
+        AtomicReference<Authentication> authentication = new AtomicReference<>();
+
+        new DevAuthFilter().doFilter(request, new MockHttpServletResponse(),
+                (req, res) -> authentication.set(SecurityContextHolder.getContext().getAuthentication()));
+
+        JwtAuthenticationToken jwt = (JwtAuthenticationToken) authentication.get();
+        assertThat(jwt.getAuthorities()).extracting(Object::toString)
+                .containsExactly("PLATFORM_ADMIN");
+    }
 }
