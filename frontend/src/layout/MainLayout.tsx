@@ -9,7 +9,8 @@ import {
   UserOutlined,
   LogoutOutlined,
   CommentOutlined,
-  SendOutlined
+  SendOutlined,
+  ShopOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -54,6 +55,11 @@ const MainLayout: React.FC = () => {
       label: 'RFP Opportunities',
     },
     {
+      key: '/offerings',
+      icon: <ShopOutlined />,
+      label: 'Service Offerings',
+    },
+    {
       key: '/configuration',
       icon: <SettingOutlined />,
       label: 'Configuration',
@@ -65,6 +71,7 @@ const MainLayout: React.FC = () => {
     { key: '/airline/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
     { key: '/airline/invoices', icon: <FileDoneOutlined />, label: 'Invoices' },
     { key: '/airline/rfps', icon: <SendOutlined />, label: 'RFPs' },
+    { key: '/airline/marketplace', icon: <ShopOutlined />, label: 'Marketplace' },
     { key: '/disputes', icon: <SafetyCertificateOutlined />, label: 'Disputes' },
   ];
 

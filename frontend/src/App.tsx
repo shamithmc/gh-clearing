@@ -13,6 +13,8 @@ import ContractReviewRequests from './pages/ContractReviewRequests';
 import AirlineInvoices from './pages/AirlineInvoices';
 import AirlineRfps from './pages/AirlineRfps';
 import SupplierRfps from './pages/SupplierRfps';
+import Marketplace from './pages/Marketplace';
+import ServiceOfferings from './pages/ServiceOfferings';
 import { Empty } from 'antd';
 
 const TenantHome: React.FC = () => (
@@ -28,8 +30,10 @@ const App: React.FC = () => {
         <Route path="airline/contracts" element={<AirlineContracts />} />
         <Route path="airline/invoices" element={<AirlineInvoices />} />
         <Route path="airline/rfps" element={<AirlineRfps />} />
+        <Route path="airline/marketplace" element={<Marketplace />} />
         <Route path="review-requests" element={<ContractReviewRequests />} />
         <Route path="rfps" element={<SupplierRfps />} />
+        <Route path="offerings" element={<ServiceOfferings />} />
         <Route path="contracts" element={<ContractsList />} />
         <Route path="contracts/new" element={<ContractWizard />} />
         <Route path="invoices" element={<InvoicesList />} />
