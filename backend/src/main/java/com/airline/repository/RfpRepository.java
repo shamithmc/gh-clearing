@@ -17,10 +17,10 @@ public interface RfpRepository extends JpaRepository<Rfp, String> {
     @Query("""
             select distinct rfp from Rfp rfp
             join rfp.eligibleGroundHandlerIds handlerId
-            where handlerId = :groundHandlerId and rfp.status = com.airline.domain.RfpStatus.PUBLISHED
+            where handlerId = :groundHandlerId
             order by rfp.createdAt desc
             """)
-    List<Rfp> findPublishedForEligibleGroundHandler(
+    List<Rfp> findAllForEligibleGroundHandler(
             @Param("groundHandlerId") String groundHandlerId);
 
     @Query("""
