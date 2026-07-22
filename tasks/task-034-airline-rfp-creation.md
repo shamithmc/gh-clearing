@@ -18,7 +18,7 @@ paths:
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/AirlineRfps.tsx"
   - "e2e/tests/airline-rfps.spec.ts"
-proof: E2E
+proof: INTEGRATION
 invariants:
   - INV-01
   - INV-02
