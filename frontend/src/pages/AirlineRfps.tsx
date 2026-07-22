@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Empty, Form, Input, message, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Empty, Form, Input, message, Modal, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { SendOutlined } from '@ant-design/icons';
@@ -38,6 +38,24 @@ interface RfpFormValues {
   contractPeriod: [Dayjs, Dayjs];
 }
 
+interface RfpProposal {
+  id: string;
+  rfpId: string;
+  groundHandlerId: string;
+  proposedRate: number;
+  currency: string;
+  terms: string;
+  status: string;
+  submittedAt: string;
+}
+
+interface ProposalDecisionResponse {
+  proposalId: string;
+  proposalStatus: string;
+  rfpStatus: string;
+  seededContractId?: string;
+}
+
 const AirlineRfps: React.FC = () => {
   const tenantId = localStorage.getItem('simTenantId') || 'EK';
   const userId = getSimulatedUserId(tenantId);
@@ -52,6 +70,11 @@ const AirlineRfps: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string>();
+  const [evaluationRfp, setEvaluationRfp] = useState<Rfp>();
+  const [proposals, setProposals] = useState<RfpProposal[]>([]);
+  const [loadingProposals, setLoadingProposals] = useState(false);
+  const [decidingProposalId, setDecidingProposalId] = useState<string>();
+  const [proposalError, setProposalError] = useState<string>();
 
   const loadRfps = useCallback(async () => {
     setLoading(true);
@@ -117,6 +140,105 @@ const AirlineRfps: React.FC = () => {
     }
   };
 
+  const loadProposals = useCallback(async (rfpId: string) => {
+    setLoadingProposals(true);
+    setProposalError(undefined);
+    try {
+      const response = await fetch(`/api/rfps/${rfpId}/proposals`, { headers });
+      if (!response.ok) {
+        throw new Error(response.status === 403
+          ? 'Your role or access scope does not permit proposal evaluation.'
+          : 'Proposals could not be loaded.');
+      }
+      setProposals(await response.json());
+    } catch (requestError) {
+      setProposals([]);
+      setProposalError(requestError instanceof Error ? requestError.message : 'Proposals could not be loaded.');
+    } finally {
+      setLoadingProposals(false);
+    }
+  }, [headers]);
+
+  const openEvaluation = (rfp: Rfp) => {
+    setEvaluationRfp(rfp);
+    setProposals([]);
+    loadProposals(rfp.id);
+  };
+
+  const decideProposal = async (proposal: RfpProposal, status: 'ACCEPTED' | 'REJECTED') => {
+    if (!evaluationRfp) return;
+    setDecidingProposalId(proposal.id);
+    try {
+      const response = await fetch(`/api/rfps/${evaluationRfp.id}/proposals/${proposal.id}/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ status, seedContract: status === 'ACCEPTED' }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(response.status === 403
+          ? 'Your role or access scope does not permit this decision.'
+          : payload.message || 'The proposal decision could not be saved.');
+      }
+      const decision: ProposalDecisionResponse = await response.json();
+      if (decision.seededContractId) {
+        message.success(`Proposal accepted and draft contract ${decision.seededContractId} created`);
+      } else {
+        message.success(`Proposal ${status.toLowerCase()}`);
+      }
+      await Promise.all([loadProposals(evaluationRfp.id), loadRfps()]);
+      if (status === 'ACCEPTED') {
+        setEvaluationRfp(current => current ? { ...current, status: decision.rfpStatus } : current);
+      }
+    } catch (requestError) {
+      message.error(requestError instanceof Error ? requestError.message : 'The proposal decision could not be saved.');
+    } finally {
+      setDecidingProposalId(undefined);
+    }
+  };
+
+  const proposalColumns: TableColumnsType<RfpProposal> = [
+    { title: 'Supplier', dataIndex: 'groundHandlerId', key: 'groundHandlerId' },
+    {
+      title: 'Proposed Rate',
+      key: 'proposedRate',
+      render: (_, proposal) => `${proposal.currency} ${Number(proposal.proposedRate).toLocaleString()}`,
+    },
+    { title: 'Terms', dataIndex: 'terms', key: 'terms' },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: status => <Tag color={status === 'ACCEPTED' ? 'success' : status === 'REJECTED' ? 'error' : 'processing'}>{status}</Tag>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, proposal) => proposal.status === 'SUBMITTED' && evaluationRfp?.status === 'PUBLISHED' ? (
+        <Space wrap>
+          <Button
+            data-testid={`accept-proposal-${proposal.id}`}
+            type="primary"
+            loading={decidingProposalId === proposal.id}
+            disabled={Boolean(decidingProposalId && decidingProposalId !== proposal.id)}
+            onClick={() => decideProposal(proposal, 'ACCEPTED')}
+          >
+            Accept &amp; Create Draft
+          </Button>
+          <Button
+            data-testid={`reject-proposal-${proposal.id}`}
+            danger
+            loading={decidingProposalId === proposal.id}
+            disabled={Boolean(decidingProposalId && decidingProposalId !== proposal.id)}
+            onClick={() => decideProposal(proposal, 'REJECTED')}
+          >
+            Reject
+          </Button>
+        </Space>
+      ) : null,
+    },
+  ];
+
   const columns: TableColumnsType<Rfp> = [
     { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
     { title: 'Service', dataIndex: 'serviceType', key: 'serviceType' },
@@ -136,6 +258,15 @@ const AirlineRfps: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: status => <Tag color="processing">{status}</Tag>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, rfp) => (
+        <Button data-testid={`review-proposals-${rfp.id}`} onClick={() => openEvaluation(rfp)}>
+          Review Proposals
+        </Button>
+      ),
     },
   ];
 
@@ -236,6 +367,34 @@ const AirlineRfps: React.FC = () => {
           />
         </Spin>
       </Card>
+
+      <Modal
+        open={Boolean(evaluationRfp)}
+        title={evaluationRfp ? `Proposals for ${evaluationRfp.serviceType} at ${evaluationRfp.airportCode}` : 'RFP Proposals'}
+        width={1000}
+        footer={null}
+        onCancel={() => {
+          setEvaluationRfp(undefined);
+          setProposals([]);
+          setProposalError(undefined);
+        }}
+      >
+        {proposalError && <Alert type="error" showIcon message={proposalError} style={{ marginBottom: 16 }} />}
+        {evaluationRfp?.status === 'AWARDED' && (
+          <Alert type="success" showIcon message="This RFP has been awarded." style={{ marginBottom: 16 }} />
+        )}
+        <Spin spinning={loadingProposals}>
+          <Table
+            data-testid="proposal-comparison"
+            rowKey="id"
+            columns={proposalColumns}
+            dataSource={proposals}
+            pagination={false}
+            locale={{ emptyText: <Empty description="No proposals submitted yet" /> }}
+            scroll={{ x: 800 }}
+          />
+        </Spin>
+      </Modal>
     </Space>
   );
 };

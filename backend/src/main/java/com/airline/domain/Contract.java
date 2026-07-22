@@ -48,6 +48,9 @@ public class Contract {
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "source_rfp_id", length = 50)
+    private String sourceRfpId;
+
     @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ServiceConfiguration> services = new ArrayList<>();

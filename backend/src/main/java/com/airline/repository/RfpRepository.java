@@ -12,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface RfpRepository extends JpaRepository<Rfp, String> {
     List<Rfp> findAllByTenantIdOrderByCreatedAtDesc(String tenantId);
+    Optional<Rfp> findByIdAndTenantId(String id, String tenantId);
 
     @Query("""
             select distinct rfp from Rfp rfp
