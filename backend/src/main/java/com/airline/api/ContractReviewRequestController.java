@@ -37,4 +37,9 @@ public class ContractReviewRequestController {
     public List<ContractReviewRequestResponse> getGroundHandlerQueue() {
         return reviewRequestService.getGroundHandlerQueue();
     }
+
+    @GetMapping("/airline/contract-review-requests")
+    public List<ContractReviewRequestResponse> getAirlineHistory() {
+        return reviewRequestService.getAirlineHistory();
+    }
 }

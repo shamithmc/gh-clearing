@@ -76,6 +76,7 @@ class ContractReviewRequestServiceTest {
 
         assertThat(response.getComment()).isEqualTo("Please review the baggage rate.");
         assertThat(response.getAirportCode()).isEqualTo("DXB");
+        assertThat(response.getServiceTypes()).containsExactly("BAGGAGE");
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.APPROVED);
         verify(contractRepository, never()).save(any());
 
@@ -176,6 +177,50 @@ class ContractReviewRequestServiceTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Only ground handlers");
         verify(reviewRequestRepository, never()).findAll();
+    }
+
+    @Test
+    void airlineHistoryIsTenantOwnedAndDimensionFiltered() {
+        airlineTenant("EK");
+        Contract permitted = approvedContract("contract-1", "SWISSPORT", "EK", "DXB", "BAGGAGE");
+        Contract denied = approvedContract("contract-2", "DNATA", "EK", "FRA", "CLEANING");
+        ContractReviewRequest request1 = reviewRequest("request-1", permitted);
+        ContractReviewRequest request2 = reviewRequest("request-2", denied);
+        when(reviewRequestRepository.findByAirlineIdOrderByCreatedAtDesc("EK"))
+                .thenReturn(List.of(request1, request2));
+        when(contractRepository.findByIdAndTenantId("contract-1", "EK"))
+                .thenReturn(Optional.of(permitted));
+        when(contractRepository.findByIdAndTenantId("contract-2", "EK"))
+                .thenReturn(Optional.of(denied));
+        when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isAirlinePermitted("EK")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("BAGGAGE")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isAirportPermitted("FRA")).thenReturn(false);
+
+        var history = service.getAirlineHistory();
+
+        assertThat(history).singleElement().satisfies(item -> {
+            assertThat(item.getId()).isEqualTo("request-1");
+            assertThat(item.getGroundHandlerId()).isEqualTo("SWISSPORT");
+            assertThat(item.getAirportCode()).isEqualTo("DXB");
+            assertThat(item.getServiceTypes()).containsExactly("BAGGAGE");
+            assertThat(item.getContractStatus()).isEqualTo(ContractStatus.APPROVED);
+        });
+        verify(reviewRequestRepository).findByAirlineIdOrderByCreatedAtDesc("EK");
+        verify(reviewRequestRepository, never()).findByGroundHandlerIdOrderByCreatedAtDesc(any());
+    }
+
+    @Test
+    void groundHandlerCannotReadAirlineHistory() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken("contract-entry", "n/a", "CONTRACT_ENTRY"));
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+
+        assertThatThrownBy(service::getAirlineHistory)
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Only airlines");
+        verify(reviewRequestRepository, never()).findByAirlineIdOrderByCreatedAtDesc(any());
     }
 
     private void airlineTenant(String tenantId) {
