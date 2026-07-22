@@ -38,6 +38,7 @@ class TenantIsolationTest {
     @Mock private DocumentGenerationJob documentGenerationJob;
     @Mock private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
     @Mock private com.airline.xml.IsXmlGeneratorService isXmlGeneratorService;
+    @Mock private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     private InvoiceService invoiceService;
 
@@ -52,7 +53,8 @@ class TenantIsolationTest {
                 invoiceAuditLogRepository,
                 documentGenerationJob,
                 dimensionalSecurityEvaluator,
-                isXmlGeneratorService);
+                isXmlGeneratorService,
+                applicationEventPublisher);
     }
 
     @Test

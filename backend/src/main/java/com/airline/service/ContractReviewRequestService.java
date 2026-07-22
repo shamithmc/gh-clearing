@@ -5,6 +5,7 @@ import com.airline.domain.Contract;
 import com.airline.domain.ContractAuditLog;
 import com.airline.domain.ContractReviewRequest;
 import com.airline.domain.ContractStatus;
+import com.airline.notification.ContractReviewRequestedEvent;
 import com.airline.repository.ContractAuditLogRepository;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.ContractReviewRequestRepository;
@@ -13,6 +14,7 @@ import com.airline.security.TenantContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,18 +33,21 @@ public class ContractReviewRequestService {
     private final ContractAuditLogRepository contractAuditLogRepository;
     private final TenantContext tenantContext;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public ContractReviewRequestService(
             ContractReviewRequestRepository reviewRequestRepository,
             ContractRepository contractRepository,
             ContractAuditLogRepository contractAuditLogRepository,
             TenantContext tenantContext,
-            DimensionalSecurityEvaluator dimensionalSecurityEvaluator) {
+            DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
+            ApplicationEventPublisher applicationEventPublisher) {
         this.reviewRequestRepository = reviewRequestRepository;
         this.contractRepository = contractRepository;
         this.contractAuditLogRepository = contractAuditLogRepository;
         this.tenantContext = tenantContext;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -86,6 +91,13 @@ public class ContractReviewRequestService {
                 .userId(reviewRequest.getRequestedBy())
                 .timestamp(now)
                 .build());
+        applicationEventPublisher.publishEvent(new ContractReviewRequestedEvent(
+                contract.getId(),
+                contract.getGroundHandlerId(),
+                contract.getAirlineId(),
+                contract.getAirportCode(),
+                Set.copyOf(chargeCodes(contract)),
+                normalizedComment));
 
         return mapToResponse(reviewRequest, contract);
     }

@@ -1,20 +1,27 @@
 package com.airline.service;
 
 import com.airline.domain.Invoice;
+import com.airline.domain.InvoiceLineItem;
+import com.airline.notification.NotificationRecipientResolver;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
- * Dispatches approved invoices via email to the airline-configured email addresses.
+ * Dispatches approved invoices to role- and dimension-authorized airline users.
  * Attaches both the IATA IS-XML file and the PDF to the outgoing message.
  */
 @Service
 public class InvoiceDispatchService {
 
     private final JavaMailSender mailSender;
+    private final NotificationRecipientResolver recipientResolver;
 
     @Value("${app.mail.from:noreply@ghcp.internal}")
     private String fromAddress;
@@ -22,15 +29,14 @@ public class InvoiceDispatchService {
     @Value("${app.mail.dispatch-enabled:true}")
     private boolean dispatchEnabled;
 
-    public InvoiceDispatchService(JavaMailSender mailSender) {
+    public InvoiceDispatchService(
+            JavaMailSender mailSender, NotificationRecipientResolver recipientResolver) {
         this.mailSender = mailSender;
+        this.recipientResolver = recipientResolver;
     }
 
     /**
      * Sends the invoice email to the airline.
-     * The airline email is derived from the airlineId — in production this is
-     * looked up from the SupplierConfiguration table. Here we use a dev placeholder.
-     *
      * @param invoice  the SENT invoice
      * @param xmlBytes the generated IATA IS-XML file bytes
      * @param pdfBytes the generated PDF file bytes
@@ -41,7 +47,10 @@ public class InvoiceDispatchService {
         }
 
         try {
-            String toEmail = resolveAirlineEmail(invoice);
+            List<String> recipients = resolveAirlineEmails(invoice);
+            if (recipients.isEmpty()) {
+                return;
+            }
             String subject = String.format("Invoice %s from Ground Handler %s",
                     invoice.getInvoiceNumber(), invoice.getSupplierId());
 
@@ -49,26 +58,35 @@ public class InvoiceDispatchService {
             String xmlFilename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
             String pdfFilename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(body, false);
-            helper.addAttachment(xmlFilename, () -> new java.io.ByteArrayInputStream(xmlBytes), "application/xml");
-            helper.addAttachment(pdfFilename, () -> new java.io.ByteArrayInputStream(pdfBytes), "application/pdf");
+            for (String recipient : recipients) {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(fromAddress);
+                helper.setTo(recipient);
+                helper.setSubject(subject);
+                helper.setText(body, false);
+                helper.addAttachment(xmlFilename, () -> new java.io.ByteArrayInputStream(xmlBytes), "application/xml");
+                helper.addAttachment(pdfFilename, () -> new java.io.ByteArrayInputStream(pdfBytes), "application/pdf");
 
-            mailSender.send(message);
+                mailSender.send(message);
+            }
         } catch (Exception e) {
             throw new IllegalStateException("Failed to dispatch invoice email: " + e.getMessage(), e);
         }
     }
 
-    private String resolveAirlineEmail(Invoice invoice) {
-        // In a full implementation, this looks up the supplier's configured
-        // airline email from the SupplierConfiguration table.
-        // For now, we use a predictable dev address routed to Mailhog.
-        return invoice.getAirlineId().toLowerCase() + "@airline.ghcp.dev";
+    private List<String> resolveAirlineEmails(Invoice invoice) {
+        Set<String> chargeCodes = invoice.getLineItems() == null
+                ? Set.of()
+                : invoice.getLineItems().stream()
+                        .map(InvoiceLineItem::getChargeCode)
+                        .collect(Collectors.toUnmodifiableSet());
+        return recipientResolver.resolve(
+                invoice.getAirlineId(),
+                Set.of("INVOICE_REVIEWER"),
+                invoice.getAirportCode(),
+                invoice.getAirlineId(),
+                chargeCodes);
     }
 
     private String buildEmailBody(Invoice invoice) {

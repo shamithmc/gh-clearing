@@ -10,6 +10,7 @@ import com.airline.repository.ContractReviewRequestRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import com.airline.service.ContractReviewRequestService;
+import com.airline.notification.ContractReviewRequestedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -45,13 +47,16 @@ class ContractReviewRequestServiceTest {
     private TenantContext tenantContext;
     @Mock
     private DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     private ContractReviewRequestService service;
 
     @BeforeEach
     void setUp() {
         service = new ContractReviewRequestService(reviewRequestRepository, contractRepository,
-                contractAuditLogRepository, tenantContext, dimensionalSecurityEvaluator);
+                contractAuditLogRepository, tenantContext, dimensionalSecurityEvaluator,
+                applicationEventPublisher);
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("airline-reviewer", "n/a", "CONTRACT_REVIEWER"));
     }
@@ -80,6 +85,11 @@ class ContractReviewRequestServiceTest {
         assertThat(requestCaptor.getValue().getAirlineId()).isEqualTo("EK");
         verify(contractAuditLogRepository).save(any());
         verify(dimensionalSecurityEvaluator).verifyAccess("DXB", "EK", java.util.Set.of("BAGGAGE"));
+        ArgumentCaptor<ContractReviewRequestedEvent> eventCaptor =
+                ArgumentCaptor.forClass(ContractReviewRequestedEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().groundHandlerId()).isEqualTo("SWISSPORT");
+        assertThat(eventCaptor.getValue().chargeCodes()).containsExactly("BAGGAGE");
     }
 
     @Test

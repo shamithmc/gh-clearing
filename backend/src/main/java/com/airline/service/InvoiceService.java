@@ -5,6 +5,7 @@ import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceLineItem;
 import com.airline.domain.InvoiceStatus;
 import com.airline.domain.ServiceConfiguration;
+import com.airline.notification.PaymentMarkedEvent;
 import com.airline.pdf.InvoicePdfService;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
@@ -15,6 +16,7 @@ import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -43,6 +45,7 @@ public class InvoiceService {
     private final DocumentGenerationJob documentGenerationJob;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
     private final IsXmlGeneratorService isXmlGeneratorService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
@@ -52,7 +55,8 @@ public class InvoiceService {
                           com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
                           DocumentGenerationJob documentGenerationJob,
                           DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
-                          IsXmlGeneratorService isXmlGeneratorService) {
+                          IsXmlGeneratorService isXmlGeneratorService,
+                          ApplicationEventPublisher applicationEventPublisher) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
@@ -62,6 +66,7 @@ public class InvoiceService {
         this.documentGenerationJob = documentGenerationJob;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
         this.isXmlGeneratorService = isXmlGeneratorService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -266,6 +271,21 @@ public class InvoiceService {
         existing.setStatus(targetStatus);
         Invoice saved = invoiceRepository.save(existing);
         audit(saved.getId(), targetStatus.name(), comments);
+        if (targetStatus == InvoiceStatus.PAID && "AIRLINE".equals(tenantType)) {
+            applicationEventPublisher.publishEvent(new PaymentMarkedEvent(
+                    saved.getId(),
+                    saved.getInvoiceNumber(),
+                    saved.getSupplierId(),
+                    saved.getAirlineId(),
+                    saved.getAirportCode(),
+                    saved.getLineItems() == null
+                            ? Set.of()
+                            : saved.getLineItems().stream()
+                                    .map(InvoiceLineItem::getChargeCode)
+                                    .collect(Collectors.toUnmodifiableSet()),
+                    saved.getTotalAmount(),
+                    saved.getCurrency()));
+        }
         return saved;
     }
 
