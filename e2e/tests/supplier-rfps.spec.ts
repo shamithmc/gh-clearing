@@ -48,10 +48,10 @@ test('eligible ground handler views an airline RFP and submits a proposal throug
     localStorage.setItem('simUserId', 'dev-SWISSPORT');
   });
   await page.goto('/');
-  await page.getByRole('menuitem', { name: 'RFP Opportunities' }).click();
+  await page.getByRole('menuitem', { name: 'RFP Summary' }).click();
 
   await expect(page).toHaveURL(/\/rfps$/);
-  await expect(page.getByRole('heading', { name: 'RFP Opportunities' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'RFP Summary' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'EK' }).last()).toBeVisible();
   await expect(page.getByRole('cell', { name: 'DXB' }).last()).toBeVisible();
 

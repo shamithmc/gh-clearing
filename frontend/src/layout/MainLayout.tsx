@@ -52,7 +52,7 @@ const MainLayout: React.FC = () => {
     {
       key: '/rfps',
       icon: <SendOutlined />,
-      label: 'RFP Opportunities',
+      label: 'RFP Summary',
     },
     {
       key: '/offerings',

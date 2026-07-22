@@ -6,6 +6,8 @@ import com.airline.domain.Rfp;
 import com.airline.domain.RfpProposal;
 import com.airline.domain.RfpProposalStatus;
 import com.airline.domain.RfpStatus;
+import com.airline.domain.SupplierRfpOutcome;
+import com.airline.domain.SupplierRfpResponseStatus;
 import com.airline.repository.RfpProposalRepository;
 import com.airline.repository.RfpRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
@@ -68,7 +70,7 @@ class SupplierRfpServiceTest {
         Rfp permitted = rfp("allowed", "DXB", "EK", "BAGGAGE");
         Rfp restricted = rfp("restricted", "LHR", "EK", "CATERING");
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
-        when(rfpRepository.findPublishedForEligibleGroundHandler("SWISSPORT"))
+        when(rfpRepository.findAllForEligibleGroundHandler("SWISSPORT"))
                 .thenReturn(List.of(permitted, restricted));
         when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
         when(dimensionalSecurityEvaluator.isAirlinePermitted("EK")).thenReturn(true);
@@ -80,8 +82,39 @@ class SupplierRfpServiceTest {
         List<SupplierRfpResponse> result = service.listOpportunities();
 
         assertThat(result).extracting(SupplierRfpResponse::getId).containsExactly("allowed");
-        verify(rfpRepository).findPublishedForEligibleGroundHandler("SWISSPORT");
+        assertThat(result.getFirst().getResponseStatus())
+                .isEqualTo(SupplierRfpResponseStatus.NOT_SUBMITTED);
+        assertThat(result.getFirst().getOutcome()).isEqualTo(SupplierRfpOutcome.OPEN);
+        verify(rfpRepository).findAllForEligibleGroundHandler("SWISSPORT");
         verify(proposalRepository, never()).findByRfpIdAndTenantId("restricted", "SWISSPORT");
+    }
+
+    @Test
+    void awardedRfpsRemainVisibleWithSupplierOutcome() {
+        Rfp won = rfp("won-rfp", "DXB", "EK", "BAGGAGE");
+        won.setStatus(RfpStatus.AWARDED);
+        Rfp notSelected = rfp("lost-rfp", "DXB", "EK", "CATERING");
+        notSelected.setStatus(RfpStatus.AWARDED);
+        RfpProposal accepted = proposal("won-proposal", "won-rfp", RfpProposalStatus.ACCEPTED);
+        RfpProposal rejected = proposal("lost-proposal", "lost-rfp", RfpProposalStatus.REJECTED);
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(rfpRepository.findAllForEligibleGroundHandler("SWISSPORT"))
+                .thenReturn(List.of(won, notSelected));
+        when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isAirlinePermitted("EK")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("BAGGAGE")).thenReturn(true);
+        when(dimensionalSecurityEvaluator.isChargeCodePermitted("CATERING")).thenReturn(true);
+        when(proposalRepository.findByRfpIdAndTenantId("won-rfp", "SWISSPORT"))
+                .thenReturn(Optional.of(accepted));
+        when(proposalRepository.findByRfpIdAndTenantId("lost-rfp", "SWISSPORT"))
+                .thenReturn(Optional.of(rejected));
+
+        List<SupplierRfpResponse> result = service.listOpportunities();
+
+        assertThat(result).extracting(SupplierRfpResponse::getOutcome)
+                .containsExactly(SupplierRfpOutcome.WON, SupplierRfpOutcome.NOT_SELECTED);
+        assertThat(result).extracting(SupplierRfpResponse::getResponseStatus)
+                .containsExactly(SupplierRfpResponseStatus.ACCEPTED, SupplierRfpResponseStatus.REJECTED);
     }
 
     @Test
@@ -142,7 +175,7 @@ class SupplierRfpServiceTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("RFP_MONITOR");
 
-        verify(rfpRepository, never()).findPublishedForEligibleGroundHandler(any());
+        verify(rfpRepository, never()).findAllForEligibleGroundHandler(any());
     }
 
     private RfpProposalCreateRequest request() {
@@ -166,6 +199,20 @@ class SupplierRfpServiceTest {
                 .status(RfpStatus.PUBLISHED)
                 .createdBy("airline-user")
                 .createdAt(OffsetDateTime.now())
+                .build();
+    }
+
+    private RfpProposal proposal(String id, String rfpId, RfpProposalStatus status) {
+        return RfpProposal.builder()
+                .id(id)
+                .rfpId(rfpId)
+                .tenantId("SWISSPORT")
+                .proposedRate(new BigDecimal("18.7500"))
+                .currency("USD")
+                .terms("Net 30")
+                .status(status)
+                .submittedBy("rfp-monitor")
+                .submittedAt(OffsetDateTime.now())
                 .build();
     }
 }

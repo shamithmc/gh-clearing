@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Empty, Form, Input, InputNumber, message, Modal, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Empty, Form, Input, InputNumber, message, Modal, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
@@ -20,6 +20,8 @@ interface SupplierRfp {
   proposedRate?: number;
   proposalCurrency?: string;
   proposalTerms?: string;
+  responseStatus: string;
+  outcome: string;
 }
 
 interface ProposalValues {
@@ -40,6 +42,10 @@ const SupplierRfps: React.FC = () => {
   const [error, setError] = useState<string>();
   const [selectedRfp, setSelectedRfp] = useState<SupplierRfp>();
   const [submitting, setSubmitting] = useState(false);
+  const [airlineFilter, setAirlineFilter] = useState<string>();
+  const [airportFilter, setAirportFilter] = useState<string>();
+  const [responseFilter, setResponseFilter] = useState<string>();
+  const [outcomeFilter, setOutcomeFilter] = useState<string>();
   const [form] = Form.useForm<ProposalValues>();
 
   const loadRfps = useCallback(async () => {
@@ -92,6 +98,19 @@ const SupplierRfps: React.FC = () => {
     }
   };
 
+  const filteredRfps = useMemo(() => rfps.filter(rfp =>
+    (!airlineFilter || rfp.airlineId === airlineFilter)
+      && (!airportFilter || rfp.airportCode === airportFilter)
+      && (!responseFilter || rfp.responseStatus === responseFilter)
+      && (!outcomeFilter || rfp.outcome === outcomeFilter)
+  ), [airlineFilter, airportFilter, outcomeFilter, responseFilter, rfps]);
+
+  const airlines = [...new Set(rfps.map(rfp => rfp.airlineId))].sort();
+  const airports = [...new Set(rfps.map(rfp => rfp.airportCode))].sort();
+  const responded = rfps.filter(rfp => rfp.responseStatus !== 'NOT_SUBMITTED').length;
+  const pending = rfps.filter(rfp => rfp.outcome === 'PENDING_DECISION').length;
+  const won = rfps.filter(rfp => rfp.outcome === 'WON').length;
+
   const columns: TableColumnsType<SupplierRfp> = [
     { title: 'Airline', dataIndex: 'airlineId', key: 'airlineId' },
     { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
@@ -102,18 +121,29 @@ const SupplierRfps: React.FC = () => {
       render: (_, rfp) => `${rfp.desiredStartDate} to ${rfp.desiredEndDate}`,
     },
     {
+      title: 'RFP Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: status => <Tag color={status === 'AWARDED' ? 'purple' : status === 'CLOSED' ? 'default' : 'processing'}>{status}</Tag>,
+    },
+    {
       title: 'Response',
-      key: 'proposalStatus',
-      render: (_, rfp) => rfp.proposalStatus
-        ? <Tag color="success">{rfp.proposalStatus}</Tag>
-        : <Tag>NOT SUBMITTED</Tag>,
+      dataIndex: 'responseStatus',
+      key: 'responseStatus',
+      render: status => <Tag color={status === 'ACCEPTED' ? 'success' : status === 'REJECTED' ? 'error' : status === 'SUBMITTED' ? 'processing' : 'default'}>{status.split('_').join(' ')}</Tag>,
+    },
+    {
+      title: 'Outcome',
+      dataIndex: 'outcome',
+      key: 'outcome',
+      render: outcome => <Tag color={outcome === 'WON' ? 'success' : outcome === 'NOT_SELECTED' ? 'error' : outcome === 'PENDING_DECISION' ? 'gold' : 'default'}>{outcome.split('_').join(' ')}</Tag>,
     },
     {
       title: 'Action',
       key: 'action',
       render: (_, rfp) => rfp.proposalStatus ? (
         <Text>{rfp.proposalCurrency} {rfp.proposedRate}</Text>
-      ) : (
+      ) : rfp.status === 'PUBLISHED' ? (
         <Button
           data-testid={`respond-rfp-${rfp.id}`}
           icon={<SendOutlined />}
@@ -124,28 +154,85 @@ const SupplierRfps: React.FC = () => {
         >
           Submit Proposal
         </Button>
-      ),
+      ) : <Text type="secondary">Response closed</Text>,
     },
   ];
 
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
       <div>
-        <Title level={2} style={{ margin: 0 }}>RFP Opportunities</Title>
+        <Title level={2} style={{ margin: 0 }}>RFP Summary</Title>
         <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          Published airline requests matching your configured airports, airlines, and user access scope.
+          Track every eligible airline request, your response status, and the final procurement outcome.
         </Paragraph>
       </div>
 
       {error && <Alert type="error" showIcon message={error} />}
 
+      <Row gutter={[16, 16]}>
+        <Col xs={12} md={6}><Card data-testid="rfp-summary-received"><Statistic title="Received" value={rfps.length} /></Card></Col>
+        <Col xs={12} md={6}><Card data-testid="rfp-summary-responded"><Statistic title="Responded" value={responded} /></Card></Col>
+        <Col xs={12} md={6}><Card data-testid="rfp-summary-pending"><Statistic title="Pending Decision" value={pending} /></Card></Col>
+        <Col xs={12} md={6}><Card data-testid="rfp-summary-won"><Statistic title="Won" value={won} valueStyle={{ color: '#389e0d' }} /></Card></Col>
+      </Row>
+
+      <Card size="small">
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              data-testid="rfp-summary-airline-filter"
+              allowClear
+              style={{ width: '100%' }}
+              placeholder="All airlines"
+              value={airlineFilter}
+              options={airlines.map(value => ({ value, label: value }))}
+              onChange={setAirlineFilter}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              data-testid="rfp-summary-airport-filter"
+              allowClear
+              style={{ width: '100%' }}
+              placeholder="All airports"
+              value={airportFilter}
+              options={airports.map(value => ({ value, label: value }))}
+              onChange={setAirportFilter}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              data-testid="rfp-summary-response-filter"
+              allowClear
+              style={{ width: '100%' }}
+              placeholder="All responses"
+              value={responseFilter}
+              options={['NOT_SUBMITTED', 'SUBMITTED', 'ACCEPTED', 'REJECTED'].map(value => ({ value, label: value.split('_').join(' ') }))}
+              onChange={setResponseFilter}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              data-testid="rfp-summary-outcome-filter"
+              allowClear
+              style={{ width: '100%' }}
+              placeholder="All outcomes"
+              value={outcomeFilter}
+              options={['OPEN', 'PENDING_DECISION', 'WON', 'NOT_SELECTED', 'CLOSED'].map(value => ({ value, label: value.split('_').join(' ') }))}
+              onChange={setOutcomeFilter}
+            />
+          </Col>
+        </Row>
+      </Card>
+
       <Spin spinning={loading}>
         <Table
           rowKey="id"
+          onRow={rfp => ({ id: `rfp-summary-row-${rfp.id}` })}
           columns={columns}
-          dataSource={rfps}
+          dataSource={filteredRfps}
           pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="No eligible RFP opportunities" /> }}
+          locale={{ emptyText: <Empty description="No RFPs match the selected filters" /> }}
           expandable={{
             expandedRowRender: rfp => (
               <Space direction="vertical">

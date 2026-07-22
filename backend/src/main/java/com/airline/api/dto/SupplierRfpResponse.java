@@ -2,6 +2,8 @@ package com.airline.api.dto;
 
 import com.airline.domain.RfpProposalStatus;
 import com.airline.domain.RfpStatus;
+import com.airline.domain.SupplierRfpOutcome;
+import com.airline.domain.SupplierRfpResponseStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -26,4 +28,6 @@ public class SupplierRfpResponse {
     private BigDecimal proposedRate;
     private String proposalCurrency;
     private String proposalTerms;
+    private SupplierRfpResponseStatus responseStatus;
+    private SupplierRfpOutcome outcome;
 }

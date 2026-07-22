@@ -5,6 +5,9 @@ import com.airline.api.dto.SupplierRfpResponse;
 import com.airline.domain.Rfp;
 import com.airline.domain.RfpProposal;
 import com.airline.domain.RfpProposalStatus;
+import com.airline.domain.RfpStatus;
+import com.airline.domain.SupplierRfpOutcome;
+import com.airline.domain.SupplierRfpResponseStatus;
 import com.airline.repository.RfpProposalRepository;
 import com.airline.repository.RfpRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
@@ -44,7 +47,7 @@ public class SupplierRfpService {
     @Transactional(readOnly = true)
     public List<SupplierRfpResponse> listOpportunities() {
         String groundHandlerId = requireSupplierRfpMonitor();
-        return rfpRepository.findPublishedForEligibleGroundHandler(groundHandlerId).stream()
+        return rfpRepository.findAllForEligibleGroundHandler(groundHandlerId).stream()
                 .filter(this::isDimensionallyPermitted)
                 .map(rfp -> toResponse(rfp,
                         proposalRepository.findByRfpIdAndTenantId(rfp.getId(), groundHandlerId).orElse(null)))
@@ -122,6 +125,28 @@ public class SupplierRfpService {
                 .proposedRate(proposal == null ? null : proposal.getProposedRate())
                 .proposalCurrency(proposal == null ? null : proposal.getCurrency())
                 .proposalTerms(proposal == null ? null : proposal.getTerms())
+                .responseStatus(responseStatus(proposal))
+                .outcome(outcome(rfp, proposal))
                 .build();
+    }
+
+    private SupplierRfpResponseStatus responseStatus(RfpProposal proposal) {
+        return proposal == null
+                ? SupplierRfpResponseStatus.NOT_SUBMITTED
+                : SupplierRfpResponseStatus.valueOf(proposal.getStatus().name());
+    }
+
+    private SupplierRfpOutcome outcome(Rfp rfp, RfpProposal proposal) {
+        if (rfp.getStatus() == RfpStatus.CLOSED) {
+            return SupplierRfpOutcome.CLOSED;
+        }
+        if (rfp.getStatus() == RfpStatus.AWARDED) {
+            return proposal != null && proposal.getStatus() == RfpProposalStatus.ACCEPTED
+                    ? SupplierRfpOutcome.WON
+                    : SupplierRfpOutcome.NOT_SELECTED;
+        }
+        return proposal == null
+                ? SupplierRfpOutcome.OPEN
+                : SupplierRfpOutcome.PENDING_DECISION;
     }
 }
