@@ -98,16 +98,17 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public Invoice getInvoice(String id) {
         String tenantId = tenantContext.getCurrentTenantId();
-        Invoice invoice = invoiceRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Invoice not found: " + id));
-
-        if ("AIRLINE".equals(tenantContext.getCurrentTenantType())) {
+        boolean airlineTenant = "AIRLINE".equals(tenantContext.getCurrentTenantType());
+        if (airlineTenant) {
             requireRole("INVOICE_REVIEWER");
+        }
+        Invoice invoice = loadTenantScopedInvoice(id, tenantId);
+
+        if (airlineTenant) {
             if (!tenantId.equals(invoice.getAirlineId()) || !isAirlineVisible(invoice)) {
                 throw new java.util.NoSuchElementException("Invoice not found: " + id);
             }
         }
-        verifyDimensionalAccess(invoice);
         return invoice;
     }
 
@@ -185,7 +186,25 @@ public class InvoiceService {
 
     @Transactional
     public Invoice updateInvoiceStatus(String id, InvoiceStatus targetStatus, String comments) {
-        Invoice existing = getInvoice(id);
+        if (targetStatus == null) {
+            throw new IllegalArgumentException("Target invoice status is required");
+        }
+
+        String tenantType = tenantContext.getCurrentTenantType();
+        Invoice existing;
+        if ("AIRLINE".equals(tenantType)) {
+            requireRole("PAYMENT_UPDATER");
+            if (targetStatus != InvoiceStatus.PAID) {
+                throw new AccessDeniedException("Airlines may only mark invoices as PAID through the status endpoint");
+            }
+            String tenantId = tenantContext.getCurrentTenantId();
+            existing = loadTenantScopedInvoice(id, tenantId);
+            if (!tenantId.equals(existing.getAirlineId()) || !isAirlineVisible(existing)) {
+                throw new java.util.NoSuchElementException("Invoice not found: " + id);
+            }
+        } else {
+            existing = getInvoice(id);
+        }
         InvoiceStatus currentStatus = existing.getStatus();
 
         if (currentStatus == targetStatus) {
@@ -420,6 +439,13 @@ public class InvoiceService {
         }
         return invoice.getLineItems() == null || invoice.getLineItems().stream()
                 .allMatch(item -> dimensionalSecurityEvaluator.isChargeCodePermitted(item.getChargeCode()));
+    }
+
+    private Invoice loadTenantScopedInvoice(String id, String tenantId) {
+        Invoice invoice = invoiceRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Invoice not found: " + id));
+        verifyDimensionalAccess(invoice);
+        return invoice;
     }
 
     private boolean isAirlineVisible(Invoice invoice) {
