@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Card, Col, Empty, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
+import PricingBenchmarkPanel from './PricingBenchmarkPanel';
 
 const { Paragraph, Title, Text } = Typography;
 
@@ -143,23 +144,23 @@ const AirportCostIndex: React.FC = () => {
       <Card size="small">
         <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} lg={5}>
-            <Select data-testid="cost-index-region-filter" allowClear style={{ width: '100%' }}
+            <Select data-testid="cost-index-region-filter" allowClear showSearch optionFilterProp="label" style={{ width: '100%' }}
               placeholder="All regions" value={region} options={regionOptions} onChange={setRegion} />
           </Col>
           <Col xs={24} sm={12} lg={5}>
-            <Select data-testid="cost-index-airport-filter" allowClear style={{ width: '100%' }}
+            <Select data-testid="cost-index-airport-filter" allowClear showSearch optionFilterProp="label" style={{ width: '100%' }}
               placeholder="All airports" value={airport} options={airportOptions} onChange={setAirport} />
           </Col>
           <Col xs={24} sm={12} lg={5}>
-            <Select data-testid="cost-index-service-filter" allowClear style={{ width: '100%' }}
+            <Select data-testid="cost-index-service-filter" allowClear showSearch optionFilterProp="label" style={{ width: '100%' }}
               placeholder="All services" value={service} options={serviceOptions} onChange={setService} />
           </Col>
           <Col xs={24} sm={12} lg={5}>
-            <Select data-testid="cost-index-aircraft-filter" allowClear style={{ width: '100%' }}
+            <Select data-testid="cost-index-aircraft-filter" allowClear showSearch optionFilterProp="label" style={{ width: '100%' }}
               placeholder="All aircraft" value={aircraft} options={aircraftOptions} onChange={setAircraft} />
           </Col>
           <Col xs={24} sm={12} lg={4}>
-            <Select data-testid="cost-index-operation-filter" allowClear style={{ width: '100%' }}
+            <Select data-testid="cost-index-operation-filter" allowClear showSearch optionFilterProp="label" style={{ width: '100%' }}
               placeholder="All operations" value={operation}
               options={['DOMESTIC', 'INTERNATIONAL'].map(value => ({ value, label: value }))}
               onChange={setOperation} />
@@ -186,6 +187,8 @@ const AirportCostIndex: React.FC = () => {
           />
         </Spin>
       </Card>
+
+      <PricingBenchmarkPanel />
     </Space>
   );
 };
