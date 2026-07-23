@@ -163,6 +163,7 @@ const InvoiceWizard: React.FC = () => {
         flightDate: item.flightDate.format('YYYY-MM-DD'),
         flightNumber: item.flightNumber,
         aircraftReg: item.aircraftReg,
+        aircraftType: item.aircraftType?.trim().toUpperCase() || undefined,
         origin: item.origin,
         destination: item.destination,
         chargeCode: item.chargeCode,
@@ -312,6 +313,11 @@ const InvoiceWizard: React.FC = () => {
                         <Col span={8}>
                           <Form.Item {...restField} name={[name, 'aircraftReg']} label="Aircraft Reg" rules={[{ required: true, message: 'Aircraft Reg is required' }]}>
                             <Input placeholder="A6-EEO" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'aircraftType']} label="Aircraft Type (optional)">
+                            <Input placeholder="A380" maxLength={50} />
                           </Form.Item>
                         </Col>
                       </Row>
