@@ -3,6 +3,7 @@ import { ArrowRightOutlined, FileDoneOutlined, FileTextOutlined, SafetyCertifica
 import { Alert, Button, Card, Col, Row, Space, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { setSimulatedUserId, unrestrictedUserId } from '../utils/simulatedAuth';
+import AirlineBilledAmountsPanel from './AirlineBilledAmountsPanel';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -84,6 +85,8 @@ const AirlineDashboard: React.FC = () => {
           </Col>
         ))}
       </Row>
+
+      <AirlineBilledAmountsPanel />
     </Space>
   );
 };
