@@ -16,6 +16,7 @@ paths:
   - "backend/pom.xml"
   - "backend/src/main/java/com/airline/pricing/PricingEngine.java"
   - "backend/src/test/java/com/airline/pricing/PricingBoundaryCoverageTest.java"
+  - "backend/src/test/java/com/airline/invoices/InvoiceAuditLogTest.java"
   - "gates/phase-3-gate.json"
   - "gates/governance-recovery-gate.json"
   - "obligations.json"
@@ -42,12 +43,14 @@ paths:
   - "tasks/task-037-service-provider-marketplace.md"
   - "tasks/task-038-supplier-rfp-summary.md"
   - "tasks/task-039-airline-review-request-summary.md"
+  - "tasks/task-040-airport-cost-index.md"
   - "tasks/task-phases-1-5-conformance.md"
   - "tasks/task-reorg.md"
 proof: INTEGRATION
 invariants:
   - INV-01
   - INV-04
+  - INV-08
   - INV-09
   - INV-12
 ---
