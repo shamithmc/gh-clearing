@@ -1,0 +1,11 @@
+{
+  "gate_name": "Governance Recovery Gate",
+  "required_proofs": ["INTEGRATION"],
+  "coverage_threshold": 90.0,
+  "test_suites": [
+    "governance-validators",
+    "backend-tests",
+    "flyway-migration",
+    "playwright-e2e"
+  ]
+}

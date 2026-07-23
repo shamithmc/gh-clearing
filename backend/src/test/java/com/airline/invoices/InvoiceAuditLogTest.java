@@ -13,6 +13,7 @@ import com.airline.service.FileStorageService;
 import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -97,6 +98,11 @@ public class InvoiceAuditLogTest {
                 .currency("AED")
                 .services(List.of(passengersService))
                 .build();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test

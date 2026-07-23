@@ -3,7 +3,9 @@ import re
 import sys
 import subprocess
 
-VALID_PROOFS = {"UNIT", "INTEGRATION", "CONFORMANCE", "COMPILER"}
+VALID_PROOFS = {"UNIT", "INTEGRATION", "CONFORMANCE", "COMPILER", "E2E"}
+VALID_STATES = {"DRAFT", "READY", "DISPATCHED", "REVIEW", "DONE"}
+LOCKING_STATES = {"DISPATCHED", "REVIEW"}
 VALID_INVARIANTS = {f"INV-{i:02d}" for i in range(1, 13)}
 
 def run_cmd(args):
@@ -45,15 +47,14 @@ def parse_front_matter(content):
     return fm
 
 def get_current_branch():
-    try:
-        # In GitHub Actions, GITHUB_HEAD_REF holds the branch name for PRs
-        github_head_ref = os.environ.get("GITHUB_HEAD_REF")
-        if github_head_ref:
-            return github_head_ref
-        return run_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-    except Exception as e:
-        print(f"Error getting branch: {e}")
-        return "main"
+    # WORK_UNIT_BRANCH is set explicitly because checkout may be detached in CI.
+    github_head_ref = (
+        os.environ.get("WORK_UNIT_BRANCH")
+        or os.environ.get("GITHUB_HEAD_REF")
+    )
+    if github_head_ref:
+        return github_head_ref
+    return run_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"])
 
 def main():
     current_branch = get_current_branch()
@@ -63,19 +64,28 @@ def main():
         print("Running on main branch, skipping work unit validation.")
         sys.exit(0)
 
-    # Fetch remote to ensure we have all commits and branches
-    try:
-        run_cmd(["git", "fetch", "origin"])
-    except Exception as e:
-        print(f"Warning: Failed to fetch origin: {e}")
+    # Lock validation is authoritative. An incomplete view of remote branches
+    # must fail closed rather than silently permit overlapping work.
+    run_cmd(["git", "fetch", "--prune", "origin"])
 
     # 1. Find the task file in tasks/
     task_files = [f for f in os.listdir("tasks") if f.endswith(".md")] if os.path.exists("tasks") else []
-    matched_files = [f for f in task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
+    matched_files = [
+        f for f in task_files
+        if current_branch in f
+        or f.replace("task-", "").replace(".md", "") in current_branch
+    ]
     
     deleted_task_file = False
     content = ""
     
+    if len(matched_files) > 1:
+        print(
+            f"Error: Expected exactly one task matching branch "
+            f"'{current_branch}', found {matched_files}"
+        )
+        sys.exit(1)
+
     if not matched_files:
         # Check if the task file was deleted on this branch (either created on main or created on this branch)
         try:
@@ -102,7 +112,7 @@ def main():
                 deleted_task_file = True
         except Exception as e:
             print(f"Error checking deleted task file: {e}")
-            pass
+            sys.exit(1)
             
     if not matched_files:
         print(f"Error: No task file in tasks/ matched current branch '{current_branch}'")
@@ -121,7 +131,9 @@ def main():
         sys.exit(1)
 
     # Validate Schema
-    required_fields = ["id", "title", "owner", "paths", "proof", "invariants"]
+    required_fields = [
+        "id", "title", "owner", "state", "paths", "proof", "invariants"
+    ]
     for field in required_fields:
         if field not in fm:
             print(f"Error: Missing required field '{field}' in task front-matter.")
@@ -133,6 +145,22 @@ def main():
 
     if not fm["owner"] or fm["owner"].lower() == "unassigned":
         print("Error: Task owner must be assigned (cannot be empty or 'unassigned').")
+        sys.exit(1)
+
+    if fm["state"] not in VALID_STATES:
+        print(
+            f"Error: Invalid task state '{fm['state']}'. "
+            f"Must be one of {VALID_STATES}."
+        )
+        sys.exit(1)
+
+    event_name = os.environ.get("GITHUB_EVENT_NAME")
+    if event_name == "pull_request" and fm["state"] != "REVIEW":
+        print("Error: A pull-request work unit must be in REVIEW state.")
+        sys.exit(1)
+
+    if not deleted_task_file and fm["state"] == "DONE":
+        print("Error: DONE task files must be deleted from the branch.")
         sys.exit(1)
 
     if not isinstance(fm["paths"], list) or not fm["paths"]:
@@ -149,12 +177,19 @@ def main():
             sys.exit(1)
 
     print("Task front-matter schema validation PASSED.")
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as output:
+            output.write(f"proof={fm['proof']}\n")
+            output.write(f"state={fm['state']}\n")
+            output.write(f"task={task_filename}\n")
     my_paths = set(fm["paths"])
     print(f"My claimed paths: {my_paths}")
 
     # 2. Check path locks on other remote branches
     try:
         remote_branches = run_cmd(["git", "branch", "-r"]).splitlines()
+        active_branches = set()
         
         for ref in remote_branches:
             ref = ref.strip()
@@ -195,11 +230,18 @@ def main():
                 try:
                     otf_content = run_cmd(["git", "show", f"{ref}:{otf}"])
                     otf_fm = parse_front_matter(otf_content)
-                    if not otf_fm or "paths" not in otf_fm or "owner" not in otf_fm:
+                    if (
+                        not otf_fm
+                        or "paths" not in otf_fm
+                        or "owner" not in otf_fm
+                        or "state" not in otf_fm
+                    ):
                         continue
                     
-                    if otf_fm["owner"].lower() == "unassigned":
-                        continue  # Not active/dispatched yet
+                    if otf_fm["state"] not in LOCKING_STATES:
+                        continue
+
+                    active_branches.add(branch_name)
                     
                     other_paths = set(otf_fm["paths"])
                     intersection = my_paths.intersection(other_paths)
@@ -208,14 +250,22 @@ def main():
                         print(f"Other task file '{otf}' locks paths: {intersection}")
                         sys.exit(1)
                 except Exception as e:
-                    # Skip files that fail to load
-                    continue
+                    print(
+                        f"Error: Could not validate path claims from "
+                        f"'{branch_name}': {e}"
+                    )
+                    sys.exit(1)
 
+        if len(active_branches) >= 3 and current_branch not in active_branches:
+            print(
+                "Error: Concurrency ceiling reached. Active branches: "
+                + ", ".join(sorted(active_branches))
+            )
+            sys.exit(1)
         print("Path-Claim Lock validation PASSED. No conflicts found.")
     except Exception as e:
-        print(f"Warning/Error validating remote path-claims: {e}")
-        # Don't fail if fetch fails, but log it
-        pass
+        print(f"Error validating remote path-claims: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
