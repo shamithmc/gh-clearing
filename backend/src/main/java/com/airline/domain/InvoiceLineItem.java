@@ -33,6 +33,9 @@ public class InvoiceLineItem {
     @Column(name = "aircraft_reg", nullable = false, length = 20)
     private String aircraftReg;
 
+    @Column(name = "aircraft_type", length = 50)
+    private String aircraftType;
+
     @Column(name = "origin", nullable = false, length = 3)
     private String origin;
 
