@@ -130,7 +130,6 @@ jobs:
         gh api
         --paginate
         --slurp
-        --jq 'add'
         "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews"
         > approved-reviews.json
 

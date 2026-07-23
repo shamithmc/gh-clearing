@@ -39,6 +39,16 @@ def effective_approvers(reviews, pr_author, head_sha):
     )
 
 
+def normalize_evidence(evidence):
+    if not isinstance(evidence, list):
+        fail("GitHub review evidence must be a JSON array.")
+    if all(isinstance(page, list) for page in evidence):
+        return [review for page in evidence for review in page]
+    if all(isinstance(review, dict) for review in evidence):
+        return evidence
+    fail("GitHub review evidence contains an unsupported JSON structure.")
+
+
 def main():
     if os.environ.get("GITHUB_EVENT_NAME") not in {
         "pull_request",
@@ -56,11 +66,10 @@ def main():
         fail("Missing PR_AUTHOR or PR_HEAD_SHA environment metadata.")
 
     try:
-        reviews = json.loads(reviews_path.read_text(encoding="utf-8"))
+        evidence = json.loads(reviews_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         fail(f"Could not load GitHub review evidence: {exc}")
-    if not isinstance(reviews, list):
-        fail("GitHub review evidence must be a JSON array.")
+    reviews = normalize_evidence(evidence)
 
     approvers = effective_approvers(reviews, pr_author, head_sha)
     if not approvers:
