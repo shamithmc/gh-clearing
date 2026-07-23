@@ -47,7 +47,7 @@ def parse_front_matter(content):
     return fm
 
 def get_current_branch():
-    # WORK_UNIT_BRANCH also covers pull_request_review events.
+    # WORK_UNIT_BRANCH is set explicitly because checkout may be detached in CI.
     github_head_ref = (
         os.environ.get("WORK_UNIT_BRANCH")
         or os.environ.get("GITHUB_HEAD_REF")
@@ -155,7 +155,7 @@ def main():
         sys.exit(1)
 
     event_name = os.environ.get("GITHUB_EVENT_NAME")
-    if event_name in {"pull_request", "pull_request_review"} and fm["state"] != "REVIEW":
+    if event_name == "pull_request" and fm["state"] != "REVIEW":
         print("Error: A pull-request work unit must be in REVIEW state.")
         sys.exit(1)
 

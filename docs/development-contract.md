@@ -132,13 +132,14 @@ Delegation Boundary: AI subagents can decide code structure and test implementat
 * **Tier 3 (Authority Merge)**: Changes to schemas, contracts, or security rules. Trigger: Successful CI checks + 1 independent codeowner approval + Tech Lead acceptance. Action: Merged by Tech Lead.
 
 6.4 Machine-Greppable Review Record: GitHub's Pull Request Review API is the
-canonical, append-only review record. Before merge, CI **MUST** verify at least
-one `APPROVED` review from a user other than the pull-request author for the
-current pull-request head commit. A stale approval for an earlier commit, a
-dismissed approval, or an approval superseded by `CHANGES_REQUESTED` **MUST NOT**
-satisfy this control. Codeowner status is enforced independently by the
-CODEOWNERS branch-protection control in Section 7.2. Repository-local review
-record files are not required.
+canonical, append-only review record. Reviewers **MUST** submit approval only
+after all required CI checks have passed. GitHub branch protection **MUST**
+prevent merge until at least one user other than the pull-request author has
+submitted an `APPROVED` review. A dismissed approval or an approval superseded
+by `CHANGES_REQUESTED` **MUST NOT** satisfy this control. Stale approvals
+**MUST** be dismissed when new commits are pushed. Codeowner status is enforced
+by the CODEOWNERS branch-protection control in Section 7.2. Repository-local
+review record files and CI approval-validation jobs are not required.
 
 6.5 Schema Changes Merge Order: Any PR changing a database schema or contract specification **MUST** be merged to `main` before any PR consuming that schema or contract can be dispatched.
 

@@ -61,10 +61,10 @@ invariants:
 
 Restores mechanical enforcement of the canonical development contract. This
 work closes completed task artifacts, enforces work-unit lifecycle and locking,
-validates native PR approvals and gate definitions, activates coverage enforcement,
+relies on native PR approvals, validates gate definitions, activates coverage enforcement,
 and prevents an unverified local XML schema from satisfying an official IATA
 conformance proof. GitHub's native Pull Request Review API is the canonical
-approval record, avoiding repository-maintained approval logs.
+approval record, while branch protection requires approval after CI succeeds.
 
 ## Human acceptance requirements
 
