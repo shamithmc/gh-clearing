@@ -44,7 +44,10 @@ def parse_front_matter(content):
     return fm
 
 def get_current_branch():
-    github_head_ref = os.environ.get("GITHUB_HEAD_REF")
+    github_head_ref = (
+        os.environ.get("WORK_UNIT_BRANCH")
+        or os.environ.get("GITHUB_HEAD_REF")
+    )
     if github_head_ref:
         return github_head_ref
     try:
@@ -153,12 +156,8 @@ def main():
     claimed_paths = set(fm["paths"])
     task_invariants = fm["invariants"]
 
-    # 3. Check that every modified file is declared in the task paths. The
-    # review record is created after PR assignment and is the sole implicit
-    # lifecycle artifact.
+    # 3. Check that every modified file is declared in the task paths.
     for f in changed_files:
-        if f.startswith(".github/reviews/") and f.endswith(".json"):
-            continue
         if f not in claimed_paths:
             print(f"Error: File '{f}' was modified but is NOT listed in the task's 'paths' claim.")
             sys.exit(1)

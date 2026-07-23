@@ -97,6 +97,7 @@
         ".github/**",
         "CODEOWNERS",
         "dependency-allowlist.json",
+        "docs/development-contract.md",
         "gates/**",
         "obligations.json",
         "tasks/**",

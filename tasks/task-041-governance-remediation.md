@@ -8,11 +8,13 @@ paths:
   - ".github/scripts/validate_work_unit.py"
   - ".github/scripts/validate_obligations.py"
   - ".github/scripts/validate_review_record.py"
+  - ".github/scripts/validate_pr_approval.py"
   - ".github/scripts/validate_schema_provenance.py"
   - ".github/scripts/validate_gate_config.py"
   - ".github/workflows/ci.yml"
   - ".github/reviews/.gitkeep"
   - ".github/schemas/review-record.schema.json"
+  - "docs/development-contract.md"
   - "backend/pom.xml"
   - "backend/src/main/java/com/airline/pricing/PricingEngine.java"
   - "backend/src/test/java/com/airline/pricing/PricingBoundaryCoverageTest.java"
@@ -59,9 +61,10 @@ invariants:
 
 Restores mechanical enforcement of the canonical development contract. This
 work closes completed task artifacts, enforces work-unit lifecycle and locking,
-validates review records and gate definitions, activates coverage enforcement,
+validates native PR approvals and gate definitions, activates coverage enforcement,
 and prevents an unverified local XML schema from satisfying an official IATA
-conformance proof.
+conformance proof. GitHub's native Pull Request Review API is the canonical
+approval record, avoiding repository-maintained approval logs.
 
 ## Human acceptance requirements
 

@@ -1,6 +1,6 @@
 # Canonical Development Operating Contract: Airline Ground Handling Cost Management Platform
 
-**Document Version:** 1.0.0  
+**Document Version:** 1.0.1
 **Status:** Canonical / Active  
 **Scope:** Development operating governance and mechanical code controls  
 **Created:** 2026-07-16  
@@ -51,7 +51,7 @@ The development process is built strictly from the following five durable organi
 | Database Schema Migrations | `backend/src/main/resources/db/migration/` | DB Admin | Permanent (Append-only) |
 | Operational Flight Records | `backend/src/test/resources/data/flights/` | QA Team | Permanent |
 | Architectural Invariants Manifest | `obligations.json` | Tech Lead | Overwritten-in-place |
-| PR Review Approval Records | `.github/reviews/` | CI Engine | Append |
+| PR Review Approval Records | GitHub Pull Request Review API | GitHub | Append |
 | Test Suites & Verification Proofs | `backend/src/test/` and `frontend/src/test/` | QA Team | Permanent |
 | E2E Test Suites | `e2e/` | QA Team | Permanent |
 | Architecture Decision Log | `decisions/architecture-log.json` | Tech Lead | Append |
@@ -131,17 +131,14 @@ Delegation Boundary: AI subagents can decide code structure and test implementat
 * **Tier 2 (Logic Merge)**: Source code changes in Java/React. Trigger: Successful CI checks + 1 independent codeowner approval. Action: Merged by Developer.
 * **Tier 3 (Authority Merge)**: Changes to schemas, contracts, or security rules. Trigger: Successful CI checks + 1 independent codeowner approval + Tech Lead acceptance. Action: Merged by Tech Lead.
 
-6.4 Machine-Greppable Review Record: Every merge **MUST** contain a machine-greppable review record file in `.github/reviews/` in the following JSON format:
-```json
-{
-  "pr": 123,
-  "reviewer": "user1",
-  "status": "APPROVED",
-  "timestamp": "2026-07-16T09:00:00Z",
-  "proof_verified": "CONFORMANCE",
-  "hash": "abc123xyz"
-}
-```
+6.4 Machine-Greppable Review Record: GitHub's Pull Request Review API is the
+canonical, append-only review record. Before merge, CI **MUST** verify at least
+one `APPROVED` review from a user other than the pull-request author for the
+current pull-request head commit. A stale approval for an earlier commit, a
+dismissed approval, or an approval superseded by `CHANGES_REQUESTED` **MUST NOT**
+satisfy this control. Codeowner status is enforced independently by the
+CODEOWNERS branch-protection control in Section 7.2. Repository-local review
+record files are not required.
 
 6.5 Schema Changes Merge Order: Any PR changing a database schema or contract specification **MUST** be merged to `main` before any PR consuming that schema or contract can be dispatched.
 

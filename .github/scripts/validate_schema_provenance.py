@@ -32,7 +32,10 @@ def fail(message):
 
 
 def main():
-    branch = os.environ.get("GITHUB_HEAD_REF")
+    branch = (
+        os.environ.get("WORK_UNIT_BRANCH")
+        or os.environ.get("GITHUB_HEAD_REF")
+    )
     if not branch:
         try:
             branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"])[0]
