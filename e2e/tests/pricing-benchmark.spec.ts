@@ -20,7 +20,7 @@ const supplierHeaders = (supplierId: string) => ({
   'X-Mock-User-Id': `dev-${supplierId}`,
 });
 
-test('airline sees only confidentiality-safe airport cost index segments', async ({ page }) => {
+test('airline sees its premium market position without competitor rates', async ({ page }) => {
   const dnata = await page.request.get('/api/tenants/DNATA', { headers: platformHeaders });
   if (dnata.status() === 404) {
     const createTenant = await page.request.post('/api/tenants', {
@@ -28,6 +28,15 @@ test('airline sees only confidentiality-safe airport cost index segments', async
       data: { id: 'DNATA', name: 'dnata', type: 'GROUND_HANDLER' },
     });
     expect(createTenant.status()).toBe(201);
+  }
+
+  const lufthansa = await page.request.get('/api/tenants/LH', { headers: platformHeaders });
+  if (lufthansa.status() === 404) {
+    const createAirline = await page.request.post('/api/tenants', {
+      headers: platformHeaders,
+      data: { id: 'LH', name: 'Lufthansa', type: 'AIRLINE' },
+    });
+    expect(createAirline.status()).toBe(201);
   }
 
   const dnataUser = await page.request.get('/api/tenants/DNATA/users/dev-DNATA', {
@@ -50,46 +59,34 @@ test('airline sees only confidentiality-safe airport cost index segments', async
   }
 
   const suffix = Date.now();
-  const aircraftType = `TEST-${suffix}`;
+  const aircraftType = `BENCH-${suffix}`;
+
   const createDispatchedInvoice = async (
     supplierId: string,
+    billedAirlineId: string,
     rate: number,
-    includePrivateCleaningSegment: boolean,
   ) => {
-    const services = [{
-      chargeCode: 'BAGGAGE',
-      serviceName: 'Phase 8.1 Baggage',
-      formulaType: 'PF-01',
-      quantityDriver: 'bags',
-      uom: 'EA',
-      taxCode: 'VAT-0',
-      rateDetails: { rate },
-    }];
-    if (includePrivateCleaningSegment) {
-      services.push({
-        chargeCode: 'CLEANING',
-        serviceName: 'Phase 8.1 Cleaning',
-        formulaType: 'PF-01',
-        quantityDriver: 'aircraft',
-        uom: 'EA',
-        taxCode: 'VAT-0',
-        rateDetails: { rate: 75 },
-      });
-    }
-
     const contractResponse = await page.request.post('/api/contracts', {
       headers: supplierHeaders(supplierId),
       data: {
-        airlineId: 'EK',
+        airlineId: billedAirlineId,
         airportCode: 'DXB',
         startDate: '2026-01-01',
         endDate: '2026-12-31',
         currency: 'USD',
-        services,
+        services: [{
+          chargeCode: 'BAGGAGE',
+          serviceName: 'Phase 8.2 Baggage',
+          formulaType: 'PF-01',
+          quantityDriver: 'bags',
+          uom: 'EA',
+          taxCode: 'VAT-0',
+          rateDetails: { rate },
+        }],
       },
     });
-    expect(contractResponse.status()).toBe(201);
     const contract = await contractResponse.json();
+    expect(contractResponse.status(), JSON.stringify(contract)).toBe(201);
 
     for (const status of ['PENDING_APPROVAL', 'APPROVED']) {
       const transition = await page.request.put(`/api/contracts/${contract.id}/status`, {
@@ -99,51 +96,33 @@ test('airline sees only confidentiality-safe airport cost index segments', async
       expect(transition.ok()).toBeTruthy();
     }
 
-    const lineItems = [{
-      flightDate: '2026-07-02',
-      flightNumber: `EK${supplierId === 'DNATA' ? '202' : '101'}`,
-      aircraftReg: `A6-${supplierId.slice(0, 3)}`,
-      aircraftType,
-      origin: 'DXB',
-      destination: 'FRA',
-      chargeCode: 'BAGGAGE',
-      serviceName: 'Phase 8.1 Baggage',
-      formulaType: 'PF-01',
-      quantityDrivers: JSON.stringify({ bags: 10 }),
-      calculatedAmount: 0,
-      contractId: contract.id,
-    }];
-    if (includePrivateCleaningSegment) {
-      lineItems.push({
-        flightDate: '2026-07-02',
-        flightNumber: 'EK101',
-        aircraftReg: 'A6-SWI',
-        aircraftType,
-        origin: 'DXB',
-        destination: 'FRA',
-        chargeCode: 'CLEANING',
-        serviceName: 'Phase 8.1 Cleaning',
-        formulaType: 'PF-01',
-        quantityDrivers: JSON.stringify({ aircraft: 1 }),
-        calculatedAmount: 0,
-        contractId: contract.id,
-      });
-    }
-
     const invoiceResponse = await page.request.post('/api/invoices', {
       headers: supplierHeaders(supplierId),
       data: {
-        invoiceNumber: `COST-${supplierId}-${suffix}`,
+        invoiceNumber: `BENCH-${supplierId}-${suffix}`,
         supplierId,
-        airlineId: 'EK',
+        airlineId: billedAirlineId,
         airportCode: 'DXB',
         currency: 'USD',
         exchangeRate: 1,
-        exchangeRateSource: 'Phase 8.1 E2E',
+        exchangeRateSource: 'Phase 8.2 E2E',
         issueDate: '2026-07-01',
         dueDate: '2026-07-31',
         totalAmount: 0,
-        lineItems,
+        lineItems: [{
+          flightDate: '2026-07-02',
+          flightNumber: billedAirlineId === 'EK' ? 'EK202' : 'LH601',
+          aircraftReg: `A6-${supplierId.slice(0, 3)}`,
+          aircraftType,
+          origin: 'DXB',
+          destination: 'FRA',
+          chargeCode: 'BAGGAGE',
+          serviceName: 'Phase 8.2 Baggage',
+          formulaType: 'PF-01',
+          quantityDrivers: JSON.stringify({ bags: 10 }),
+          calculatedAmount: 0,
+          contractId: contract.id,
+        }],
       },
     });
     expect(invoiceResponse.status()).toBe(201);
@@ -157,35 +136,37 @@ test('airline sees only confidentiality-safe airport cost index segments', async
     }
   };
 
-  await createDispatchedInvoice('SWISSPORT', 10, true);
+  await createDispatchedInvoice('SWISSPORT', 'LH', 10);
 
   const beforeThreshold = await page.request.get(
-    `/api/market-intelligence/airport-cost-index?airportCode=DXB&aircraftType=${aircraftType}`,
+    `/api/market-intelligence/pricing-benchmarks?aircraftType=${aircraftType}`,
     { headers: airlineHeaders },
   );
   expect(beforeThreshold.ok()).toBeTruthy();
   expect(await beforeThreshold.json()).toEqual([]);
 
-  await createDispatchedInvoice('DNATA', 14, false);
+  await createDispatchedInvoice('DNATA', 'EK', 14);
 
-  const indexResponse = await page.request.get(
-    `/api/market-intelligence/airport-cost-index?airportCode=DXB&serviceType=BAGGAGE&aircraftType=${aircraftType}&operationType=INTERNATIONAL`,
+  const response = await page.request.get(
+    `/api/market-intelligence/pricing-benchmarks?airportCode=DXB&serviceType=BAGGAGE&aircraftType=${aircraftType}&operationType=INTERNATIONAL`,
     { headers: airlineHeaders },
   );
-  expect(indexResponse.ok()).toBeTruthy();
-  const index = await indexResponse.json();
-  expect(index).toEqual(expect.arrayContaining([expect.objectContaining({
+  expect(response.ok()).toBeTruthy();
+  const benchmarks = await response.json();
+  expect(benchmarks).toEqual([expect.objectContaining({
     airportCode: 'DXB',
     region: 'MIDDLE_EAST',
     serviceType: 'BAGGAGE',
     aircraftType,
     operationType: 'INTERNATIONAL',
     currency: 'USD',
-    averageCost: 120,
-    observationCount: 2,
-  })]));
-  expect(JSON.stringify(index)).not.toContain('SWISSPORT');
-  expect(JSON.stringify(index)).not.toContain('DNATA');
+    airlineAverageCost: 140,
+    airlineObservationCount: 1,
+    marketPosition: 'TOP_25_PERCENT_PREMIUM',
+  })]);
+  expect(JSON.stringify(benchmarks)).not.toContain('SWISSPORT');
+  expect(JSON.stringify(benchmarks)).not.toContain('DNATA');
+  expect(JSON.stringify(benchmarks)).not.toContain('100');
 
   await page.addInitScript(() => {
     localStorage.setItem('simTenantId', 'EK');
@@ -194,24 +175,26 @@ test('airline sees only confidentiality-safe airport cost index segments', async
   });
   await page.goto('/');
   await page.getByRole('menuitem', { name: 'Cost Index' }).click();
-
   await expect(page).toHaveURL(/\/airline\/cost-index$/);
-  await expect(page.getByRole('heading', { name: 'Airport Cost Index' })).toBeVisible();
-  const aircraftFilter = page.getByTestId('cost-index-aircraft-filter');
+  await expect(page.getByRole('heading', { name: 'Pricing Benchmark' })).toBeVisible();
+
+  const aircraftFilter = page.getByTestId('benchmark-aircraft-filter');
   await aircraftFilter.click();
   await aircraftFilter.getByRole('combobox').fill(aircraftType);
   await aircraftFilter.getByRole('combobox').press('Enter');
-  const costIndexTable = page.getByTestId('airport-cost-index-table');
-  const baggageRow = costIndexTable.getByRole('row')
-    .filter({ hasText: aircraftType })
-    .filter({ hasText: 'Baggage Handling' });
-  await expect(baggageRow).toContainText('DXB');
-  await expect(baggageRow).toContainText(aircraftType);
-  await expect(baggageRow).toContainText('INTERNATIONAL');
-  await expect(baggageRow).toContainText('USD 120.00');
-  await expect(costIndexTable.getByRole('row')
-    .filter({ hasText: aircraftType })
-    .filter({ hasText: 'CLEANING' })).toHaveCount(0);
-  await expect(page.getByText('SWISSPORT')).toHaveCount(0);
-  await expect(page.getByText('DNATA')).toHaveCount(0);
+
+  const benchmarkTable = page.getByTestId('pricing-benchmark-table');
+  const row = benchmarkTable.getByRole('row').filter({ hasText: aircraftType });
+  await expect(row).toContainText('DXB');
+  await expect(row).toContainText('USD 140.00');
+  await expect(row).toContainText('Top 25% — Premium');
+  await expect(benchmarkTable.getByText('USD 100.00')).toHaveCount(0);
+  await expect(benchmarkTable.getByText('SWISSPORT')).toHaveCount(0);
+  await expect(benchmarkTable.getByText('DNATA')).toHaveCount(0);
+
+  const positionFilter = page.getByTestId('benchmark-position-filter');
+  await positionFilter.click();
+  await positionFilter.getByRole('combobox').fill('Top 25% — Premium');
+  await positionFilter.getByRole('combobox').press('Enter');
+  await expect(row).toBeVisible();
 });
