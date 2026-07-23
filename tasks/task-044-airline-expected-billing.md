@@ -5,6 +5,7 @@ owner: Shamith
 state: REVIEW
 paths:
   - "tasks/task-044-airline-expected-billing.md"
+  - "obligations.json"
   - "backend/src/main/resources/db/migration/V24__service_billing_frequency.sql"
   - "backend/src/main/java/com/airline/domain/BillingFrequency.java"
   - "backend/src/main/java/com/airline/domain/ServiceConfiguration.java"
