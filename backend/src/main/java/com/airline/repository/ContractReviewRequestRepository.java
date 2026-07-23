@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ContractReviewRequestRepository extends JpaRepository<ContractReviewRequest, String> {
     List<ContractReviewRequest> findByGroundHandlerIdOrderByCreatedAtDesc(String groundHandlerId);
+    List<ContractReviewRequest> findByAirlineIdOrderByCreatedAtDesc(String airlineId);
 }

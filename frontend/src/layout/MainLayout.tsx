@@ -69,6 +69,7 @@ const MainLayout: React.FC = () => {
   const airlineMenuItems = [
     { key: '/airline', icon: <DashboardOutlined />, label: 'Airline Home' },
     { key: '/airline/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
+    { key: '/airline/review-requests', icon: <CommentOutlined />, label: 'Review Requests' },
     { key: '/airline/invoices', icon: <FileDoneOutlined />, label: 'Invoices' },
     { key: '/airline/rfps', icon: <SendOutlined />, label: 'RFPs' },
     { key: '/airline/marketplace', icon: <ShopOutlined />, label: 'Marketplace' },

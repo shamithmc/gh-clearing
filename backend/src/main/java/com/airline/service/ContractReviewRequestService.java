@@ -119,6 +119,24 @@ public class ContractReviewRequestService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ContractReviewRequestResponse> getAirlineHistory() {
+        String tenantId = tenantContext.getCurrentTenantId();
+        if (!"AIRLINE".equals(tenantContext.getCurrentTenantType())) {
+            throw new AccessDeniedException("Only airlines can view sent review requests");
+        }
+        requireAnyRole(Set.of("CONTRACT_REVIEWER"));
+
+        return reviewRequestRepository.findByAirlineIdOrderByCreatedAtDesc(tenantId).stream()
+                .map(request -> contractRepository.findByIdAndTenantId(request.getContractId(), tenantId)
+                        .filter(contract -> tenantId.equals(contract.getAirlineId()))
+                        .map(contract -> new ReviewRequestContract(request, contract)))
+                .flatMap(java.util.Optional::stream)
+                .filter(item -> isDimensionallyPermitted(item.contract()))
+                .map(item -> mapToResponse(item.request(), item.contract()))
+                .toList();
+    }
+
     private void verifyDimensionalAccess(Contract contract) {
         dimensionalSecurityEvaluator.verifyAccess(
                 contract.getAirportCode(), contract.getAirlineId(), chargeCodes(contract));
@@ -161,6 +179,7 @@ public class ContractReviewRequestService {
                 .airlineId(request.getAirlineId())
                 .airportCode(contract.getAirportCode())
                 .contractStatus(contract.getStatus())
+                .serviceTypes(Set.copyOf(chargeCodes(contract)))
                 .comment(request.getComment())
                 .requestedBy(request.getRequestedBy())
                 .createdAt(request.getCreatedAt())

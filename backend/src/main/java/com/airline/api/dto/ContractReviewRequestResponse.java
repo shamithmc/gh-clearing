@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -19,6 +20,7 @@ public class ContractReviewRequestResponse {
     private String airlineId;
     private String airportCode;
     private ContractStatus contractStatus;
+    private Set<String> serviceTypes;
     private String comment;
     private String requestedBy;
     private OffsetDateTime createdAt;
