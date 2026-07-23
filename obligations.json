@@ -5,7 +5,14 @@
       "invariant_id": "INV-01",
       "name": "Tenant Boundary Isolation",
       "test_path": "backend/src/test/java/com/airline/security/TenantIsolationTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/**",
+        "backend/src/main/resources/db/migration/**",
+        "frontend/src/**",
+        "e2e/**",
+        "topology.json"
+      ]
     },
     {
       "invariant_id": "INV-02",
@@ -23,7 +30,11 @@
       "invariant_id": "INV-04",
       "name": "Formula Evaluation Determinism",
       "test_path": "backend/src/test/java/com/airline/pricing/PricingEngineTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/pricing/**",
+        "backend/src/test/java/com/airline/pricing/**"
+      ]
     },
     {
       "invariant_id": "INV-05",
@@ -53,7 +64,12 @@
       "invariant_id": "INV-09",
       "name": "IATA IS-XML Compliance Guard",
       "test_path": "backend/src/test/java/com/airline/xml/IataXmlComplianceTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/xml/**",
+        "backend/src/main/resources/schema/**",
+        "backend/src/test/java/com/airline/xml/**"
+      ]
     },
     {
       "invariant_id": "INV-10",
@@ -71,7 +87,18 @@
       "invariant_id": "INV-12",
       "name": "Closed Vocabulary Enforcement",
       "test_path": "backend/src/test/java/com/airline/vocabularies/VocabularyEnforcementTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        ".github/**",
+        "CODEOWNERS",
+        "dependency-allowlist.json",
+        "gates/**",
+        "obligations.json",
+        "tasks/**",
+        "backend/pom.xml",
+        "frontend/package.json",
+        "e2e/package.json"
+      ]
     }
   ]
 }

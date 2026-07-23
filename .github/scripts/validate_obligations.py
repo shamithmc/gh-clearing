@@ -3,6 +3,7 @@ import sys
 import re
 import json
 import subprocess
+from fnmatch import fnmatch
 
 def run_cmd(args):
     result = subprocess.run(args, capture_output=True, text=True, check=False)
@@ -71,11 +72,8 @@ def main():
         print("Running on main branch, skipping obligations validation.")
         sys.exit(0)
 
-    # Fetch remote to ensure we have all commits and branches
-    try:
-        run_cmd(["git", "fetch", "origin"])
-    except Exception as e:
-        print(f"Warning: Failed to fetch origin: {e}")
+    # Coverage decisions require an authoritative comparison with main.
+    run_cmd(["git", "fetch", "--prune", "origin"])
 
     # 1. Load obligations.json
     obligations_path = "obligations.json"
@@ -93,7 +91,18 @@ def main():
 
     # Find active task file
     task_files = [f for f in os.listdir("tasks") if f.endswith(".md")] if os.path.exists("tasks") else []
-    matched_files = [f for f in task_files if current_branch in f or f.replace("task-", "").replace(".md", "") in current_branch]
+    matched_files = [
+        f for f in task_files
+        if current_branch in f
+        or f.replace("task-", "").replace(".md", "") in current_branch
+    ]
+
+    if len(matched_files) > 1:
+        print(
+            f"Error: Expected exactly one task matching branch "
+            f"'{current_branch}', found {matched_files}"
+        )
+        sys.exit(1)
     
     deleted_task_file = False
     content = ""
@@ -124,7 +133,7 @@ def main():
                 deleted_task_file = True
         except Exception as e:
             print(f"Error checking deleted task file: {e}")
-            pass
+            sys.exit(1)
 
     if not matched_files:
         print(f"Error: No task file found matching branch '{current_branch}'. Run task validation first.")
@@ -144,12 +153,11 @@ def main():
     claimed_paths = set(fm["paths"])
     task_invariants = fm["invariants"]
 
-    # 3. Check that every modified file is declared in the task paths
-    # Exclude task files themselves and metadata files
-    ignored_patterns = ["tasks/", "decisions/", "CODEOWNERS", ".gitignore", ".github/"]
+    # 3. Check that every modified file is declared in the task paths. The
+    # review record is created after PR assignment and is the sole implicit
+    # lifecycle artifact.
     for f in changed_files:
-        # Check if file should be ignored
-        if any(f.startswith(pat) for pat in ignored_patterns):
+        if f.startswith(".github/reviews/") and f.endswith(".json"):
             continue
         if f not in claimed_paths:
             print(f"Error: File '{f}' was modified but is NOT listed in the task's 'paths' claim.")
@@ -168,6 +176,22 @@ def main():
         # Note: If the test file is being created in the PR, it will be in changed_files
         if not os.path.exists(test_path) and test_path not in changed_files:
             print(f"Error: Obligation test file '{test_path}' for invariant '{inv}' does not exist.")
+            sys.exit(1)
+
+    # 5. Every changed path must be linked by the manifest to at least one
+    # invariant actively claimed by this task.
+    for f in changed_files:
+        linked = []
+        for inv in task_invariants:
+            entry = obligations_map[inv]
+            patterns = entry.get("path_patterns", [])
+            if any(fnmatch(f, pattern) for pattern in patterns):
+                linked.append(inv)
+        if not linked:
+            print(
+                f"Error: Changed path '{f}' is not linked by obligations.json "
+                "to any invariant claimed by this task."
+            )
             sys.exit(1)
 
     print("Obligations manifest and coverage validation PASSED.")

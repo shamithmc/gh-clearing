@@ -24,6 +24,7 @@ public class PricingEngine {
     }
 
     public BigDecimal calculateCharge(ServiceConfiguration config, Map<String, Object> flightInputs) {
+        String configId = config == null ? "<null>" : config.getId();
         try {
             if (config == null || config.getFormulaType() == null) {
                 throw new IllegalArgumentException("Pricing configuration and formula type are required");
@@ -42,7 +43,7 @@ public class PricingEngine {
             return charge;
         } catch (Exception e) {
             // Architecture Contract §4.1.3: The calculation MUST fail closed.
-            throw new PricingEvaluationException("Pricing evaluation failed for config " + config.getId(), e);
+            throw new PricingEvaluationException("Pricing evaluation failed for config " + configId, e);
         }
     }
 }
