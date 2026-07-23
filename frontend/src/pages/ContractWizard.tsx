@@ -35,6 +35,7 @@ const ContractWizard: React.FC = () => {
         quantityDriver: s.quantityDriver,
         uom: s.uom,
         taxCode: s.taxCode,
+        billingFrequency: s.billingFrequency,
         rateDetails: buildRateDetails(s)
       }))
     };
@@ -62,20 +63,23 @@ const ContractWizard: React.FC = () => {
   };
 
   const buildRateDetails = (service: any) => {
+    const expectedAmount = service.expectedAmount
+      ? { expectedAmount: Number(service.expectedAmount) }
+      : {};
     switch (service.formulaType) {
       case 'PF-01':
       case 'PF-02':
       case 'PF-07':
-        return { rate: service.rate };
+        return { rate: service.rate, ...expectedAmount };
       case 'PF-03':
       case 'PF-04':
-        return { tiers: service.tiers };
+        return { tiers: service.tiers, ...expectedAmount };
       case 'PF-05':
-        return { timeBands: service.timeBands };
+        return { timeBands: service.timeBands, ...expectedAmount };
       case 'PF-06':
-        return { dayRates: service.dayRates };
+        return { dayRates: service.dayRates, ...expectedAmount };
       default:
-        return {};
+        return expectedAmount;
     }
   };
 
@@ -180,6 +184,56 @@ const ContractWizard: React.FC = () => {
                         <Col span={8}>
                           <Form.Item {...restField} name={[name, 'taxCode']} label="Tax Code">
                             <Input placeholder="e.g. VAT-0" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'billingFrequency']}
+                            label="Billing Frequency (optional)"
+                          >
+                            <Select
+                              data-testid={`contract-billing-frequency-${name}`}
+                              allowClear
+                              placeholder="Select projection frequency"
+                            >
+                              <Option value="DAILY">Daily</Option>
+                              <Option value="WEEKLY">Weekly</Option>
+                              <Option value="MONTHLY">Monthly</Option>
+                              <Option value="QUARTERLY">Quarterly</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'expectedAmount']}
+                            label="Expected Amount per Occurrence"
+                            dependencies={[[name, 'billingFrequency']]}
+                            rules={[
+                              ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                  const frequency = getFieldValue(['services', name, 'billingFrequency']);
+                                  if (!frequency || Number(value) > 0) {
+                                    return Promise.resolve();
+                                  }
+                                  return Promise.reject(new Error(
+                                    'Enter a positive expected amount for projections',
+                                  ));
+                                },
+                              }),
+                            ]}
+                          >
+                            <Input
+                              data-testid={`contract-expected-amount-${name}`}
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              placeholder="Used by the airline expected-billing report"
+                            />
                           </Form.Item>
                         </Col>
                       </Row>

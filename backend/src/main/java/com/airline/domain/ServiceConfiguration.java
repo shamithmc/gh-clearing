@@ -52,6 +52,10 @@ public class ServiceConfiguration {
     @Column(name = "tax_code", length = 20)
     private String taxCode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "billing_frequency", length = 20)
+    private BillingFrequency billingFrequency;
+
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 

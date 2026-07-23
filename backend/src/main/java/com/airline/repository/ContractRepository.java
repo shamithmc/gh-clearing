@@ -20,6 +20,7 @@ public interface ContractRepository extends JpaRepository<Contract, String> {
 
     List<Contract> findByGroundHandlerIdOrderByCreatedAtDesc(String groundHandlerId);
     List<Contract> findByGroundHandlerIdAndStatusOrderByCreatedAtDesc(String groundHandlerId, ContractStatus status);
+    List<Contract> findByAirlineIdAndStatusOrderByCreatedAtDesc(String airlineId, ContractStatus status);
     List<Contract> findByAirlineIdAndStatusNotOrderByCreatedAtDesc(String airlineId, ContractStatus status);
     List<Contract> findByAirlineIdAndStatusAndStatusNotOrderByCreatedAtDesc(String airlineId, ContractStatus status, ContractStatus excludeStatus);
 

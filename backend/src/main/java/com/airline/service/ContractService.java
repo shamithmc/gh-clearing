@@ -65,6 +65,7 @@ public class ContractService {
                     .quantityDriver(svcDto.getQuantityDriver())
                     .uom(svcDto.getUom())
                     .taxCode(svcDto.getTaxCode())
+                    .billingFrequency(parseBillingFrequency(svcDto))
                     .build();
             contract.addService(svc);
         }
@@ -268,8 +269,47 @@ public class ContractService {
                     dto.setQuantityDriver(s.getQuantityDriver());
                     dto.setUom(s.getUom());
                     dto.setTaxCode(s.getTaxCode());
+                    dto.setBillingFrequency(s.getBillingFrequency() == null
+                            ? null
+                            : s.getBillingFrequency().name());
                     return dto;
                 }).collect(Collectors.toList()))
                 .build();
+    }
+
+    private com.airline.domain.BillingFrequency parseBillingFrequency(ServiceConfigurationDTO service) {
+        String value = service.getBillingFrequency();
+        Object expectedAmount = service.getRateDetails() == null
+                ? null
+                : service.getRateDetails().get("expectedAmount");
+        if (value == null || value.isBlank()) {
+            if (expectedAmount != null) {
+                throw new IllegalArgumentException(
+                        "Billing frequency is required when expected amount is configured");
+            }
+            return null;
+        }
+        if (expectedAmount == null) {
+            throw new IllegalArgumentException(
+                    "Expected amount per billing occurrence is required when billing frequency is configured");
+        }
+        try {
+            if (new java.math.BigDecimal(expectedAmount.toString())
+                    .compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Expected amount per billing occurrence must be positive");
+            }
+            return com.airline.domain.BillingFrequency.valueOf(
+                    value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                    "Expected amount per billing occurrence must be numeric", exception);
+        } catch (IllegalArgumentException exception) {
+            if (exception.getMessage() != null
+                    && exception.getMessage().startsWith("Expected amount")) {
+                throw exception;
+            }
+            throw new IllegalArgumentException("Unsupported billing frequency: " + value, exception);
+        }
     }
 }

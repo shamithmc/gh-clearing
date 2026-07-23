@@ -28,4 +28,6 @@ public class ServiceConfigurationDTO {
     private String uom;
 
     private String taxCode;
+
+    private String billingFrequency;
 }
