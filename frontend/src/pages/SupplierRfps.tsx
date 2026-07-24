@@ -243,28 +243,28 @@ const SupplierRfps: React.FC = () => {
             <Inbox className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Received</span>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 m-0">{rfps.length}</p>
+          <p className="ant-statistic-content-value text-2xl font-extrabold text-slate-900 m-0">{rfps.length}</p>
         </div>
         <div data-testid="rfp-summary-responded" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquareReply className="w-4 h-4 text-blue-400" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Responded</span>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 m-0">{responded}</p>
+          <p className="ant-statistic-content-value text-2xl font-extrabold text-slate-900 m-0">{responded}</p>
         </div>
         <div data-testid="rfp-summary-pending" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Decision</span>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 m-0">{pending}</p>
+          <p className="ant-statistic-content-value text-2xl font-extrabold text-slate-900 m-0">{pending}</p>
         </div>
         <div data-testid="rfp-summary-won" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="w-4 h-4 text-emerald-500" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Won</span>
           </div>
-          <p className="text-2xl font-extrabold text-emerald-600 m-0">{won}</p>
+          <p className="ant-statistic-content-value text-2xl font-extrabold text-emerald-600 m-0">{won}</p>
         </div>
       </div>
 
