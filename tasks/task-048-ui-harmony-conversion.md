@@ -5,6 +5,7 @@ owner: Shamith
 state: REVIEW
 paths:
   - "tasks/task-048-ui-harmony-conversion.md"
+  - "obligations.json"
   - "backend/src/main/java/com/airline/api/GlobalExceptionHandler.java"
   - "backend/src/main/java/com/airline/config/SecurityConfig.java"
   - "backend/src/main/java/com/airline/config/SpaWebMvcConfig.java"

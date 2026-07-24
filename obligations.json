@@ -9,7 +9,7 @@
       "path_patterns": [
         "backend/src/main/java/com/airline/**",
         "backend/src/main/resources/db/migration/**",
-        "frontend/src/**",
+        "frontend/**",
         "e2e/**",
         "topology.json"
       ]
