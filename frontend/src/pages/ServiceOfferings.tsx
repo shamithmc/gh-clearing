@@ -1,10 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Empty, Form, Input, message, Modal, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Form, Input, message, Modal, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
-
-const { Paragraph, Title } = Typography;
+import {
+  Package,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Globe,
+  Layers,
+  Building2
+} from 'lucide-react';
 
 interface AirportOption {
   iataCode: string;
@@ -125,61 +131,134 @@ const ServiceOfferings: React.FC = () => {
 
   const columns: TableColumnsType<ServiceOffering> = [
     {
-      title: 'Airport',
+      title: 'STATION HUB',
       key: 'airport',
-      render: (_, offering) => `${offering.airportCode} - ${offering.airportName}`,
-    },
-    { title: 'Region', dataIndex: 'region', key: 'region', render: region => <Tag>{region}</Tag> },
-    {
-      title: 'Service',
-      key: 'service',
-      render: (_, offering) => `${offering.serviceType} - ${offering.serviceName}`,
-    },
-    { title: 'Marketplace description', dataIndex: 'description', key: 'description' },
-    {
-      title: 'Action',
-      key: 'action',
       render: (_, offering) => (
-        <Button
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80 inline-flex items-center gap-1">
+            <Globe className="w-3 h-3 text-slate-500" />
+            {offering.airportCode}
+          </span>
+          <span className="text-xs text-slate-600">{offering.airportName}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'REGION',
+      dataIndex: 'region',
+      key: 'region',
+      render: (region: string) => (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
+          {region}
+        </span>
+      ),
+    },
+    {
+      title: 'SERVICE',
+      key: 'service',
+      render: (_, offering) => (
+        <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+          <Layers className="w-3 h-3 text-indigo-500" />
+          {offering.serviceType} — {offering.serviceName}
+        </div>
+      ),
+    },
+    {
+      title: 'MARKETPLACE DESCRIPTION',
+      dataIndex: 'description',
+      key: 'description',
+      render: (description: string) => (
+        <span className="text-xs text-slate-600 leading-relaxed">{description}</span>
+      ),
+    },
+    {
+      title: 'ACTION',
+      key: 'action',
+      align: 'right' as const,
+      render: (_, offering) => (
+        <button
           data-testid={`remove-offering-${offering.id}`}
-          danger
-          type="text"
-          icon={<DeleteOutlined />}
           onClick={() => removeOffering(offering)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium text-xs rounded-lg transition-colors cursor-pointer"
         >
+          <Trash2 className="w-3.5 h-3.5" />
           Remove
-        </Button>
+        </button>
       ),
     },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%' }}>
-      <Space align="start" style={{ justifyContent: 'space-between', width: '100%' }}>
+    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
+
+      {/* Top Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <Title level={2} style={{ margin: 0 }}>Service Offerings</Title>
-          <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-            Publish the services you provide at configured operating airports for airline discovery.
-          </Paragraph>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <Package className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Service Offerings
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0 flex items-center gap-2">
+                <span>Publish the services you provide at configured operating airports for airline discovery</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span>Marketplace management</span>
+              </p>
+            </div>
+          </div>
         </div>
-        <Button data-testid="add-service-offering" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
-          Add Offering
-        </Button>
-      </Space>
 
-      {error && <Alert type="error" showIcon message={error} />}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={loadOfferings}
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            Refresh Data
+          </button>
+          <button
+            data-testid="add-service-offering"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 py-2 h-9 shadow-xs focus:ring-2 focus:ring-blue-500/30 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Add Offering
+          </button>
+        </div>
+      </div>
 
-      <Spin spinning={loading}>
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={offerings}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="No services listed in the marketplace" /> }}
-          scroll={{ x: 800 }}
-        />
-      </Spin>
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
+      {/* Offerings Table */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+          <Building2 className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            Published Service Capabilities ({offerings.length})
+          </span>
+        </div>
+        <Spin spinning={loading}>
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={offerings}
+            pagination={{ pageSize: 10 }}
+            locale={{ emptyText: (
+              <div className="py-8 text-center">
+                <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-600 m-0">No services listed in the marketplace</p>
+              </div>
+            )}}
+            scroll={{ x: 800 }}
+            className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
+          />
+        </Spin>
+      </div>
+
+      {/* Publish Offering Modal */}
       <Modal
         title="Publish Service Offering"
         open={open}
@@ -191,27 +270,29 @@ const ServiceOfferings: React.FC = () => {
           form.resetFields();
         }}
       >
-        <Form<OfferingValues> form={form} layout="vertical" style={{ marginTop: 20 }}>
-          <Form.Item name="airportCode" label="Operating airport" rules={[{ required: true, message: 'Select an airport' }]}>
+        <Form<OfferingValues> form={form} layout="vertical" className="mt-5">
+          <Form.Item name="airportCode" label={<span className="text-xs font-semibold text-slate-700">Operating Airport</span>} rules={[{ required: true, message: 'Select an airport' }]}>
             <Select
               data-testid="offering-airport"
               aria-label="Offering airport"
               showSearch
               optionFilterProp="label"
               placeholder="Select configured airport"
+              className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
               options={airports.map(airport => ({
                 value: airport.iataCode,
                 label: `${airport.iataCode} - ${airport.name} (${airport.region})`,
               }))}
             />
           </Form.Item>
-          <Form.Item name="serviceType" label="Service" rules={[{ required: true, message: 'Select a service' }]}>
+          <Form.Item name="serviceType" label={<span className="text-xs font-semibold text-slate-700">Service</span>} rules={[{ required: true, message: 'Select a service' }]}>
             <Select
               data-testid="offering-service"
               aria-label="Offering service"
               showSearch
               optionFilterProp="label"
               placeholder="Select service"
+              className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
               options={chargeCodes.map(chargeCode => ({
                 value: chargeCode.code,
                 label: `${chargeCode.code} - ${chargeCode.displayName}`,
@@ -220,7 +301,7 @@ const ServiceOfferings: React.FC = () => {
           </Form.Item>
           <Form.Item
             name="description"
-            label="Offering description"
+            label={<span className="text-xs font-semibold text-slate-700">Offering Description</span>}
             rules={[
               { required: true, message: 'Describe the offering' },
               { max: 2000, message: 'Description cannot exceed 2000 characters' },
@@ -232,11 +313,13 @@ const ServiceOfferings: React.FC = () => {
               showCount
               maxLength={2000}
               placeholder="Describe capabilities, operating hours, equipment, and service strengths"
+              className="!text-xs !rounded-lg"
             />
           </Form.Item>
         </Form>
       </Modal>
-    </Space>
+
+    </div>
   );
 };
 

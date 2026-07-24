@@ -1,25 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Empty,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { EnvironmentOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
-
-const { Paragraph, Text, Title } = Typography;
+import {
+  Clock,
+  Filter,
+  RefreshCw,
+  MapPin,
+  AlertTriangle,
+  Timer,
+  Eye,
+  Globe
+} from 'lucide-react';
 
 interface ExpirySummary {
   totalContracts: number;
@@ -93,10 +86,10 @@ const urgencyColor = (days: number) => {
   return '#d4b106';
 };
 
-const urgencyTag = (urgency: ExpiringContract['urgency']) => {
-  if (urgency === 'URGENT') return 'red';
-  if (urgency === 'UPCOMING') return 'orange';
-  return 'gold';
+const urgencyTagClass: Record<string, string> = {
+  URGENT: 'bg-rose-50 text-rose-700 border-rose-200',
+  UPCOMING: 'bg-orange-50 text-orange-700 border-orange-200',
+  MONITOR: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 const ExpiryWorldMap: React.FC<{
@@ -104,7 +97,12 @@ const ExpiryWorldMap: React.FC<{
   onSelect: (airportCode: string) => void;
 }> = ({ airports, onSelect }) => {
   if (airports.length === 0) {
-    return <Empty description="No expiring contracts to plot" />;
+    return (
+      <div className="py-8 text-center">
+        <Globe className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-slate-600 m-0">No expiring contracts to plot</p>
+      </div>
+    );
   }
   const width = 900;
   const height = 440;
@@ -123,15 +121,14 @@ const ExpiryWorldMap: React.FC<{
   };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="World map of airports with contracts approaching expiry"
+        className="w-full rounded-xl"
         style={{
-          width: '100%',
           minWidth: 680,
-          borderRadius: 12,
           background: 'linear-gradient(180deg, #e6f4ff 0%, #f6ffed 100%)',
         }}
       >
@@ -193,12 +190,12 @@ const ExpiryWorldMap: React.FC<{
           );
         })}
       </svg>
-      <Space size="large" wrap style={{ marginTop: 12 }}>
-        <Text><span style={{ color: '#cf1322' }}>●</span> 0–30 days</Text>
-        <Text><span style={{ color: '#fa8c16' }}>●</span> 31–60 days</Text>
-        <Text><span style={{ color: '#d4b106' }}>●</span> 61+ days</Text>
-        <Text type="secondary">Marker size reflects contract count. Select an airport to filter.</Text>
-      </Space>
+      <div className="flex items-center gap-4 flex-wrap mt-3">
+        <span className="text-xs text-slate-600"><span style={{ color: '#cf1322' }}>●</span> 0–30 days</span>
+        <span className="text-xs text-slate-600"><span style={{ color: '#fa8c16' }}>●</span> 31–60 days</span>
+        <span className="text-xs text-slate-600"><span style={{ color: '#d4b106' }}>●</span> 61+ days</span>
+        <span className="text-xs text-slate-400">Marker size reflects contract count. Select an airport to filter.</span>
+      </div>
     </div>
   );
 };
@@ -274,186 +271,218 @@ const AirlineContractExpiryPanel: React.FC = () => {
 
   const columns: TableColumnsType<ExpiringContract> = [
     {
-      title: 'Airport',
+      title: 'AIRPORT',
       key: 'airport',
       render: (_, contract) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{contract.airportCode}</Text>
-          <Text type="secondary">{contract.airportName}</Text>
-        </Space>
+        <div>
+          <span className="text-xs font-bold text-slate-900">{contract.airportCode}</span>
+          <span className="block text-[11px] text-slate-500">{contract.airportName}</span>
+        </div>
       ),
     },
-    { title: 'Supplier', dataIndex: 'supplierId', key: 'supplierId' },
+    { title: 'SUPPLIER', dataIndex: 'supplierId', key: 'supplierId' },
     {
-      title: 'Services',
+      title: 'SERVICES',
       dataIndex: 'serviceTypes',
       key: 'serviceTypes',
       render: (values: string[]) => (
-        <Space size={[4, 4]} wrap>
-          {values.map(value => <Tag key={value}>{value}</Tag>)}
-        </Space>
+        <div className="flex items-center gap-1 flex-wrap">
+          {values.map(value => (
+            <span key={value} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
+              {value}
+            </span>
+          ))}
+        </div>
       ),
     },
-    { title: 'Start Date', dataIndex: 'startDate', key: 'startDate' },
-    { title: 'End Date', dataIndex: 'endDate', key: 'endDate' },
+    { title: 'START DATE', dataIndex: 'startDate', key: 'startDate' },
+    { title: 'END DATE', dataIndex: 'endDate', key: 'endDate' },
     {
-      title: 'Expiry',
+      title: 'EXPIRY',
       key: 'expiry',
       sorter: (left, right) => left.daysRemaining - right.daysRemaining,
       render: (_, contract) => (
-        <Tag color={urgencyTag(contract.urgency)}>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${urgencyTagClass[contract.urgency] || 'bg-amber-50 text-amber-700 border-amber-200'}`}>
           {contract.daysRemaining === 0 ? 'Expires today' : `${contract.daysRemaining} days`}
-        </Tag>
+        </span>
       ),
     },
-    { title: 'Currency', dataIndex: 'currency', key: 'currency' },
+    { title: 'CURRENCY', dataIndex: 'currency', key: 'currency' },
     {
-      title: 'Contract',
+      title: 'CONTRACT',
       key: 'contract',
+      align: 'right' as const,
       render: (_, contract) => (
-        <Button
-          type="link"
+        <button
           onClick={() => navigate(
             `/airline/contracts?airportCode=${contract.airportCode}`,
           )}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-blue-600 border border-slate-200 font-medium text-xs rounded-lg transition-colors cursor-pointer"
         >
+          <Eye className="w-3.5 h-3.5" />
           View
-        </Button>
+        </button>
       ),
     },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%', marginTop: 8 }}>
-      <div>
-        <Title level={3} style={{ margin: 0 }}>Contracts Approaching Expiry</Title>
-        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          AOR1 upcoming supplier-contract renewals in table and geographic views.
-        </Paragraph>
+    <div className="space-y-6 mt-2">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Contracts Approaching Expiry
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+                AOR1 upcoming supplier-contract renewals in table and geographic views
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadReport}
+          className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+          Refresh Data
+        </button>
       </div>
 
-      {error && <Alert type="error" showIcon message={error} />}
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
-      <Card size="small">
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} xl={6}>
-            <Select
-              data-testid="aor1-supplier-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All suppliers"
-              value={supplierId}
-              options={knownSuppliers.map(value => ({ value, label: value }))}
-              onChange={setSupplierId}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select
-              data-testid="aor1-airport-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All airports"
-              value={airportCode}
-              options={airports.map(item => ({
-                value: item.iataCode,
-                label: `${item.iataCode} — ${item.name}`,
-              }))}
-              onChange={setAirportCode}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select
-              data-testid="aor1-service-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All services"
-              value={serviceType}
-              options={services.map(item => ({
-                value: item.code,
-                label: `${item.code} — ${item.displayName}`,
-              }))}
-              onChange={setServiceType}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select
-              data-testid="aor1-horizon-filter"
-              style={{ width: '100%' }}
-              value={horizonDays}
-              options={[30, 60, 90, 180, 365].map(value => ({
-                value,
-                label: `Next ${value} days`,
-              }))}
-              onChange={setHorizonDays}
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* Filter Card */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Filter Contracts</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <Select
+            data-testid="aor1-supplier-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All suppliers" value={supplierId}
+            options={knownSuppliers.map(value => ({ value, label: value }))}
+            onChange={setSupplierId}
+          />
+          <Select
+            data-testid="aor1-airport-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All airports" value={airportCode}
+            options={airports.map(item => ({
+              value: item.iataCode,
+              label: `${item.iataCode} — ${item.name}`,
+            }))}
+            onChange={setAirportCode}
+          />
+          <Select
+            data-testid="aor1-service-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All services" value={serviceType}
+            options={services.map(item => ({
+              value: item.code,
+              label: `${item.code} — ${item.displayName}`,
+            }))}
+            onChange={setServiceType}
+          />
+          <Select
+            data-testid="aor1-horizon-filter"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            value={horizonDays}
+            options={[30, 60, 90, 180, 365].map(value => ({
+              value,
+              label: `Next ${value} days`,
+            }))}
+            onChange={setHorizonDays}
+          />
+        </div>
+      </div>
 
       <Spin spinning={loading}>
-        <Space direction="vertical" size={20} style={{ width: '100%' }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={12} lg={6}>
-              <Card data-testid="aor1-total-contracts">
-                <Statistic title="Approaching Expiry" value={report.summary.totalContracts} />
-              </Card>
-            </Col>
-            <Col xs={12} lg={6}>
-              <Card data-testid="aor1-urgent-contracts">
-                <Statistic
-                  title="Within 30 Days"
-                  value={report.summary.expiringWithin30Days}
-                  valueStyle={{ color: '#cf1322' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={12} lg={6}>
-              <Card data-testid="aor1-upcoming-contracts">
-                <Statistic
-                  title="31–60 Days"
-                  value={report.summary.expiringWithin60Days}
-                  valueStyle={{ color: '#fa8c16' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={12} lg={6}>
-              <Card data-testid="aor1-airport-count">
-                <Statistic
-                  title="Airports"
-                  value={report.summary.airportCount}
-                  prefix={<EnvironmentOutlined />}
-                />
-              </Card>
-            </Col>
-          </Row>
+        <div className="space-y-6">
 
-          <Card title="Expiry Map">
-            <ExpiryWorldMap airports={report.airports} onSelect={setAirportCode} />
-          </Card>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div data-testid="aor1-total-contracts" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Timer className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approaching Expiry</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.totalContracts}</p>
+            </div>
+            <div data-testid="aor1-urgent-contracts" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Within 30 Days</span>
+              </div>
+              <p className="text-2xl font-extrabold text-rose-600 m-0">{report.summary.expiringWithin30Days}</p>
+            </div>
+            <div data-testid="aor1-upcoming-contracts" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-orange-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">31–60 Days</span>
+              </div>
+              <p className="text-2xl font-extrabold text-orange-600 m-0">{report.summary.expiringWithin60Days}</p>
+            </div>
+            <div data-testid="aor1-airport-count" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Airports</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.airportCount}</p>
+            </div>
+          </div>
 
-          <Card
-            title={`Contract Expiry Table — as of ${report.asOfDate || 'today'}`}
-            styles={{ body: { padding: 0 } }}
-          >
+          {/* Map Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+              <Globe className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Expiry Map</span>
+            </div>
+            <div className="p-4">
+              <ExpiryWorldMap airports={report.airports} onSelect={setAirportCode} />
+            </div>
+          </div>
+
+          {/* Contract Expiry Table */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+              <Clock className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Contract Expiry Table — as of {report.asOfDate || 'today'}
+              </span>
+            </div>
             <Table
               data-testid="aor1-contract-table"
               rowKey="contractId"
               columns={columns}
               dataSource={report.contracts}
               pagination={{ pageSize: 10 }}
-              locale={{ emptyText: <Empty description="No contracts expire in this horizon" /> }}
+              locale={{ emptyText: (
+                <div className="py-8 text-center">
+                  <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-slate-600 m-0">No contracts expire in this horizon</p>
+                </div>
+              )}}
               scroll={{ x: 1000 }}
+              className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
             />
-          </Card>
-        </Space>
+          </div>
+
+        </div>
       </Spin>
-    </Space>
+
+    </div>
   );
 };
 

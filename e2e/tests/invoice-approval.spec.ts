@@ -65,7 +65,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
     // 1. Create a draft invoice
     await page.goto('/');
     await page.click('text=Invoices');
-    await page.click('text=Create Invoice');
+    await page.click('#create-invoice-btn');
 
     // Fill Step 1 details
     await page.click('#airlineId');
@@ -74,13 +74,12 @@ test.describe('Invoice Approval Workflow E2E', () => {
 
     await page.click('#airportCode');
     await page.fill('#airportCode', 'DXB');
-    await page.click('.ant-select-item-option-content:has-text("Dubai International Airport (DXB)")');
+    await page.click('.ant-select-item-option-content:has-text("DXB")');
 
     const invoiceNum = 'INV-APP-' + Math.floor(Math.random() * 1000000);
-    await page.fill('#invoiceNumber', invoiceNum);
+    await page.fill('input[placeholder="INV-2026-0001"]', invoiceNum);
 
     await page.click('#currency');
-    await page.fill('#currency', 'AED');
     await page.click('.ant-select-item-option-content:has-text("AED")');
 
     await page.fill('#exchangeRate', '1.0');
@@ -97,10 +96,10 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await page.keyboard.press('Enter');
 
     // Proceed to Step 2
-    await page.click('button:has-text("Next")');
+    await page.click('#invoice-wizard-next-btn');
 
     // Add line item
-    await page.click('button:has-text("Add Flight Item")');
+    await page.click('#invoice-wizard-add-flight-btn');
 
     await page.click('#lineItems_0_flightDate');
     await page.keyboard.press('Control+A');
@@ -113,85 +112,85 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await page.fill('input[placeholder="FRA"]', 'FRA');
 
     await page.click('#lineItems_0_chargeCode');
-    await page.click('text=Passenger Handling (PASSENGER_HANDLING)');
+    await page.click('.ant-select-item-option-content:has-text("Passenger Handling")');
 
     await page.fill('input[placeholder="e.g. 150"]', '150');
 
     // Proceed to Step 3
-    await page.click('button:has-text("Next")');
+    await page.click('#invoice-wizard-next-btn');
 
     // Submit / Save draft
-    await page.click('button:has-text("Submit Draft Invoice")');
+    await page.click('#invoice-wizard-submit-btn');
 
     // Confirm navigation back to list and check status is DRAFT
+    await expect(page.locator('.ant-message-notice')).toContainText('Invoice drafted successfully!');
     await expect(page).toHaveURL(/\/invoices/);
-    await expect(page.locator('body')).toContainText('Invoice drafted successfully!');
 
     // Reload the page to fetch the latest data from the backend
     await page.reload();
     await page.waitForLoadState('networkidle');
 
     const invoiceRow = page.locator('tr').filter({ hasText: invoiceNum }).first();
-    await expect(invoiceRow).toContainText('DRAFT');
+    await expect(invoiceRow).toContainText('Draft');
 
-    // 2. Finalize the invoice (as Swissport Ground Handler)
-    await invoiceRow.locator('button:has-text("Finalize")').click();
+    // 2. Finalize the invoice (as Swissport Ground Handler) using button ID or row button
+    await invoiceRow.locator('button[id$="-finalize-btn"]').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to FINALIZED');
-    await expect(invoiceRow).toContainText('FINALIZED');
-    await expect(invoiceRow.locator('button:has-text("Finalize")')).not.toBeVisible();
+    await expect(invoiceRow).toContainText('Finalized');
+    await expect(invoiceRow.locator('button[id$="-finalize-btn"]')).not.toBeVisible();
 
     // 3. Internal ground-handler approval review
-    await expect(invoiceRow.locator('button:has-text("Approve")')).toBeVisible();
-    await expect(invoiceRow.locator('button:has-text("Request Modification")')).toBeVisible();
+    await expect(invoiceRow.locator('button[id$="-approve-btn"]')).toBeVisible();
+    await expect(invoiceRow.locator('button[id$="-req-mod-btn"]')).toBeVisible();
 
     // Request Modification with comments
-    await invoiceRow.locator('button:has-text("Request Modification")').click();
+    await invoiceRow.locator('button[id$="-req-mod-btn"]').click();
     const comment = 'Please correct passenger count to 150';
-    await page.fill('textarea[placeholder="Type comments/reasons here..."]', comment);
-    await page.click('.ant-modal-footer button:has-text("Submit Request")');
+    await page.fill('#modification-comments-input', comment);
+    await page.click('#submit-modification-btn');
 
     // Verify status transitions to MODIFICATION_REQUESTED
     await expect(page.locator('body')).toContainText('Invoice status updated to MODIFICATION_REQUESTED');
-    await expect(invoiceRow).toContainText('MODIFICATION_REQUESTED');
+    await expect(invoiceRow).toContainText('Mod Requested');
 
     // Expand the row to see comments
     await invoiceRow.locator('button.ant-table-row-expand-icon').click();
     await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText(comment);
 
     // 4. Re-finalize after the requested modification
-    await invoiceRow.locator('button:has-text("Finalize")').click();
+    await invoiceRow.locator('button[id$="-finalize-btn"]').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to FINALIZED');
-    await expect(invoiceRow).toContainText('FINALIZED');
+    await expect(invoiceRow).toContainText('Finalized');
 
     // 5. Ground-handler approver approves the invoice
-    await invoiceRow.locator('button:has-text("Approve")').click();
+    await invoiceRow.locator('button[id$="-approve-btn"]').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to APPROVED');
     await expect(invoiceRow).toContainText('APPROVED');
 
     // 6. Send the approved invoice
-    await invoiceRow.locator('button:has-text("Send to Airline")').click();
+    await invoiceRow.locator('button[id$="-send-btn"]').click();
     await expect(page.locator('body')).toContainText('Invoice status updated to SENT');
-    await expect(invoiceRow).toContainText('SENT');
+    await expect(invoiceRow).toContainText('Submitted to Airline');
 
-    // 7. Switch to Emirates to Dispute
-    await page.locator('.ant-select').filter({ hasText: 'Swissport' }).first().click();
+    // 7. Switch to Emirates to Dispute using #tenant-select-container ID
+    await page.click('#tenant-select-container .ant-select');
     await page.click('.ant-select-item-option-content:has-text("Emirates (Airline)")');
     await page.waitForLoadState('networkidle');
 
     // Click Dispute button
-    await invoiceRow.locator('button:has-text("Dispute")').click();
+    await invoiceRow.locator('button[id$="-dispute-btn"]').click();
 
-    // Fill dispute details in the modal
-    await page.locator('input[type="checkbox"]').first().check();
+    // Fill dispute details in the modal using ID selectors
+    await page.click('#dispute-checkbox-0');
     await page.locator('.ant-modal-body .ant-select').first().click();
     await page.click('.ant-select-item-option-content:has-text("Operational data mismatch")');
     const disputeComment = 'Operational data is incorrect';
-    await page.fill('textarea[placeholder="Provide details of the dispute..."]', disputeComment);
-    await page.click('.ant-modal-footer button:has-text("Submit Dispute")');
+    await page.fill('#dispute-comment-0', disputeComment);
+    await page.click('#submit-dispute-btn');
 
     // Verify status transitions to DISPUTED
     await expect(page.locator('body')).toContainText('Invoice disputed successfully');
-    await expect(invoiceRow).toContainText('DISPUTED');
+    await expect(invoiceRow).toContainText('Disputed / Audit');
 
     // Expand the row to see dispute status
     await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText('OPERATIONAL DATA MISMATCH');

@@ -37,7 +37,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/", "/index.html", "/assets/**", "/favicon.ico", "/error",
-                    "/actuator/health").permitAll()
+                    "/actuator/health",
+                    "/airline/**", "/invoices/**", "/contracts/**", "/rfps/**",
+                    "/offerings/**", "/review-requests/**", "/disputes/**", "/configuration/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

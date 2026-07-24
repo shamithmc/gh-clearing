@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Empty, Form, Input, message, Modal, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, DatePicker, Form, Input, message, Modal, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Dayjs } from 'dayjs';
-import { SendOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
+import {
+  FileText,
+  Send,
+  RefreshCw,
+  Eye,
+  CheckCircle2,
+  XCircle
+} from 'lucide-react';
 
 const { RangePicker } = DatePicker;
-const { Paragraph, Text, Title } = Typography;
 
 interface AirportOption {
   iataCode: string;
@@ -56,6 +62,12 @@ interface ProposalDecisionResponse {
   rfpStatus: string;
   seededContractId?: string;
 }
+
+const proposalStatusColor: Record<string, string> = {
+  ACCEPTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  REJECTED: 'bg-rose-50 text-rose-700 border-rose-200',
+  SUBMITTED: 'bg-blue-50 text-blue-700 border-blue-200',
+};
 
 const AirlineRfps: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -211,176 +223,238 @@ const AirlineRfps: React.FC = () => {
   };
 
   const proposalColumns: TableColumnsType<RfpProposal> = [
-    { title: 'Supplier', dataIndex: 'groundHandlerId', key: 'groundHandlerId' },
+    { title: 'SUPPLIER', dataIndex: 'groundHandlerId', key: 'groundHandlerId' },
     {
-      title: 'Proposed Rate',
+      title: 'PROPOSED RATE',
       key: 'proposedRate',
-      render: (_, proposal) => `${proposal.currency} ${Number(proposal.proposedRate).toLocaleString()}`,
+      render: (_, proposal) => (
+        <span className="text-xs font-extrabold text-slate-900">
+          {proposal.currency} {Number(proposal.proposedRate).toLocaleString()}
+        </span>
+      ),
     },
-    { title: 'Terms', dataIndex: 'terms', key: 'terms' },
+    { title: 'TERMS', dataIndex: 'terms', key: 'terms' },
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
-      render: status => <Tag color={status === 'ACCEPTED' ? 'success' : status === 'REJECTED' ? 'error' : 'processing'}>{status}</Tag>,
+      render: (status: string) => (
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${proposalStatusColor[status] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+          {status}
+        </span>
+      ),
     },
     {
-      title: 'Actions',
+      title: 'ACTIONS',
       key: 'actions',
+      align: 'right' as const,
       render: (_, proposal) => proposal.status === 'SUBMITTED' && evaluationRfp?.status === 'PUBLISHED' ? (
-        <Space wrap>
-          <Button
+        <div className="flex items-center gap-2 justify-end">
+          <button
             data-testid={`accept-proposal-${proposal.id}`}
-            type="primary"
-            loading={decidingProposalId === proposal.id}
             disabled={Boolean(decidingProposalId && decidingProposalId !== proposal.id)}
             onClick={() => decideProposal(proposal, 'ACCEPTED')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-0 font-medium text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
+            <CheckCircle2 className="w-3.5 h-3.5" />
             Accept &amp; Create Draft
-          </Button>
-          <Button
+          </button>
+          <button
             data-testid={`reject-proposal-${proposal.id}`}
-            danger
-            loading={decidingProposalId === proposal.id}
             disabled={Boolean(decidingProposalId && decidingProposalId !== proposal.id)}
             onClick={() => decideProposal(proposal, 'REJECTED')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
+            <XCircle className="w-3.5 h-3.5" />
             Reject
-          </Button>
-        </Space>
+          </button>
+        </div>
       ) : null,
     },
   ];
 
   const columns: TableColumnsType<Rfp> = [
-    { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
-    { title: 'Service', dataIndex: 'serviceType', key: 'serviceType' },
+    { title: 'AIRPORT', dataIndex: 'airportCode', key: 'airportCode' },
+    { title: 'SERVICE', dataIndex: 'serviceType', key: 'serviceType' },
     {
-      title: 'Desired Contract Period',
+      title: 'CONTRACT PERIOD',
       key: 'period',
-      render: (_, rfp) => `${rfp.desiredStartDate} to ${rfp.desiredEndDate}`,
+      render: (_, rfp) => (
+        <span className="text-xs text-slate-600">{rfp.desiredStartDate} to {rfp.desiredEndDate}</span>
+      ),
     },
     {
-      title: 'Eligible Suppliers',
+      title: 'ELIGIBLE SUPPLIERS',
       dataIndex: 'eligibleGroundHandlerIds',
       key: 'eligibleGroundHandlerIds',
-      render: ids => <Text>{ids.length}</Text>,
+      render: (ids: string[]) => <span className="text-xs font-semibold text-slate-900">{ids.length}</span>,
     },
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
-      render: status => <Tag color="processing">{status}</Tag>,
+      render: (status: string) => (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          {status}
+        </span>
+      ),
     },
     {
-      title: 'Actions',
+      title: 'ACTIONS',
       key: 'actions',
+      align: 'right' as const,
       render: (_, rfp) => (
-        <Button data-testid={`review-proposals-${rfp.id}`} onClick={() => openEvaluation(rfp)}>
+        <button
+          data-testid={`review-proposals-${rfp.id}`}
+          onClick={() => openEvaluation(rfp)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+        >
+          <Eye className="w-3.5 h-3.5 text-slate-500" />
           Review Proposals
-        </Button>
+        </button>
       ),
     },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%' }}>
-      <div>
-        <Title level={2} style={{ margin: 0 }}>Requests for Proposal</Title>
-        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          Publish service requirements to ground handlers configured for your airline and selected airport.
-        </Paragraph>
+    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Requests for Proposal
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+                Publish service requirements to ground handlers configured for your airline and selected airport
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadRfps}
+          className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+          Refresh Data
+        </button>
       </div>
 
-      {error && <Alert type="error" showIcon message={error} />}
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
-      <Card title="Create RFP">
-        <Form<RfpFormValues> form={form} layout="vertical" onFinish={publishRfp}>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="airportCode" label="Airport" rules={[{ required: true, message: 'Select an airport' }]}>
+      {/* Create RFP Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+          <Send className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Create RFP</span>
+        </div>
+        <div className="p-6">
+          <Form<RfpFormValues> form={form} layout="vertical" onFinish={publishRfp}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              <Form.Item name="airportCode" label={<span className="text-xs font-semibold text-slate-700">Airport</span>} rules={[{ required: true, message: 'Select an airport' }]}>
                 <Select
                   data-testid="rfp-airport"
                   aria-label="RFP airport"
                   showSearch
                   optionFilterProp="label"
                   placeholder="Select airport"
+                  className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
                   options={airports.map(airport => ({
                     value: airport.iataCode,
                     label: `${airport.iataCode} - ${airport.name}`,
                   }))}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="serviceType" label="Service type" rules={[{ required: true, message: 'Select a service type' }]}>
+              <Form.Item name="serviceType" label={<span className="text-xs font-semibold text-slate-700">Service Type</span>} rules={[{ required: true, message: 'Select a service type' }]}>
                 <Select
                   data-testid="rfp-service"
                   aria-label="RFP service type"
                   showSearch
                   optionFilterProp="label"
                   placeholder="Select service"
+                  className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
                   options={chargeCodes.map(chargeCode => ({
                     value: chargeCode.code,
                     label: `${chargeCode.code} - ${chargeCode.displayName}`,
                   }))}
                 />
               </Form.Item>
-            </Col>
-          </Row>
+            </div>
 
-          <Form.Item
-            name="contractPeriod"
-            label="Desired contract period"
-            rules={[{ required: true, message: 'Select the desired contract period' }]}
-          >
-            <RangePicker data-testid="rfp-period" style={{ width: '100%' }} />
-          </Form.Item>
+            <Form.Item
+              name="contractPeriod"
+              label={<span className="text-xs font-semibold text-slate-700">Desired Contract Period</span>}
+              rules={[{ required: true, message: 'Select the desired contract period' }]}
+            >
+              <RangePicker data-testid="rfp-period" className="w-full [&_input]:!text-xs !rounded-lg" />
+            </Form.Item>
 
-          <Form.Item
-            name="requirements"
-            label="Requirements"
-            rules={[
-              { required: true, message: 'Describe the service requirements' },
-              { max: 4000, message: 'Requirements cannot exceed 4000 characters' },
-            ]}
-          >
-            <Input.TextArea
-              data-testid="rfp-requirements"
-              rows={5}
-              showCount
-              maxLength={4000}
-              placeholder="Describe volumes, operating hours, service levels, equipment, and other requirements"
-            />
-          </Form.Item>
+            <Form.Item
+              name="requirements"
+              label={<span className="text-xs font-semibold text-slate-700">Requirements</span>}
+              rules={[
+                { required: true, message: 'Describe the service requirements' },
+                { max: 4000, message: 'Requirements cannot exceed 4000 characters' },
+              ]}
+            >
+              <Input.TextArea
+                data-testid="rfp-requirements"
+                rows={5}
+                showCount
+                maxLength={4000}
+                placeholder="Describe volumes, operating hours, service levels, equipment, and other requirements"
+                className="!text-xs !rounded-lg"
+              />
+            </Form.Item>
 
-          <Button
-            data-testid="publish-rfp"
-            type="primary"
-            htmlType="submit"
-            icon={<SendOutlined />}
-            loading={publishing}
-          >
-            Publish RFP
-          </Button>
-        </Form>
-      </Card>
+            <button
+              data-testid="publish-rfp"
+              type="submit"
+              disabled={publishing}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 py-2 h-9 shadow-xs focus:ring-2 focus:ring-blue-500/30 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              {publishing ? 'Publishing...' : 'Publish RFP'}
+            </button>
+          </Form>
+        </div>
+      </div>
 
-      <Card title="My Published RFPs" styles={{ body: { padding: 0 } }}>
+      {/* Published RFPs Table */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+          <FileText className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">My Published RFPs</span>
+        </div>
         <Spin spinning={loading}>
           <Table
             rowKey="id"
             columns={columns}
             dataSource={rfps}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: <Empty description="No RFPs published yet" /> }}
+            locale={{ emptyText: (
+              <div className="py-8 text-center">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-600 m-0">No RFPs published yet</p>
+              </div>
+            )}}
             expandable={{
-              expandedRowRender: rfp => <Paragraph style={{ margin: 0 }}>{rfp.requirements}</Paragraph>,
+              expandedRowRender: rfp => (
+                <p className="text-xs text-slate-600 m-0 leading-relaxed">{rfp.requirements}</p>
+              ),
             }}
+            className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
           />
         </Spin>
-      </Card>
+      </div>
 
+      {/* Proposal Evaluation Modal */}
       <Modal
         open={Boolean(evaluationRfp)}
         title={evaluationRfp ? `Proposals for ${evaluationRfp.serviceType} at ${evaluationRfp.airportCode}` : 'RFP Proposals'}
@@ -392,9 +466,9 @@ const AirlineRfps: React.FC = () => {
           setProposalError(undefined);
         }}
       >
-        {proposalError && <Alert type="error" showIcon message={proposalError} style={{ marginBottom: 16 }} />}
+        {proposalError && <Alert type="error" showIcon message={proposalError} className="mb-4 rounded-xl border-rose-200 bg-rose-50" />}
         {evaluationRfp?.status === 'AWARDED' && (
-          <Alert type="success" showIcon message="This RFP has been awarded." style={{ marginBottom: 16 }} />
+          <Alert type="success" showIcon message="This RFP has been awarded." className="mb-4 rounded-xl" />
         )}
         <Spin spinning={loadingProposals}>
           <Table
@@ -403,12 +477,19 @@ const AirlineRfps: React.FC = () => {
             columns={proposalColumns}
             dataSource={proposals}
             pagination={false}
-            locale={{ emptyText: <Empty description="No proposals submitted yet" /> }}
+            locale={{ emptyText: (
+              <div className="py-8 text-center">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-600 m-0">No proposals submitted yet</p>
+              </div>
+            )}}
             scroll={{ x: 800 }}
+            className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
           />
         </Spin>
       </Modal>
-    </Space>
+
+    </div>
   );
 };
 

@@ -58,7 +58,10 @@ test('airline sees its premium market position without competitor rates', async 
     expect(createUser.status()).toBe(201);
   }
 
-  const suffix = Date.now();
+  let suffix = Date.now().toString();
+  while (suffix.includes('100')) {
+    suffix = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+  }
   const aircraftType = `BENCH-${suffix}`;
 
   const createDispatchedInvoice = async (

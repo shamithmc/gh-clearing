@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Card, Steps, Button, Form, Input, Select, DatePicker, message, Row, Col, Typography, Divider } from 'antd';
-import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Steps, Form, Input, Select, DatePicker, message } from 'antd';
+import { Plus, Trash2, FileText, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { simulatedAuthHeaders } from '../utils/simulatedAuth';
 
-const { Title } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -16,6 +15,8 @@ const ContractWizard: React.FC = () => {
   const next = () => {
     form.validateFields().then(() => {
       setCurrent(current + 1);
+    }).catch(err => {
+      console.log('ContractWizard Step Validation Errors:', JSON.stringify(err));
     });
   };
 
@@ -25,8 +26,8 @@ const ContractWizard: React.FC = () => {
     const payload = {
       airlineId: values.airlineId,
       airportCode: values.airportCode,
-      startDate: values.dateRange[0].format('YYYY-MM-DD'),
-      endDate: values.dateRange[1].format('YYYY-MM-DD'),
+      startDate: values.dateRange && values.dateRange[0] ? values.dateRange[0].format('YYYY-MM-DD') : '',
+      endDate: values.dateRange && values.dateRange[1] ? values.dateRange[1].format('YYYY-MM-DD') : '',
       currency: values.currency,
       services: (values.services || []).map((s: any) => ({
         chargeCode: s.chargeCode,
@@ -70,7 +71,7 @@ const ContractWizard: React.FC = () => {
       case 'PF-01':
       case 'PF-02':
       case 'PF-07':
-        return { rate: service.rate, ...expectedAmount };
+        return { rate: Number(service.rate), ...expectedAmount };
       case 'PF-03':
       case 'PF-04':
         return { tiers: service.tiers, ...expectedAmount };
@@ -84,244 +85,197 @@ const ContractWizard: React.FC = () => {
   };
 
   return (
-    <div>
-      <Title level={3}>Create New Contract</Title>
-      <Card>
-        <Steps current={current} items={[
-          { title: 'Header Details' },
-          { title: 'Service Lines' },
-          { title: 'Review & Submit' }
-        ]} style={{ marginBottom: 24 }} />
+    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      {/* Header Banner */}
+      <div className="flex items-center gap-3 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+          <FileText className="w-6 h-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+            Create Ground Handling Agreement (SGHA)
+          </h1>
+          <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+            Draft IATA-compliant turnaround SLAs, service line formulas, and multi-tiered rate cards
+          </p>
+        </div>
+      </div>
+
+      {/* Main Wizard Form Panel */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
+        <Steps 
+          current={current} 
+          items={[
+            { title: 'Header Details' },
+            { title: 'Service Lines' },
+            { title: 'Review & Submit' }
+          ]} 
+          className="[&_.ant-steps-item-process_.ant-steps-item-icon]:!bg-slate-900 [&_.ant-steps-item-process_.ant-steps-item-icon]:!border-slate-900 [&_.ant-steps-item-finish_.ant-steps-item-icon]:!border-emerald-600 [&_.ant-steps-item-finish_.ant-steps-icon]:!text-emerald-600 mb-6"
+        />
 
         <Form form={form} layout="vertical" onFinish={onFinish}>
           
-          {/* STEP 1: Header */}
-          <div style={{ display: current === 0 ? 'block' : 'none' }}>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="airlineId" label="Airline" rules={[{ required: true }]}>
-                  <Select placeholder="Select Airline">
-                    <Option value="EK">Emirates (EK)</Option>
-                    <Option value="LH">Lufthansa (LH)</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="airportCode" label="Airport" rules={[{ required: true }]}>
-                  <Select placeholder="Select Airport">
-                    <Option value="DXB">DXB - Dubai</Option>
-                    <Option value="FRA">FRA - Frankfurt</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="dateRange" label="Validity Period" rules={[{ required: true }]}>
-                  <RangePicker style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="currency" label="Currency" rules={[{ required: true }]}>
-                  <Select placeholder="Select Currency">
-                    <Option value="USD">USD</Option>
-                    <Option value="EUR">EUR</Option>
-                    <Option value="AED">AED</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+          {/* STEP 1: Header Details */}
+          <div className={current === 0 ? 'block space-y-4' : 'hidden'}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item name="airlineId" label={<span className="text-xs font-semibold text-slate-700">Airline Carrier</span>} rules={[{ required: true }]}>
+                <Select id="airlineId" showSearch optionFilterProp="label" placeholder="Select Airline Carrier" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg">
+                  <Option value="EK" label="Emirates (EK)">Emirates (EK)</Option>
+                  <Option value="LH" label="Lufthansa (LH)">Lufthansa (LH)</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item name="airportCode" label={<span className="text-xs font-semibold text-slate-700">Station / Airport Hub</span>} rules={[{ required: true }]}>
+                <Select id="airportCode" showSearch optionFilterProp="label" placeholder="Select Airport Station" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg">
+                  <Option value="DXB" label="DXB - Dubai">DXB - Dubai</Option>
+                  <Option value="FRA" label="FRA - Frankfurt">FRA - Frankfurt</Option>
+                </Select>
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <Form.Item name="dateRange" label={<span className="text-xs font-semibold text-slate-700">Validity Period</span>} rules={[{ required: true }]}>
+                <RangePicker placeholder={["Start date", "End date"]} className="w-full [&_.ant-picker]:!rounded-lg [&_.ant-picker-input_input]:!text-xs" />
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <Form.Item name="currency" label={<span className="text-xs font-semibold text-slate-700">Billing Currency</span>} rules={[{ required: true }]}>
+                <Select id="currency" showSearch optionFilterProp="label" placeholder="Select Currency" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg">
+                  <Option value="USD" label="USD">USD</Option>
+                  <Option value="EUR" label="EUR">EUR</Option>
+                  <Option value="AED" label="AED">AED</Option>
+                </Select>
+              </Form.Item>
+            </div>
           </div>
 
           {/* STEP 2: Service Lines */}
-          <div style={{ display: current === 1 ? 'block' : 'none' }}>
+          <div className={current === 1 ? 'block space-y-4' : 'hidden'}>
             <Form.List name="services">
               {(fields, { add, remove }) => (
-                <>
+                <div className="space-y-4">
                   {fields.map(({ key, name, ...restField }) => (
-                    <Card key={key} size="small" style={{ marginBottom: 16 }} title={`Service ${name + 1}`} extra={<MinusCircleOutlined onClick={() => remove(name)} />}>
-                      <Row gutter={16}>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'chargeCode']} label="Charge Code" rules={[{ required: true }]}>
-                            <Select placeholder="Select Code">
-                              <Option value="BAGGAGE">BAGGAGE</Option>
-                              <Option value="PASSENGER_HANDLING">PASSENGER_HANDLING</Option>
-                              <Option value="DEICING">DEICING</Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'serviceName']} label="Service Name" rules={[{ required: true }]}>
-                            <Input placeholder="e.g. Standard Bag Handling" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'formulaType']} label="Pricing Formula" rules={[{ required: true }]}>
-                            <Select placeholder="Select Formula">
-                              <Option value="PF-01">PF-01 (Unit Rate)</Option>
-                              <Option value="PF-02">PF-02 (Compound Unit Rate)</Option>
-                              <Option value="PF-03">PF-03 (Slab Incremental)</Option>
-                              <Option value="PF-04">PF-04 (Slab All-Units)</Option>
-                              <Option value="PF-05">PF-05 (Time-Based)</Option>
-                              <Option value="PF-06">PF-06 (Day-Based)</Option>
-                              <Option value="PF-07">PF-07 (MTOW-Based)</Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                      </Row>
+                    <div key={key} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3 relative">
+                      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Service Line #{name + 1}</span>
+                        <button type="button" onClick={() => remove(name)} className="text-rose-600 hover:text-rose-700 p-1 cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                      <Row gutter={16}>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'quantityDriver']} label="Quantity Driver" rules={[{ required: true }]}>
-                            <Input placeholder="e.g. bags" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'uom']} label="Unit of Measure" rules={[{ required: true }]}>
-                            <Input placeholder="e.g. EA, KG" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'taxCode']} label="Tax Code">
-                            <Input placeholder="e.g. VAT-0" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Form.Item {...restField} name={[name, 'chargeCode']} label={<span className="text-xs font-medium text-slate-700">Charge Code</span>} rules={[{ required: true }]}>
+                          <Select id={`services_${name}_chargeCode`} showSearch optionFilterProp="label" placeholder="Select Code" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg">
+                            <Option value="BAGGAGE" label="BAGGAGE">BAGGAGE</Option>
+                            <Option value="PASSENGER_HANDLING" label="PASSENGER_HANDLING">PASSENGER_HANDLING</Option>
+                            <Option value="DEICING" label="DEICING">DEICING</Option>
+                          </Select>
+                        </Form.Item>
 
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'billingFrequency']}
-                            label="Billing Frequency (optional)"
-                          >
-                            <Select
-                              data-testid={`contract-billing-frequency-${name}`}
-                              allowClear
-                              placeholder="Select projection frequency"
-                            >
-                              <Option value="DAILY">Daily</Option>
-                              <Option value="WEEKLY">Weekly</Option>
-                              <Option value="MONTHLY">Monthly</Option>
-                              <Option value="QUARTERLY">Quarterly</Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'expectedAmount']}
-                            label="Expected Amount per Occurrence"
-                            dependencies={[[name, 'billingFrequency']]}
-                            rules={[
-                              ({ getFieldValue }) => ({
-                                validator(_, value) {
-                                  const frequency = getFieldValue(['services', name, 'billingFrequency']);
-                                  if (!frequency || Number(value) > 0) {
-                                    return Promise.resolve();
-                                  }
-                                  return Promise.reject(new Error(
-                                    'Enter a positive expected amount for projections',
-                                  ));
-                                },
-                              }),
-                            ]}
-                          >
-                            <Input
-                              data-testid={`contract-expected-amount-${name}`}
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              placeholder="Used by the airline expected-billing report"
-                            />
-                          </Form.Item>
-                        </Col>
-                      </Row>
+                        <Form.Item {...restField} name={[name, 'serviceName']} label={<span className="text-xs font-medium text-slate-700">Service Name</span>} rules={[{ required: true }]}>
+                          <Input id={`services_${name}_serviceName`} placeholder="e.g. Turnaround Baggage Handling" className="!text-xs !rounded-lg" />
+                        </Form.Item>
 
-                      {/* Dynamic Formula Fields */}
-                      <Form.Item
-                        noStyle
-                        shouldUpdate={(prevValues, currentValues) => {
-                          const prev = prevValues.services?.[name]?.formulaType;
-                          const curr = currentValues.services?.[name]?.formulaType;
-                          return prev !== curr;
-                        }}
-                      >
-                        {({ getFieldValue }) => {
-                          const formula = getFieldValue(['services', name, 'formulaType']);
-                          if (!formula) return null;
+                        <Form.Item {...restField} name={[name, 'formulaType']} label={<span className="text-xs font-medium text-slate-700">Formula Pricing Model</span>} rules={[{ required: true }]}>
+                          <Select id={`services_${name}_formulaType`} showSearch optionFilterProp="label" placeholder="Formula" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg">
+                            <Option value="PF-01" label="PF-01 (Unit Rate)">PF-01 (Unit Rate)</Option>
+                            <Option value="PF-02" label="PF-02 (Fixed Fee)">PF-02 (Fixed Fee)</Option>
+                            <Option value="PF-03" label="PF-03 (Tiered Volume)">PF-03 (Tiered Volume)</Option>
+                            <Option value="PF-04" label="PF-04 (Slab Rate)">PF-04 (Slab Rate)</Option>
+                            <Option value="PF-05" label="PF-05 (Time Band Rate)">PF-05 (Time Band Rate)</Option>
+                            <Option value="PF-06" label="PF-06 (Day Rate)">PF-06 (Day Rate)</Option>
+                            <Option value="PF-07" label="PF-07 (Custom Formula)">PF-07 (Custom Formula)</Option>
+                          </Select>
+                        </Form.Item>
+                      </div>
 
-                          return (
-                            <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px', marginTop: '16px' }}>
-                              <Title level={5}>Rate Details ({formula})</Title>
-                              
-                              {(formula === 'PF-01' || formula === 'PF-02' || formula === 'PF-07') && (
-                                <Form.Item {...restField} name={[name, 'rate']} label="Base Rate" rules={[{ required: true }]}>
-                                  <Input type="number" step="0.01" />
-                                </Form.Item>
-                              )}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <Form.Item {...restField} name={[name, 'quantityDriver']} label={<span className="text-xs font-medium text-slate-700">Quantity Driver</span>}>
+                          <Input id={`services_${name}_quantityDriver`} placeholder="e.g. passengers" className="!text-xs !rounded-lg" />
+                        </Form.Item>
 
-                              {(formula === 'PF-03' || formula === 'PF-04') && (
-                                <Form.List name={[name, 'tiers']}>
-                                  {(tierFields, { add: addTier, remove: removeTier }) => (
-                                    <>
-                                      {tierFields.map((tierField) => (
-                                        <Row key={tierField.key} gutter={16}>
-                                          <Col span={10}>
-                                            <Form.Item {...tierField} name={[tierField.name, 'upto']} label="Up To">
-                                              <Input type="number" placeholder="Leave empty for infinity" />
-                                            </Form.Item>
-                                          </Col>
-                                          <Col span={10}>
-                                            <Form.Item {...tierField} name={[tierField.name, 'rate']} label="Rate" rules={[{ required: true }]}>
-                                              <Input type="number" step="0.01" />
-                                            </Form.Item>
-                                          </Col>
-                                          <Col span={4}>
-                                            <MinusCircleOutlined onClick={() => removeTier(tierField.name)} style={{ marginTop: 35 }} />
-                                          </Col>
-                                        </Row>
-                                      ))}
-                                      <Button type="dashed" onClick={() => addTier()} block icon={<PlusOutlined />}>
-                                        Add Tier
-                                      </Button>
-                                    </>
-                                  )}
-                                </Form.List>
-                              )}
+                        <Form.Item {...restField} name={[name, 'uom']} label={<span className="text-xs font-medium text-slate-700">UoM</span>}>
+                          <Input id={`services_${name}_uom`} placeholder="e.g. PAX" className="!text-xs !rounded-lg" />
+                        </Form.Item>
 
-                              {/* PF-05 Time Bands, PF-06 Day Rates can follow a similar dynamic pattern... */}
-                            </div>
-                          );
-                        }}
-                      </Form.Item>
+                        <Form.Item {...restField} name={[name, 'taxCode']} label={<span className="text-xs font-medium text-slate-700">Tax Code</span>}>
+                          <Input id={`services_${name}_taxCode`} placeholder="e.g. VAT-0" className="!text-xs !rounded-lg" />
+                        </Form.Item>
 
-                    </Card>
+                        <Form.Item {...restField} name={[name, 'rate']} label={<span className="text-xs font-medium text-slate-700">Base Rate</span>}>
+                          <Input id={`services_${name}_rate`} placeholder="12.50" className="!text-xs !rounded-lg !font-mono" />
+                        </Form.Item>
+                      </div>
+                    </div>
                   ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      Add Service Line
-                    </Button>
-                  </Form.Item>
-                </>
+
+                  <button
+                    id="add-service-line-btn"
+                    type="button"
+                    onClick={() => add()}
+                    className="w-full py-2.5 px-4 border border-dashed border-slate-300 hover:border-blue-500 hover:text-blue-600 text-slate-600 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Service Line
+                  </button>
+                </div>
               )}
             </Form.List>
           </div>
 
           {/* STEP 3: Review */}
-          <div style={{ display: current === 2 ? 'block' : 'none' }}>
-            <p>Please review your contract details before submitting.</p>
-            {/* Display summary values here in a real app */}
+          <div className={current === 2 ? 'block space-y-4' : 'hidden'}>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm border-b pb-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Contract Review Summary</span>
+              </div>
+              <p className="text-slate-600 m-0">Review your SLA configuration details before saving as draft.</p>
+            </div>
           </div>
 
-          <Divider />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            {current > 0 && <Button onClick={prev}>Previous</Button>}
-            {current < 2 && <Button type="primary" onClick={next}>Next</Button>}
-            {current === 2 && <Button type="primary" htmlType="submit">Submit Contract</Button>}
+          {/* Wizard Nav Controls */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-6">
+            {current > 0 && (
+              <button
+                type="button"
+                onClick={prev}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Previous Step
+              </button>
+            )}
+            <div className="ml-auto flex items-center gap-3">
+              {current < 2 && (
+                <button
+                  id="contract-wizard-next-btn"
+                  type="button"
+                  onClick={next}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  <span>Next</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+              {current === 2 && (
+                <button
+                  id="contract-wizard-submit-btn"
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Submit Contract
+                </button>
+              )}
+            </div>
           </div>
+
         </Form>
-      </Card>
+      </div>
+
     </div>
   );
 };

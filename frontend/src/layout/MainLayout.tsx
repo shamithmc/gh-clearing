@@ -1,29 +1,28 @@
 import React from 'react';
-import { Layout, Menu, Button, Typography, Space, theme } from 'antd';
-import { 
-  DashboardOutlined, 
-  FileTextOutlined, 
-  FileDoneOutlined,
-  SafetyCertificateOutlined,
-  SettingOutlined,
-  UserOutlined,
-  LogoutOutlined,
-  CommentOutlined,
-  SendOutlined,
-  ShopOutlined,
-  FundOutlined
-} from '@ant-design/icons';
+import { Layout, Menu } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Plane, 
+  Building2, 
+  LayoutDashboard, 
+  FileText, 
+  MessageSquare, 
+  Receipt, 
+  Send, 
+  ShoppingBag, 
+  TrendingUp, 
+  ShieldCheck, 
+  LogOut, 
+  User, 
+  Sliders,
+  Scale
+} from 'lucide-react';
 
 const { Header, Sider, Content } = Layout;
-const { Title, Text } = Typography;
 
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
 
   const storedTenantType = localStorage.getItem('simTenantType');
   const isAirline = storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
@@ -32,98 +31,151 @@ const MainLayout: React.FC = () => {
   const groundHandlerMenuItems = [
     {
       key: '/',
-      icon: <DashboardOutlined />,
+      icon: <LayoutDashboard className="w-4 h-4" />,
       label: 'Dashboard',
     },
     {
       key: '/contracts',
-      icon: <FileTextOutlined />,
+      icon: <FileText className="w-4 h-4" />,
       label: 'Contracts',
     },
     {
       key: '/review-requests',
-      icon: <CommentOutlined />,
+      icon: <MessageSquare className="w-4 h-4" />,
       label: 'Review Requests',
     },
     {
       key: '/invoices',
-      icon: <FileDoneOutlined />,
+      icon: <Receipt className="w-4 h-4" />,
       label: 'Invoices',
     },
     {
       key: '/rfps',
-      icon: <SendOutlined />,
+      icon: <Send className="w-4 h-4" />,
       label: 'RFP Summary',
     },
     {
       key: '/offerings',
-      icon: <ShopOutlined />,
+      icon: <ShoppingBag className="w-4 h-4" />,
       label: 'Service Offerings',
     },
     {
       key: '/configuration',
-      icon: <SettingOutlined />,
+      icon: <Sliders className="w-4 h-4" />,
       label: 'Configuration',
     }
   ];
 
   const airlineMenuItems = [
-    { key: '/airline', icon: <DashboardOutlined />, label: 'Airline Home' },
-    { key: '/airline/contracts', icon: <FileTextOutlined />, label: 'Contracts' },
-    { key: '/airline/review-requests', icon: <CommentOutlined />, label: 'Review Requests' },
-    { key: '/airline/invoices', icon: <FileDoneOutlined />, label: 'Invoices' },
-    { key: '/airline/rfps', icon: <SendOutlined />, label: 'RFPs' },
-    { key: '/airline/marketplace', icon: <ShopOutlined />, label: 'Marketplace' },
-    { key: '/airline/cost-index', icon: <FundOutlined />, label: 'Cost Index' },
-    { key: '/disputes', icon: <SafetyCertificateOutlined />, label: 'Disputes' },
+    { key: '/airline', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Airline Home' },
+    { key: '/airline/contracts', icon: <FileText className="w-4 h-4" />, label: 'Contracts' },
+    { key: '/airline/review-requests', icon: <MessageSquare className="w-4 h-4" />, label: 'Review Requests' },
+    { key: '/airline/invoices', icon: <Receipt className="w-4 h-4" />, label: 'Invoices' },
+    { key: '/airline/rfps', icon: <Send className="w-4 h-4" />, label: 'RFPs' },
+    { key: '/airline/marketplace', icon: <ShoppingBag className="w-4 h-4" />, label: 'Marketplace' },
+    { key: '/airline/cost-index', icon: <TrendingUp className="w-4 h-4" />, label: 'Cost Index' },
+    { key: '/disputes', icon: <Scale className="w-4 h-4" />, label: 'Disputes' },
   ];
 
   const menuItems = isAirline ? airlineMenuItems : groundHandlerMenuItems;
 
+  // Selected key calculation
+  const getSelectedKey = () => {
+    const path = location.pathname;
+    if (path.startsWith('/airline/invoices')) return '/airline/invoices';
+    if (path.startsWith('/airline/contracts')) return '/airline/contracts';
+    if (path.startsWith('/airline/review-requests')) return '/airline/review-requests';
+    if (path.startsWith('/airline/rfps')) return '/airline/rfps';
+    if (path.startsWith('/invoices')) return '/invoices';
+    if (path.startsWith('/contracts')) return '/contracts';
+    if (path.startsWith('/review-requests')) return '/review-requests';
+    if (path.startsWith('/rfps')) return '/rfps';
+    return path;
+  };
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="min-h-screen bg-slate-100">
       <Sider 
         breakpoint="lg"
         collapsedWidth="0"
-        theme="light"
+        theme="dark"
+        className="!bg-slate-900 border-r border-slate-800 shadow-xl"
+        width={240}
       >
-        <div style={{ padding: '16px', textAlign: 'center' }}>
-          <Title level={4} style={{ margin: 0, color: '#1677ff' }}>
-            {isAirline ? 'Airline Clearing' : 'GH Clearing'}
-          </Title>
-        </div>
-        <Menu 
-          theme="light" 
-          mode="inline" 
-          selectedKeys={[location.pathname.startsWith('/invoices') ? '/invoices' : location.pathname.startsWith('/contracts') ? '/contracts' : location.pathname]} 
-          items={menuItems}
-          onClick={(e) => navigate(e.key)}
-        />
-      </Sider>
-      <Layout>
-        <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-          <Space size="large">
-            <Space>
-              <UserOutlined />
-              <Text strong>{tenantId}</Text>
-              <Text type="secondary">({isAirline ? 'Airline User' : 'Ground Handler User'})</Text>
-            </Space>
-            <Button type="text" icon={<LogoutOutlined />}>
-              Logout
-            </Button>
-          </Space>
-        </Header>
-        <Content style={{ margin: '24px 16px 0', overflow: 'initial' }}>
-          <div
-            style={{
-              padding: 24,
-              minHeight: 360,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
-            <Outlet />
+        {/* Brand Header */}
+        <div className="p-4 flex items-center gap-3 border-b border-slate-800/80">
+          <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
+            {isAirline ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
           </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-white tracking-tight m-0">
+              {isAirline ? 'AIRLINE CLEARING' : 'GH CLEARING'}
+            </h2>
+            <span className="text-[10px] font-mono text-slate-400 block tracking-wider uppercase">
+              Aviation Fintech Platform
+            </span>
+          </div>
+        </div>
+
+        {/* Navigation Menu */}
+        <div className="py-2">
+          <Menu 
+            theme="dark" 
+            mode="inline" 
+            selectedKeys={[getSelectedKey()]} 
+            items={menuItems}
+            onClick={(e) => navigate(e.key)}
+            className="!bg-slate-900 !border-0 [&_.ant-menu-item]:!text-slate-300 [&_.ant-menu-item]:!text-xs [&_.ant-menu-item]:!font-medium [&_.ant-menu-item-selected]:!bg-blue-600 [&_.ant-menu-item-selected]:!text-white [&_.ant-menu-item-selected]:!font-bold [&_.ant-menu-item]:!rounded-lg [&_.ant-menu-item]:!mx-2 [&_.ant-menu-item]:!my-1"
+          />
+        </div>
+
+        {/* Footer Workspace Info */}
+        <div className="absolute bottom-4 left-4 right-4 p-3 bg-slate-800/80 border border-slate-700/80 rounded-xl space-y-1">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+            <span>Operational Mode</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400 block">
+            IATA AHM560 & SLA Verifier
+          </span>
+        </div>
+      </Sider>
+
+      <Layout className="bg-slate-50/50">
+        {/* Header Bar */}
+        <Header className="!bg-white !px-6 border-b border-slate-200/80 flex items-center justify-between !h-16 shadow-2xs sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Scope:</span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 font-mono">
+              {tenantId} ({isAirline ? 'AIRLINE' : 'GROUND_HANDLER'})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+              <User className="w-4 h-4 text-slate-500" />
+              <span className="font-semibold text-slate-800">{tenantId}</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-slate-500 font-medium">{isAirline ? 'Airline Operations' : 'Handler Station'}</span>
+            </div>
+
+            <button 
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors shadow-2xs cursor-pointer"
+              onClick={() => {
+                localStorage.removeItem('simTenantId');
+                localStorage.removeItem('simTenantType');
+                window.location.reload();
+              }}
+            >
+              <LogOut className="w-3.5 h-3.5 text-slate-500" />
+              Reset Persona
+            </button>
+          </div>
+        </Header>
+
+        {/* Main Content Area */}
+        <Content className="p-4 sm:p-6 lg:p-8">
+          <Outlet />
         </Content>
       </Layout>
     </Layout>

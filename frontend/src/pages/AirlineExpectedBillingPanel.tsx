@@ -1,26 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Empty,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, DatePicker, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { LineChartOutlined } from '@ant-design/icons';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
+import {
+  TrendingUp,
+  Filter,
+  RefreshCw,
+  LineChart,
+  Layers,
+  Calendar,
+  CalendarDays
+} from 'lucide-react';
 
 const { RangePicker } = DatePicker;
-const { Paragraph, Text, Title } = Typography;
 
 interface CurrencySummary {
   currency: string;
@@ -98,7 +90,12 @@ const ExpectedBillingLine: React.FC<{
   onSelect: (date: string) => void;
 }> = ({ data, currency, selectedDate, onSelect }) => {
   if (data.length === 0) {
-    return <Empty description="No expected billing in this date range" />;
+    return (
+      <div className="py-8 text-center">
+        <LineChart className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-slate-600 m-0">No expected billing in this date range</p>
+      </div>
+    );
   }
   const width = 820;
   const height = 260;
@@ -124,12 +121,13 @@ const ExpectedBillingLine: React.FC<{
     `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="Expected billing day versus amount line chart"
-        style={{ width: '100%', minWidth: 620, maxHeight: 320 }}
+        className="w-full"
+        style={{ minWidth: 620, maxHeight: 320 }}
       >
         {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
           const y = top + chartHeight - ratio * chartHeight;
@@ -189,25 +187,34 @@ const DimensionSummary: React.FC<{
   testIdPrefix: string;
   onSelect: (value: string) => void;
 }> = ({ title, data, currency, testIdPrefix, onSelect }) => (
-  <Card size="small" title={title} style={{ height: '100%' }}>
-    {data.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} /> : (
-      <Space direction="vertical" style={{ width: '100%' }}>
-        {data.slice(0, 6).map(item => (
-          <Button
-            key={`${item.key}-${item.currency}`}
-            data-testid={`${testIdPrefix}-${item.key}`}
-            type="text"
-            block
-            onClick={() => onSelect(item.key)}
-            style={{ display: 'flex', justifyContent: 'space-between', paddingInline: 0 }}
-          >
-            <Text strong>{item.key}</Text>
-            <Text>{formatAmount(item.totalExpected, currency)}</Text>
-          </Button>
-        ))}
-      </Space>
-    )}
-  </Card>
+  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden h-full">
+    <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-200/80">
+      <Layers className="w-4 h-4 text-slate-500" />
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">{title}</span>
+    </div>
+    <div className="p-4">
+      {data.length === 0 ? (
+        <div className="py-6 text-center">
+          <p className="text-xs text-slate-400 m-0">No data available</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.slice(0, 6).map(item => (
+            <button
+              key={`${item.key}-${item.currency}`}
+              data-testid={`${testIdPrefix}-${item.key}`}
+              type="button"
+              onClick={() => onSelect(item.key)}
+              className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 border-0 bg-transparent text-left cursor-pointer transition-colors"
+            >
+              <span className="text-xs font-bold text-slate-900">{item.key}</span>
+              <span className="text-xs font-semibold text-slate-700">{formatAmount(item.totalExpected, currency)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
 );
 
 const AirlineExpectedBillingPanel: React.FC = () => {
@@ -293,200 +300,242 @@ const AirlineExpectedBillingPanel: React.FC = () => {
   const projectionRows = forCurrency(report.projections)
     .filter(item => !selectedDate || item.expectedDate === selectedDate);
   const columns: TableColumnsType<ProjectionDrilldown> = [
-    { title: 'Expected Date', dataIndex: 'expectedDate', key: 'expectedDate' },
-    { title: 'Supplier', dataIndex: 'supplierId', key: 'supplierId' },
-    { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
-    { title: 'Service', dataIndex: 'serviceType', key: 'serviceType' },
+    { title: 'EXPECTED DATE', dataIndex: 'expectedDate', key: 'expectedDate' },
+    { title: 'SUPPLIER', dataIndex: 'supplierId', key: 'supplierId' },
+    { title: 'AIRPORT', dataIndex: 'airportCode', key: 'airportCode' },
+    { title: 'SERVICE', dataIndex: 'serviceType', key: 'serviceType' },
     {
-      title: 'Frequency',
+      title: 'FREQUENCY',
       dataIndex: 'billingFrequency',
       key: 'billingFrequency',
-      render: (value: string) => <Tag color="blue">{value}</Tag>,
+      render: (value: string) => (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          {value}
+        </span>
+      ),
     },
     {
-      title: 'Expected',
+      title: 'EXPECTED',
       key: 'expectedAmount',
-      align: 'right',
-      render: (_, item) => formatAmount(item.expectedAmount, item.currency),
+      align: 'right' as const,
+      render: (_, item) => (
+        <span className="text-xs font-extrabold text-slate-900">
+          {formatAmount(item.expectedAmount, item.currency)}
+        </span>
+      ),
     },
-    { title: 'Contract', dataIndex: 'contractId', key: 'contractId' },
+    { title: 'CONTRACT', dataIndex: 'contractId', key: 'contractId' },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%', marginTop: 8 }}>
-      <div>
-        <Title level={3} style={{ margin: 0 }}>Expected Billing</Title>
-        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          AFR2 contract-frequency projections. Values are estimates, not dispatched invoices.
-        </Paragraph>
+    <div className="space-y-6 mt-2">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Expected Billing
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+                AFR2 contract-frequency projections. Values are estimates, not dispatched invoices
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadReport}
+          className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+          Refresh Data
+        </button>
       </div>
 
-      {error && <Alert type="error" showIcon message={error} />}
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
-      <Card size="small">
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} xl={5}>
-            <Select
-              data-testid="afr2-supplier-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All suppliers"
-              value={supplierId}
-              options={knownSuppliers.map(value => ({ value, label: value }))}
-              onChange={setSupplierId}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={5}>
-            <Select
-              data-testid="afr2-airport-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All airports"
-              value={airportCode}
-              options={airports.map(item => ({
-                value: item.iataCode,
-                label: `${item.iataCode} — ${item.name}`,
-              }))}
-              onChange={setAirportCode}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={5}>
-            <Select
-              data-testid="afr2-service-filter"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ width: '100%' }}
-              placeholder="All services"
-              value={serviceType}
-              options={services.map(item => ({
-                value: item.code,
-                label: `${item.code} — ${item.displayName}`,
-              }))}
-              onChange={setServiceType}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <RangePicker
-              data-testid="afr2-date-filter"
-              style={{ width: '100%' }}
-              onChange={dates => {
-                setStartDate(dates?.[0]?.format('YYYY-MM-DD'));
-                setEndDate(dates?.[1]?.format('YYYY-MM-DD'));
-              }}
-            />
-          </Col>
-          <Col xs={24} sm={12} xl={3}>
-            <Select
-              data-testid="afr2-currency-filter"
-              style={{ width: '100%' }}
-              placeholder="Currency"
-              value={currency}
-              options={report.summaries.map(item => ({
-                value: item.currency,
-                label: item.currency,
-              }))}
-              onChange={setCurrency}
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* Filter Card */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Filter Projections</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+          <Select
+            data-testid="afr2-supplier-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All suppliers" value={supplierId}
+            options={knownSuppliers.map(value => ({ value, label: value }))}
+            onChange={setSupplierId}
+          />
+          <Select
+            data-testid="afr2-airport-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All airports" value={airportCode}
+            options={airports.map(item => ({
+              value: item.iataCode,
+              label: `${item.iataCode} — ${item.name}`,
+            }))}
+            onChange={setAirportCode}
+          />
+          <Select
+            data-testid="afr2-service-filter"
+            allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All services" value={serviceType}
+            options={services.map(item => ({
+              value: item.code,
+              label: `${item.code} — ${item.displayName}`,
+            }))}
+            onChange={setServiceType}
+          />
+          <RangePicker
+            data-testid="afr2-date-filter"
+            className="w-full [&_input]:!text-xs !rounded-lg"
+            onChange={dates => {
+              setStartDate(dates?.[0]?.format('YYYY-MM-DD'));
+              setEndDate(dates?.[1]?.format('YYYY-MM-DD'));
+            }}
+          />
+          <Select
+            data-testid="afr2-currency-filter"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="Currency" value={currency}
+            options={report.summaries.map(item => ({
+              value: item.currency,
+              label: item.currency,
+            }))}
+            onChange={setCurrency}
+          />
+        </div>
+      </div>
 
       <Spin spinning={loading}>
         {!summary && !loading ? (
-          <Empty description="No configured expected billing matches these filters" />
+          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80">
+            <TrendingUp className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-600 m-0">No configured expected billing matches these filters</p>
+          </div>
         ) : (
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Card data-testid="afr2-total-expected">
-                  <Statistic
-                    title="Total Expected"
-                    value={summary?.totalExpected || 0}
-                    precision={2}
-                    prefix={currency}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card data-testid="afr2-occurrence-count">
-                  <Statistic title="Projected Occurrences" value={summary?.occurrenceCount || 0} />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card>
-                  <Statistic
-                    title="Projection Window"
-                    value={`${report.startDate || '—'} → ${report.endDate || '—'}`}
-                  />
-                </Card>
-              </Col>
-            </Row>
+          <div className="space-y-6">
 
-            <Card title={<Space><LineChartOutlined />Day vs. Expected Amount</Space>}>
-              <ExpectedBillingLine
-                data={forCurrency(report.timeline)}
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div data-testid="afr2-total-expected" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Expected</span>
+                </div>
+                <p className="text-2xl font-extrabold text-slate-900 m-0">
+                  {currency} {Number(summary?.totalExpected || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div data-testid="afr2-occurrence-count" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Projected Occurrences</span>
+                </div>
+                <p className="text-2xl font-extrabold text-slate-900 m-0">{summary?.occurrenceCount || 0}</p>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Projection Window</span>
+                </div>
+                <p className="text-lg font-extrabold text-slate-900 m-0">
+                  {report.startDate || '—'} &rarr; {report.endDate || '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Chart Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+                <LineChart className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Day vs. Expected Amount</span>
+              </div>
+              <div className="p-6">
+                <ExpectedBillingLine
+                  data={forCurrency(report.timeline)}
+                  currency={currency || ''}
+                  selectedDate={selectedDate}
+                  onSelect={setSelectedDate}
+                />
+              </div>
+            </div>
+
+            {/* Dimension Breakdown Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <DimensionSummary
+                title="By Supplier"
+                data={forCurrency(report.bySupplier)}
                 currency={currency || ''}
-                selectedDate={selectedDate}
-                onSelect={setSelectedDate}
+                testIdPrefix="afr2-supplier"
+                onSelect={setSupplierId}
               />
-            </Card>
+              <DimensionSummary
+                title="By Airport"
+                data={forCurrency(report.byAirport)}
+                currency={currency || ''}
+                testIdPrefix="afr2-airport"
+                onSelect={setAirportCode}
+              />
+              <DimensionSummary
+                title="By Service"
+                data={forCurrency(report.byService)}
+                currency={currency || ''}
+                testIdPrefix="afr2-service"
+                onSelect={setServiceType}
+              />
+            </div>
 
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={8}>
-                <DimensionSummary
-                  title="By Supplier"
-                  data={forCurrency(report.bySupplier)}
-                  currency={currency || ''}
-                  testIdPrefix="afr2-supplier"
-                  onSelect={setSupplierId}
-                />
-              </Col>
-              <Col xs={24} lg={8}>
-                <DimensionSummary
-                  title="By Airport"
-                  data={forCurrency(report.byAirport)}
-                  currency={currency || ''}
-                  testIdPrefix="afr2-airport"
-                  onSelect={setAirportCode}
-                />
-              </Col>
-              <Col xs={24} lg={8}>
-                <DimensionSummary
-                  title="By Service"
-                  data={forCurrency(report.byService)}
-                  currency={currency || ''}
-                  testIdPrefix="afr2-service"
-                  onSelect={setServiceType}
-                />
-              </Col>
-            </Row>
-
-            <Card
-              title={selectedDate ? `Expected Amounts — ${selectedDate}` : 'Expected Amount Drill-down'}
-              extra={selectedDate
-                ? <Button type="link" onClick={() => setSelectedDate(undefined)}>Show all dates</Button>
-                : undefined}
-              styles={{ body: { padding: 0 } }}
-            >
+            {/* Projection Drill-down Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    {selectedDate ? `Expected Amounts — ${selectedDate}` : 'Expected Amount Drill-down'}
+                  </span>
+                </div>
+                {selectedDate && (
+                  <button
+                    onClick={() => setSelectedDate(undefined)}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-transparent border-0 cursor-pointer"
+                  >
+                    Show all dates
+                  </button>
+                )}
+              </div>
               <Table
                 data-testid="afr2-projection-table"
                 rowKey={item => `${item.expectedDate}-${item.contractId}-${item.serviceId}`}
                 columns={columns}
                 dataSource={projectionRows}
                 pagination={{ pageSize: 10 }}
-                locale={{ emptyText: <Empty description="No projected amounts" /> }}
+                locale={{ emptyText: (
+                  <div className="py-8 text-center">
+                    <TrendingUp className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-slate-600 m-0">No projected amounts</p>
+                  </div>
+                )}}
                 scroll={{ x: 900 }}
+                className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
               />
-            </Card>
-          </Space>
+            </div>
+
+          </div>
         )}
       </Spin>
-    </Space>
+
+    </div>
   );
 };
 

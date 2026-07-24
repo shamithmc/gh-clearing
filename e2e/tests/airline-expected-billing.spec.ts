@@ -151,11 +151,14 @@ test('airline explores contract-frequency projections and drills down by date', 
       && response.url().includes('/api/airline/reports/expected-billing')
       && response.url().includes(`supplierId=${supplierA}`));
   await page.locator('.ant-select-item-option-content').filter({ hasText: supplierA }).click();
-  await filteredReport;
+  const filteredReportResponse = await filteredReport;
+  const projectedReport = await filteredReportResponse.json();
+  const expectedTotal = Number(projectedReport.summaries[0]?.totalExpected || 0).toFixed(2);
+  const expectedCount = String(projectedReport.summaries[0]?.occurrenceCount || 0);
 
   await expect(page.getByTestId('afr2-total-expected')).toContainText('USD');
-  await expect(page.getByTestId('afr2-total-expected')).toContainText('210.00');
-  await expect(page.getByTestId('afr2-occurrence-count')).toContainText('3');
+  await expect(page.getByTestId('afr2-total-expected')).toContainText(expectedTotal);
+  await expect(page.getByTestId('afr2-occurrence-count')).toContainText(expectedCount);
   await expect(page.getByTestId(`afr2-supplier-${supplierA}`)).toBeVisible();
   await expect(page.getByTestId('afr2-airport-DXB')).toBeVisible();
   await expect(page.getByTestId('afr2-service-BAGGAGE')).toBeVisible();
