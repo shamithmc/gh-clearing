@@ -15,6 +15,7 @@ paths:
   - "e2e/tests/invoices.spec.ts"
   - "e2e/tests/pricing-benchmark.spec.ts"
   - "frontend/index.html"
+  - "frontend/src/index.css"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/AirlineBilledAmountsPanel.tsx"
   - "frontend/src/pages/AirlineContractExpiryPanel.tsx"
