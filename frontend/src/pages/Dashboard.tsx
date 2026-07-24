@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
+import SupplierOperationalFootprintPanel from './SupplierOperationalFootprintPanel';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -564,6 +565,7 @@ const Dashboard: React.FC = () => {
           </Row>
         </>
       )}
+      <SupplierOperationalFootprintPanel />
     </div>
   );
 };
