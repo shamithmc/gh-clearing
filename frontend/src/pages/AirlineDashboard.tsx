@@ -4,6 +4,7 @@ import { Alert, Button, Card, Col, Row, Space, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { setSimulatedUserId, unrestrictedUserId } from '../utils/simulatedAuth';
 import AirlineBilledAmountsPanel from './AirlineBilledAmountsPanel';
+import AirlineExpectedBillingPanel from './AirlineExpectedBillingPanel';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -87,6 +88,7 @@ const AirlineDashboard: React.FC = () => {
       </Row>
 
       <AirlineBilledAmountsPanel />
+      <AirlineExpectedBillingPanel />
     </Space>
   );
 };
