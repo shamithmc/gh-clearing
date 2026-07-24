@@ -7,6 +7,7 @@
 *.njsproj
 *.sln
 *.swp
+.mcp.json
 
 # Build & dependency directories
 target/
@@ -33,3 +34,4 @@ e2e/test-results/
 # Local uploads storage
 uploads/
 backend/uploads/
+e2e.nxt/

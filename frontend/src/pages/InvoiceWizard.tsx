@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Steps, Button, Form, Input, Select, DatePicker, message, Row, Col, Typography, Divider, Table } from 'antd';
-import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Steps, Form, Input, Select, DatePicker, message, Table } from 'antd';
+import { Plus, Trash2, CreditCard, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
-const { Title, Text } = Typography;
 const { Option } = Select;
 
 interface ContractServiceLine {
@@ -30,6 +30,7 @@ const InvoiceWizard: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [, setTick] = useState(0);
 
   // Reference data lists
   const [airlines, setAirlines] = useState<any[]>([]);
@@ -45,7 +46,7 @@ const InvoiceWizard: React.FC = () => {
   const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
   const simUserId = getSimulatedUserId(simTenantId);
 
-  // Fetch airlines and airports references
+  // Fetch reference lists
   useEffect(() => {
     fetch('/api/reference/airlines', {
       headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
@@ -59,7 +60,7 @@ const InvoiceWizard: React.FC = () => {
     })
       .then(res => res.json())
       .then(data => setAirports(data))
-      .catch(() => setAirports([{ iataCode: 'DXB', name: 'Dubai' }, { iataCode: 'FRA', name: 'Frankfurt' }]));
+      .catch(() => setAirports([{ iataCode: 'DXB', name: 'Dubai International Airport' }, { iataCode: 'FRA', name: 'Frankfurt Airport' }]));
   }, [simTenantId, simTenantType, simUserId]);
 
   // Fetch approved contracts when airline or airport changes
@@ -74,7 +75,9 @@ const InvoiceWizard: React.FC = () => {
             c => c.airlineId === selectedAirline && c.airportCode === selectedAirport
           );
           setApprovedContracts(matchingContracts);
-          const servicesList = matchingContracts.flatMap(c => c.services);
+          const servicesList = matchingContracts.flatMap(c => 
+            (c.services || []).map(s => ({ ...s, contractId: c.id }))
+          );
           setSelectedContractServices(servicesList);
         })
         .catch(() => {
@@ -105,7 +108,6 @@ const InvoiceWizard: React.FC = () => {
 
   const prev = () => setCurrent(current - 1);
 
-  // Simple pricing engine simulation for UI preview
   const calculateLineItemAmount = (item: any) => {
     if (!item || !item.chargeCode) return 0;
     const contractSvc = selectedContractServices.find(s => s.chargeCode === item.chargeCode);
@@ -118,7 +120,6 @@ const InvoiceWizard: React.FC = () => {
     if (formula === 'PF-01') {
       return driverQty * rate;
     } else if (formula === 'PF-03' || formula === 'PF-04') {
-      // Slab-based fallback logic
       const tiers = contractSvc.rateDetails?.tiers || [];
       if (tiers.length > 0) {
         return driverQty * (tiers[0].rate || 0);
@@ -150,42 +151,51 @@ const InvoiceWizard: React.FC = () => {
     const lineItemsPayload = (values.lineItems || []).map((item: any) => {
       const contractSvc = selectedContractServices.find(s => s.chargeCode === item.chargeCode);
       const calcAmount = calculateLineItemAmount(item);
-      
-      const matchingContract = approvedContracts.find(c => 
-        c.services.some(s => s.chargeCode === item.chargeCode)
-      );
-      // JSON stringified quantity driver configuration
-      const driverObj = {
-        [contractSvc?.quantityDriver || 'passenger']: parseFloat(item.driverValue) || 0
-      };
+      const fDate = item.flightDate && dayjs.isDayjs(item.flightDate) 
+        ? item.flightDate.format('YYYY-MM-DD') 
+        : (item.flightDate ? String(item.flightDate) : dayjs().format('YYYY-MM-DD'));
+
+      const cId = (contractSvc as any)?.contractId || (approvedContracts[0]?.id);
+
+      // quantityDrivers must be a JSON map string: {"<quantityDriver>": <numericValue>}
+      // as expected by InvoiceService.parseQuantityDrivers()
+      const driverKey = contractSvc?.quantityDriver || 'quantity';
+      const driverVal = parseFloat(item.driverValue) || 0;
+      const quantityDriversJson = JSON.stringify({ [driverKey]: driverVal });
 
       return {
-        flightDate: item.flightDate.format('YYYY-MM-DD'),
+        contractId: cId,
+        flightDate: fDate,
         flightNumber: item.flightNumber,
         aircraftReg: item.aircraftReg,
-        aircraftType: item.aircraftType?.trim().toUpperCase() || undefined,
         origin: item.origin,
         destination: item.destination,
         chargeCode: item.chargeCode,
-        serviceName: contractSvc?.serviceName || 'Unknown Service',
+        serviceName: contractSvc?.serviceName || 'Service',
         formulaType: contractSvc?.formulaType || 'PF-01',
-        quantityDrivers: JSON.stringify(driverObj),
-        calculatedAmount: calcAmount,
-        contractId: matchingContract?.id || ''
+        quantityDrivers: quantityDriversJson,
+        calculatedAmount: calcAmount
       };
     });
 
+    const iDate = values.issueDate && dayjs.isDayjs(values.issueDate)
+      ? values.issueDate.format('YYYY-MM-DD')
+      : (values.issueDate ? String(values.issueDate) : dayjs().format('YYYY-MM-DD'));
+
+    const dDate = values.dueDate && dayjs.isDayjs(values.dueDate)
+      ? values.dueDate.format('YYYY-MM-DD')
+      : (values.dueDate ? String(values.dueDate) : dayjs().add(30, 'day').format('YYYY-MM-DD'));
+
     const payload = {
-      invoiceNumber: values.invoiceNumber,
       supplierId: simTenantId,
+      invoiceNumber: values.invoiceNumber,
       airlineId: values.airlineId,
       airportCode: values.airportCode,
-      currency: values.currency,
-      exchangeRate: parseFloat(values.exchangeRate) || 1.0,
+      currency: values.currency || 'USD',
+      exchangeRate: values.exchangeRate ? Number(values.exchangeRate) : undefined,
       exchangeRateSource: values.exchangeRateSource,
-      issueDate: values.issueDate.format('YYYY-MM-DD'),
-      dueDate: values.dueDate.format('YYYY-MM-DD'),
-      totalAmount: lineItemsPayload.reduce((sum: number, i: any) => sum + i.calculatedAmount, 0),
+      issueDate: iDate,
+      dueDate: dDate,
       lineItems: lineItemsPayload
     };
 
@@ -196,244 +206,303 @@ const InvoiceWizard: React.FC = () => {
         ...simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
       },
       body: JSON.stringify(payload)
-    }).then(res => {
+    }).then(async res => {
+      const textData = await res.text();
+      console.log('[InvoiceWizard] POST /api/invoices status:', res.status, 'body:', textData);
       if (res.ok) {
         message.success('Invoice drafted successfully!');
         navigate('/invoices');
       } else {
-        res.json().then(data => {
-          message.error(data.message || 'Failed to create invoice.');
-        }).catch(() => {
-          message.error('Failed to create invoice.');
-        });
+        let errorMsg = 'Failed to create invoice.';
+        try {
+          const json = JSON.parse(textData);
+          errorMsg = json.message || json.error || textData;
+        } catch (_) {
+          if (textData) errorMsg = textData;
+        }
+        console.error('[InvoiceWizard] Error message to show:', errorMsg);
+        message.error(errorMsg);
       }
+    }).catch(err => {
+      console.error('[InvoiceWizard] fetch catch:', err);
+      message.error('Failed to create invoice.');
     });
   };
 
+  const previewColumns = [
+    { title: 'Flight Date', dataIndex: 'flightDate', key: 'flightDate', render: (val: any) => val ? val.format('YYYY-MM-DD') : '' },
+    { title: 'Flight No', dataIndex: 'flightNumber', key: 'flightNumber' },
+    { title: 'Reg', dataIndex: 'aircraftReg', key: 'aircraftReg' },
+    { title: 'Sector', key: 'sector', render: (_: any, r: any) => `${r.origin || ''}-${r.destination || ''}` },
+    { title: 'Charge Code', dataIndex: 'chargeCode', key: 'chargeCode' },
+    { title: 'Formula', dataIndex: 'formulaType', key: 'formulaType' },
+    { title: 'Amount', dataIndex: 'calculatedAmount', key: 'calculatedAmount', align: 'right' as const, render: (val: number) => `$${val.toFixed(2)}` }
+  ];
+
   return (
-    <div>
-      <Title level={3}>Create New Invoice</Title>
-      <Card>
-        <Steps current={current} items={[
-          { title: 'Header & Context' },
-          { title: 'Flight Line Items' },
-          { title: 'Preview & Submit' }
-        ]} style={{ marginBottom: 24 }} />
+    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      {/* Header Banner */}
+      <div className="flex items-center gap-3 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+          <CreditCard className="w-6 h-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+            Create Ground Handling Invoice
+          </h1>
+          <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+            Multi-flight turnaround billing generator linked to approved contract SLAs
+          </p>
+        </div>
+      </div>
 
-        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ exchangeRate: 1.0 }}>
+      {/* Main Wizard Form Container */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
+        <Steps 
+          current={current} 
+          items={[
+            { title: 'Header & Scope' },
+            { title: 'Flight Line Items' },
+            { title: 'Ledger Preview' }
+          ]} 
+          className="[&_.ant-steps-item-process_.ant-steps-item-icon]:!bg-slate-900 [&_.ant-steps-item-process_.ant-steps-item-icon]:!border-slate-900 [&_.ant-steps-item-finish_.ant-steps-item-icon]:!border-emerald-600 [&_.ant-steps-item-finish_.ant-steps-icon]:!text-emerald-600 mb-6"
+        />
+
+        <Form 
+          form={form} 
+          layout="vertical" 
+          onFinish={onFinish}
+          initialValues={{
+            issueDate: dayjs(),
+            dueDate: dayjs().add(30, 'day'),
+            currency: 'USD',
+            lineItems: []
+          }}
+        >
           
-          {/* STEP 1: Context and Invoice Header Details */}
-          <div style={{ display: current === 0 ? 'block' : 'none' }}>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="airlineId" label="Airline" rules={[{ required: true, message: 'Airline is required' }]}>
-                  <Select showSearch optionFilterProp="children" placeholder="Select Airline" onChange={handleAirlineChange}>
-                    {airlines.map(a => (
-                      <Option key={a.iataCode} value={a.iataCode}>{a.name} ({a.iataCode})</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="airportCode" label="Airport" rules={[{ required: true, message: 'Airport is required' }]}>
-                  <Select showSearch optionFilterProp="children" placeholder="Select Airport" onChange={handleAirportChange}>
-                    {airports.map(ap => (
-                      <Option key={ap.iataCode} value={ap.iataCode}>{ap.name} ({ap.iataCode})</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+          {/* STEP 1 */}
+          <div className={current === 0 ? 'block space-y-4' : 'hidden'}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Form.Item name="airlineId" label={<span className="text-xs font-semibold text-slate-700">Airline Carrier</span>} rules={[{ required: true }]}>
+                <Select 
+                  id="airlineId"
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Select Airline" 
+                  onChange={handleAirlineChange} 
+                  className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selection-item]:!pointer-events-none"
+                >
+                  {airlines.map(a => <Option key={a.iataCode} value={a.iataCode} data-testid={`option-${a.iataCode}`} label={`${a.name} (${a.iataCode})`}>{a.name} ({a.iataCode})</Option>)}
+                </Select>
+              </Form.Item>
 
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item name="invoiceNumber" label="Invoice Number" rules={[{ required: true, message: 'Invoice Number is required' }]}>
-                  <Input id="invoiceNumber" placeholder="INV-2026-0001" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="currency" label="Currency" rules={[{ required: true, message: 'Currency is required' }]}>
-                  <Select showSearch optionFilterProp="children" placeholder="Select Currency">
-                    <Option value="USD">USD</Option>
-                    <Option value="EUR">EUR</Option>
-                    <Option value="AED">AED</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="exchangeRate" label="Exchange Rate" rules={[{ required: true, message: 'Exchange Rate is required' }]}>
-                  <Input id="exchangeRate" type="number" step="0.0001" placeholder="1.0" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="exchangeRateSource" label="Exchange Rate Source" rules={[{ required: true, message: 'Exchange Rate Source is required' }]}>
-                  <Input id="exchangeRateSource" placeholder="ECB, central bank, contract rate" />
-                </Form.Item>
-              </Col>
-            </Row>
+              <Form.Item name="airportCode" label={<span className="text-xs font-semibold text-slate-700">Station / Airport Hub</span>} rules={[{ required: true }]}>
+                <Select 
+                  id="airportCode"
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Select Airport" 
+                  onChange={handleAirportChange} 
+                  className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selection-item]:!pointer-events-none"
+                >
+                  {airports.map(ap => (
+                    <Option key={ap.iataCode} value={ap.iataCode} data-testid={`option-${ap.iataCode}`} label={`${ap.name} (${ap.iataCode})`}>
+                      {ap.name} ({ap.iataCode})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="issueDate" label="Issue Date" rules={[{ required: true, message: 'Issue Date is required' }]}>
-                  <DatePicker style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="dueDate" label="Due Date" rules={[{ required: true, message: 'Due Date is required' }]}>
-                  <DatePicker style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
+              <Form.Item name="invoiceNumber" label={<span className="text-xs font-semibold text-slate-700">Invoice Number</span>} rules={[{ required: true }]}>
+                <Input id="invoiceNumber" placeholder="INV-2026-0001" className="!text-xs !rounded-lg !font-mono" />
+              </Form.Item>
+            </div>
 
-            {selectedAirline && selectedAirport && selectedContractServices.length === 0 && (
-              <div style={{ marginTop: 16 }}>
-                <Text type="danger">Warning: No approved contract services found for {selectedAirline} at {selectedAirport}. You must have an approved contract to build line items.</Text>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Form.Item name="currency" label={<span className="text-xs font-semibold text-slate-700">Currency</span>} initialValue="USD">
+                <Select id="currency" showSearch optionFilterProp="label" className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selection-item]:!pointer-events-none">
+                  <Option value="USD" data-testid="option-USD" label="USD">USD</Option>
+                  <Option value="EUR" data-testid="option-EUR" label="EUR">EUR</Option>
+                  <Option value="AED" data-testid="option-AED" label="AED">AED</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item name="exchangeRate" label={<span className="text-xs font-semibold text-slate-700">Exchange Rate</span>}>
+                <Input id="exchangeRate" placeholder="1.0" className="!text-xs !rounded-lg !font-mono" />
+              </Form.Item>
+
+              <Form.Item name="exchangeRateSource" label={<span className="text-xs font-semibold text-slate-700">Rate Source</span>}>
+                <Input id="exchangeRateSource" placeholder="Central Bank / FX Reference" className="!text-xs !rounded-lg" />
+              </Form.Item>
+
+              <Form.Item name="issueDate" label={<span className="text-xs font-semibold text-slate-700">Issue Date</span>} rules={[{ required: true }]}>
+                <DatePicker id="issueDate" className="w-full [&_.ant-picker]:!rounded-lg [&_.ant-picker-input_input]:!text-xs" />
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Form.Item name="dueDate" label={<span className="text-xs font-semibold text-slate-700">Due Date</span>} rules={[{ required: true }]}>
+                <DatePicker id="dueDate" className="w-full [&_.ant-picker]:!rounded-lg [&_.ant-picker-input_input]:!text-xs" />
+              </Form.Item>
+            </div>
           </div>
 
-          {/* STEP 2: Flight Line Items */}
-          <div style={{ display: current === 1 ? 'block' : 'none' }}>
+          {/* STEP 2 */}
+          <div className={current === 1 ? 'block space-y-4' : 'hidden'}>
             <Form.List name="lineItems">
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map(({ key, name, ...restField }) => (
-                    <Card key={key} size="small" style={{ marginBottom: 16 }} title={`Flight Item ${name + 1}`} extra={<MinusCircleOutlined onClick={() => remove(name)} />}>
-                      <Row gutter={16}>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'flightDate']} label="Flight Date" rules={[{ required: true, message: 'Flight date is required' }]}>
-                            <DatePicker style={{ width: '100%' }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'flightNumber']} label="Flight Number" rules={[{ required: true, message: 'Flight number is required' }]}>
-                            <Input placeholder="EK302" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'aircraftReg']} label="Aircraft Reg" rules={[{ required: true, message: 'Aircraft Reg is required' }]}>
-                            <Input placeholder="A6-EEO" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'aircraftType']} label="Aircraft Type (optional)">
-                            <Input placeholder="A380" maxLength={50} />
-                          </Form.Item>
-                        </Col>
-                      </Row>
+              {(fields, { add, remove }) => {
+                const lineItemsValues = form.getFieldsValue().lineItems || [];
 
-                      <Row gutter={16}>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'origin']} label="Origin" rules={[{ required: true, message: 'Origin is required' }]}>
-                            <Input placeholder="DXB" maxLength={3} />
+                return (
+                  <div className="space-y-4">
+                    {fields.map(({ key, name, ...restField }) => {
+                      const currentLineItem = lineItemsValues[name] || form.getFieldValue(['lineItems', name]);
+                      const matchedSvc = selectedContractServices.find(s => s.chargeCode === currentLineItem?.chargeCode);
+
+                    return (
+                      <div key={key} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                          <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Turnaround Flight #{name + 1}</span>
+                          <button type="button" onClick={() => remove(name)} className="text-rose-600 hover:text-rose-700 p-1 cursor-pointer">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <Form.Item {...restField} name={[name, 'flightDate']} label={<span className="text-xs font-medium text-slate-700">Flight Date</span>} rules={[{ required: true }]}>
+                            <DatePicker id={`lineItems_${name}_flightDate`} className="w-full [&_.ant-picker]:!rounded-lg [&_.ant-picker-input_input]:!text-xs" />
                           </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'destination']} label="Destination" rules={[{ required: true, message: 'Destination is required' }]}>
-                            <Input placeholder="FRA" maxLength={3} />
+
+                          <Form.Item {...restField} name={[name, 'flightNumber']} label={<span className="text-xs font-medium text-slate-700">Flight No</span>} rules={[{ required: true }]}>
+                            <Input id={`lineItems_${name}_flightNumber`} placeholder="EK302" className="!text-xs !rounded-lg !font-mono" />
                           </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item {...restField} name={[name, 'chargeCode']} label="Contracted Service / Charge Code" rules={[{ required: true, message: 'Charge Code is required' }]}>
-                            <Select placeholder="Select Contracted Service">
+
+                          <Form.Item {...restField} name={[name, 'aircraftReg']} label={<span className="text-xs font-medium text-slate-700">Aircraft Reg</span>} rules={[{ required: true }]}>
+                            <Input id={`lineItems_${name}_aircraftReg`} placeholder="A6-EEO" className="!text-xs !rounded-lg !font-mono" />
+                          </Form.Item>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <Form.Item {...restField} name={[name, 'origin']} label={<span className="text-xs font-medium text-slate-700">Origin</span>} rules={[{ required: true }]}>
+                            <Input id={`lineItems_${name}_origin`} placeholder="DXB" className="!text-xs !rounded-lg !font-mono" />
+                          </Form.Item>
+
+                          <Form.Item {...restField} name={[name, 'destination']} label={<span className="text-xs font-medium text-slate-700">Destination</span>} rules={[{ required: true }]}>
+                            <Input id={`lineItems_${name}_destination`} placeholder="FRA" className="!text-xs !rounded-lg !font-mono" />
+                          </Form.Item>
+
+                          <Form.Item {...restField} name={[name, 'chargeCode']} label={<span className="text-xs font-medium text-slate-700">Service Charge Code</span>} rules={[{ required: true }]}>
+                            <Select 
+                              id={`lineItems_${name}_chargeCode`} 
+                              showSearch 
+                              optionFilterProp="label" 
+                              placeholder="Select Code" 
+                              onChange={() => setTick(t => t + 1)}
+                              className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selection-item]:!pointer-events-none"
+                            >
                               {selectedContractServices.map(svc => (
-                                <Option key={svc.chargeCode} value={svc.chargeCode}>
+                                <Option key={svc.chargeCode} value={svc.chargeCode} data-testid={`option-${svc.chargeCode}`} label={`${svc.serviceName} (${svc.chargeCode})`}>
                                   {svc.serviceName} ({svc.chargeCode})
                                 </Option>
                               ))}
                             </Select>
                           </Form.Item>
-                        </Col>
-                      </Row>
 
-                      {/* Display driver info dynamically if charge code is selected */}
-                      <Form.Item
-                        noStyle
-                        shouldUpdate={(prevValues, currentValues) => {
-                          const prev = prevValues.lineItems?.[name]?.chargeCode;
-                          const curr = currentValues.lineItems?.[name]?.chargeCode;
-                          return prev !== curr;
-                        }}
-                      >
-                        {({ getFieldValue }) => {
-                          const code = getFieldValue(['lineItems', name, 'chargeCode']);
-                          const matchedSvc = selectedContractServices.find(s => s.chargeCode === code);
-                          if (!matchedSvc) return null;
+                          <Form.Item {...restField} name={[name, 'driverValue']} label={<span className="text-xs font-medium text-slate-700">Driver Quantity</span>} rules={[{ required: true }]}>
+                            <Input id={`lineItems_${name}_driverValue`} placeholder="e.g. 150" className="!text-xs !rounded-lg !font-mono" />
+                          </Form.Item>
+                        </div>
 
-                          return (
-                            <Row gutter={16} align="middle">
-                              <Col span={12}>
-                                <Form.Item 
-                                  {...restField} 
-                                  name={[name, 'driverValue']} 
-                                  label={`Driver Qty: (${matchedSvc.quantityDriver || 'value'} in ${matchedSvc.uom || 'EA'})`}
-                                  rules={[{ required: true, message: 'Driver quantity/value is required' }]}
-                                >
-                                  <Input type="number" step="0.01" placeholder="e.g. 150" />
-                                </Form.Item>
-                              </Col>
-                              <Col span={12}>
-                                <div style={{ paddingTop: '8px' }}>
-                                  <Text type="secondary">Pricing Formula: {matchedSvc.formulaType}</Text>
-                                </div>
-                              </Col>
-                            </Row>
-                          );
-                        }}
-                      </Form.Item>
-                    </Card>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      Add Flight Item
-                    </Button>
-                  </Form.Item>
-                </>
-              )}
-            </Form.List>
+                        {matchedSvc && (
+                          <div className="p-2 bg-blue-50/70 border border-blue-200/80 rounded-lg text-xs font-mono text-blue-900">
+                            Pricing Formula: {matchedSvc.formulaType}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    id="invoice-wizard-add-flight-btn"
+                    type="button"
+                    onClick={() => add()}
+                    className="w-full py-2.5 px-4 border border-dashed border-slate-300 hover:border-blue-500 hover:text-blue-600 text-slate-600 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Flight Item
+                  </button>
+                </div>
+              );
+            }}
+          </Form.List>
           </div>
 
-          {/* STEP 3: Preview */}
-          <div style={{ display: current === 2 ? 'block' : 'none' }}>
-            <Title level={4}>Invoice Draft Summary Preview</Title>
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>Invoice Number: </Text><Text>{form.getFieldValue('invoiceNumber')}</Text><br />
-              <Text strong>Customer Airline: </Text><Text>{form.getFieldValue('airlineId')}</Text><br />
-              <Text strong>Airport Hub: </Text><Text>{form.getFieldValue('airportCode')}</Text><br />
-              <Text strong>Currency: </Text><Text>{form.getFieldValue('currency')}</Text><br />
-              <Text strong>Exchange Rate: </Text><Text>{form.getFieldValue('exchangeRate')}</Text><br />
+          {/* STEP 3 */}
+          <div className={current === 2 ? 'block space-y-4' : 'hidden'}>
+            <div className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-xl">
+              <div>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">Total Invoice Amount</span>
+                <h3 className="font-mono text-2xl font-bold text-white m-0">Total Amount: ${getTotalAmount().toFixed(2)}</h3>
+              </div>
+              <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
 
-            <Divider />
-
-            <Table 
-              pagination={false}
+            <Table
+              columns={previewColumns}
               dataSource={getLineItemsPreview()}
-              rowKey={(_, i) => i?.toString() || '0'}
-              columns={[
-                { title: 'Flight No', dataIndex: 'flightNumber', key: 'flightNumber' },
-                { title: 'Date', dataIndex: 'flightDate', key: 'flightDate', render: (d: any) => d ? d.format('YYYY-MM-DD') : '' },
-                { title: 'Sector', key: 'sector', render: ((_: any, r: any) => `${r.origin || ''}-${r.destination || ''}`) as any },
-                { title: 'Service Name', dataIndex: 'serviceName', key: 'serviceName' },
-                { title: 'Formula', dataIndex: 'formulaType', key: 'formulaType' },
-                { title: 'Qty/Driver', dataIndex: 'driverValue', key: 'driverValue' },
-                { title: 'Calculated Amount', dataIndex: 'calculatedAmount', key: 'calculatedAmount', render: (val: number) => val.toFixed(2) }
-              ]}
+              pagination={false}
+              rowKey={(r, i) => `${r.flightNumber}-${i}`}
+              size="small"
+              className="[&_.ant-table-thead_th]:!bg-slate-50 rounded-lg overflow-hidden border border-slate-200"
             />
+          </div>
 
-            <div style={{ textAlign: 'right', marginTop: 24 }}>
-              <Title level={3}>Total Amount: {getTotalAmount().toFixed(2)} {form.getFieldValue('currency')}</Title>
+          {/* Controls */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-6">
+            {current > 0 && (
+              <button
+                type="button"
+                onClick={prev}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Previous Step
+              </button>
+            )}
+            <div className="ml-auto flex items-center gap-3">
+              {current < 2 && (
+                <button
+                  id="invoice-wizard-next-btn"
+                  type="button"
+                  onClick={next}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  <span>Next Step</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+              {current === 2 && (
+                <button
+                  id="invoice-wizard-submit-btn"
+                  type="button"
+                  onClick={() => {
+                    form.validateFields()
+                      .then(values => onFinish(values))
+                      .catch(() => onFinish(form.getFieldsValue()));
+                  }}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Submit Draft Invoice
+                </button>
+              )}
             </div>
           </div>
 
-          <Divider />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            {current > 0 && <Button onClick={prev}>Previous</Button>}
-            {current < 2 && <Button type="primary" onClick={next}>Next</Button>}
-            {current === 2 && <Button type="primary" htmlType="submit">Submit Draft Invoice</Button>}
-          </div>
         </Form>
-      </Card>
+      </div>
+
     </div>
   );
 };

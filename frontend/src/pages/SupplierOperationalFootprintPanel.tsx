@@ -1,23 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Card,
-  Col,
-  Empty,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { EnvironmentOutlined, GlobalOutlined } from '@ant-design/icons';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
-
-const { Paragraph, Text, Title } = Typography;
+import {
+  Globe,
+  MapPin,
+  Plane,
+  Layers,
+  FileText,
+  Filter,
+  RefreshCw
+} from 'lucide-react';
 
 interface CurrencyValue {
   currency: string;
@@ -98,7 +91,12 @@ const OperationsMap: React.FC<{
   onHover: (code?: string) => void;
 }> = ({ airports, selected, hovered, onSelect, onHover }) => {
   if (airports.length === 0) {
-    return <Empty description="No active supplier operations to plot" />;
+    return (
+      <div className="py-8 text-center">
+        <Globe className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-slate-600 m-0">No active supplier operations to plot</p>
+      </div>
+    );
   }
   const width = 900;
   const height = 440;
@@ -107,11 +105,11 @@ const OperationsMap: React.FC<{
     y: ((90 - latitude) / 180) * height,
   });
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${width} ${height}`} role="img"
         aria-label="World map of supplier operational footprint"
-        style={{ width: '100%', minWidth: 680, borderRadius: 12,
-          background: 'linear-gradient(180deg, #e6f4ff 0%, #f6ffed 100%)' }}>
+        className="w-full rounded-xl"
+        style={{ minWidth: 680, background: 'linear-gradient(180deg, #e6f4ff 0%, #f6ffed 100%)' }}>
         <g fill="#d9e7d0" stroke="#b7c9ab" strokeWidth="1.5">
           <path d="M40 95 L105 55 205 70 255 115 225 165 170 175 135 220 85 200 55 150 Z" />
           <path d="M220 225 L255 245 275 315 250 400 215 340 205 275 Z" />
@@ -237,112 +235,197 @@ const SupplierOperationalFootprintPanel: React.FC = () => {
     ? report.contracts.filter(item => item.airportCode === selectedAirport)
     : report.contracts;
   const columns: TableColumnsType<ContractOperation> = [
-    { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
-    { title: 'Airline', dataIndex: 'airlineId', key: 'airlineId' },
+    { title: 'AIRPORT', dataIndex: 'airportCode', key: 'airportCode' },
+    { title: 'AIRLINE', dataIndex: 'airlineId', key: 'airlineId' },
     {
-      title: 'Services and Monthly Values',
+      title: 'SERVICES & MONTHLY VALUES',
       key: 'services',
       render: (_, contract) => (
-        <Space direction="vertical" size={4}>
+        <div className="space-y-1.5">
           {contract.services.map(service => (
-            <Space key={service.serviceId} wrap>
-              <Tag>{service.serviceType}</Tag>
-              <Text>{formatAmount(service.monthlyExpectedValue, contract.currency)}</Text>
-              <Text type="secondary">{service.billingFrequency || 'Not scheduled'}</Text>
-            </Space>
+            <div key={service.serviceId} className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
+                {service.serviceType}
+              </span>
+              <span className="text-xs font-semibold text-slate-900">
+                {formatAmount(service.monthlyExpectedValue, contract.currency)}
+              </span>
+              <span className="text-xs text-slate-400">{service.billingFrequency || 'Not scheduled'}</span>
+            </div>
           ))}
-        </Space>
+        </div>
       ),
     },
-    { title: 'Valid From', dataIndex: 'startDate', key: 'startDate' },
-    { title: 'Valid To', dataIndex: 'endDate', key: 'endDate' },
+    { title: 'VALID FROM', dataIndex: 'startDate', key: 'startDate' },
+    { title: 'VALID TO', dataIndex: 'endDate', key: 'endDate' },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%', marginTop: 24 }}>
-      <div>
-        <Title level={4} style={{ margin: 0 }}>Operational Footprint</Title>
-        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          SOR2 active airports, airline customers, services, and monthly contracted values.
-        </Paragraph>
+    <div className="space-y-6 mt-6">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Operational Footprint
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+                SOR2 active airports, airline customers, services, and monthly contracted values
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadReport}
+          className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+          Refresh Data
+        </button>
       </div>
-      {error && <Alert type="error" showIcon message={error} />}
-      <Card size="small">
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} xl={6}>
-            <Select data-testid="sor2-airline-filter" allowClear showSearch
-              style={{ width: '100%' }} placeholder="All airlines" value={airlineId}
-              options={knownAirlines.map(value => ({ value, label: value }))}
-              onChange={setAirlineId} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select data-testid="sor2-airport-filter" allowClear showSearch
-              optionFilterProp="label" style={{ width: '100%' }} placeholder="All airports"
-              value={airportCode} options={airportOptions.map(item => ({
-                value: item.iataCode, label: `${item.iataCode} — ${item.name}`,
-              }))} onChange={setAirportCode} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select data-testid="sor2-service-filter" allowClear showSearch
-              optionFilterProp="label" style={{ width: '100%' }} placeholder="All services"
-              value={serviceType} options={serviceOptions.map(item => ({
-                value: item.code, label: `${item.code} — ${item.displayName}`,
-              }))} onChange={setServiceType} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <Select data-testid="sor2-currency-filter" allowClear style={{ width: '100%' }}
-              placeholder="All currencies" value={currency}
-              options={knownCurrencies.map(value => ({ value, label: value }))}
-              onChange={setCurrency} />
-          </Col>
-        </Row>
-      </Card>
+
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
+
+      {/* Filter Card */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Filter Operations</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <Select data-testid="sor2-airline-filter" allowClear showSearch
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All airlines" value={airlineId}
+            options={knownAirlines.map(value => ({ value, label: value }))}
+            onChange={setAirlineId} />
+          <Select data-testid="sor2-airport-filter" allowClear showSearch
+            optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All airports"
+            value={airportCode} options={airportOptions.map(item => ({
+              value: item.iataCode, label: `${item.iataCode} — ${item.name}`,
+            }))} onChange={setAirportCode} />
+          <Select data-testid="sor2-service-filter" allowClear showSearch
+            optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All services"
+            value={serviceType} options={serviceOptions.map(item => ({
+              value: item.code, label: `${item.code} — ${item.displayName}`,
+            }))} onChange={setServiceType} />
+          <Select data-testid="sor2-currency-filter" allowClear
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All currencies" value={currency}
+            options={knownCurrencies.map(value => ({ value, label: value }))}
+            onChange={setCurrency} />
+        </div>
+      </div>
+
       <Spin spinning={loading}>
-        <Space direction="vertical" size={20} style={{ width: '100%' }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={12} lg={6}><Card data-testid="sor2-airports"><Statistic title="Airports" value={report.summary.airportCount} prefix={<EnvironmentOutlined />} /></Card></Col>
-            <Col xs={12} lg={6}><Card data-testid="sor2-airlines"><Statistic title="Airlines" value={report.summary.airlineCount} /></Card></Col>
-            <Col xs={12} lg={6}><Card data-testid="sor2-services"><Statistic title="Services" value={report.summary.serviceCount} /></Card></Col>
-            <Col xs={12} lg={6}><Card data-testid="sor2-contracts"><Statistic title="Active Contracts" value={report.summary.activeContractCount} /></Card></Col>
-          </Row>
-          <Card title={<Space><GlobalOutlined />Supplier Operations Map</Space>}>
-            <OperationsMap airports={report.airports} selected={selectedAirport}
-              hovered={hoveredAirport} onSelect={setSelectedAirport}
-              onHover={setHoveredAirport} />
-            {activeAirport && (
-              <Card data-testid={`sor2-hover-${activeAirport.airportCode}`}
-                size="small" style={{ marginTop: 16, background: '#fafafa' }}>
-                <Space direction="vertical" size={8}>
-                  <Title level={5} style={{ margin: 0 }}>
-                    {activeAirport.airportCode} — {activeAirport.airportName}
-                  </Title>
-                  <Text>{activeAirport.city}, {activeAirport.country}</Text>
-                  <Space wrap>
-                    {activeAirport.airlines.map(value => <Tag color="blue" key={value}>{value}</Tag>)}
-                    {activeAirport.serviceTypes.map(value => <Tag key={value}>{value}</Tag>)}
-                  </Space>
-                  {activeAirport.monthlyValues.map(value => (
-                    <Text key={value.currency}>
-                      Monthly expected value:{' '}
-                      <strong>{formatAmount(value.monthlyExpectedValue, value.currency)}</strong>
-                    </Text>
-                  ))}
-                </Space>
-              </Card>
-            )}
-          </Card>
-          <Card title={selectedAirport
-            ? `Active Contract Drill-down — ${selectedAirport}`
-            : `Active Contract Drill-down — as of ${report.asOfDate || 'today'}`}
-            styles={{ body: { padding: 0 } }}>
+        <div className="space-y-6">
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div data-testid="sor2-airports" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Airports</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.airportCount}</p>
+            </div>
+            <div data-testid="sor2-airlines" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Plane className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Airlines</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.airlineCount}</p>
+            </div>
+            <div data-testid="sor2-services" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Services</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.serviceCount}</p>
+            </div>
+            <div data-testid="sor2-contracts" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Contracts</span>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 m-0">{report.summary.activeContractCount}</p>
+            </div>
+          </div>
+
+          {/* Map Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+              <Globe className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Supplier Operations Map</span>
+            </div>
+            <div className="p-4">
+              <OperationsMap airports={report.airports} selected={selectedAirport}
+                hovered={hoveredAirport} onSelect={setSelectedAirport}
+                onHover={setHoveredAirport} />
+              {activeAirport && (
+                <div data-testid={`sor2-hover-${activeAirport.airportCode}`}
+                  className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-extrabold text-slate-900 m-0">
+                      {activeAirport.airportCode} — {activeAirport.airportName}
+                    </h3>
+                    <span className="text-xs text-slate-600">{activeAirport.city}, {activeAirport.country}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {activeAirport.airlines.map(value => (
+                        <span key={value} className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">{value}</span>
+                      ))}
+                      {activeAirport.serviceTypes.map(value => (
+                        <span key={value} className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">{value}</span>
+                      ))}
+                    </div>
+                    {activeAirport.monthlyValues.map(value => (
+                      <p key={value.currency} className="text-xs text-slate-600 m-0">
+                        Monthly expected value:{' '}
+                        <strong className="text-slate-900">{formatAmount(value.monthlyExpectedValue, value.currency)}</strong>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Contract Drill-down Table */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+              <FileText className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                {selectedAirport
+                  ? `Active Contract Drill-down — ${selectedAirport}`
+                  : `Active Contract Drill-down — as of ${report.asOfDate || 'today'}`}
+              </span>
+            </div>
             <Table data-testid="sor2-contract-table" rowKey="contractId"
               columns={columns} dataSource={tableRows}
               pagination={{ pageSize: 10 }} scroll={{ x: 900 }}
-              locale={{ emptyText: <Empty description="No active operations match these filters" /> }} />
-          </Card>
-        </Space>
+              locale={{ emptyText: (
+                <div className="py-8 text-center">
+                  <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-slate-600 m-0">No active operations match these filters</p>
+                </div>
+              )}}
+              className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
+            />
+          </div>
+
+        </div>
       </Spin>
-    </Space>
+
+    </div>
   );
 };
 

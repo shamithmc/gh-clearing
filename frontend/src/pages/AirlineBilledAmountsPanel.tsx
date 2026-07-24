@@ -1,27 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Empty,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, DatePicker, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { ArrowRightOutlined, BarChartOutlined, PieChartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
+import {
+  DollarSign,
+  Filter,
+  ExternalLink,
+  PieChart,
+  BarChart3,
+  Receipt,
+  Layers,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 
 const { RangePicker } = DatePicker;
-const { Paragraph, Text, Title } = Typography;
 
 interface CurrencySummary {
   currency: string;
@@ -87,6 +81,12 @@ const formatAmount = (amount: number, currency: string) =>
     maximumFractionDigits: 2,
   })}`;
 
+const statusColor: Record<string, string> = {
+  PAID: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  DISPUTED: 'bg-rose-50 text-rose-700 border-rose-200',
+  SENT: 'bg-blue-50 text-blue-700 border-blue-200',
+};
+
 const SupplierPie: React.FC<{
   data: GroupedAmount[];
   currency: string;
@@ -94,13 +94,18 @@ const SupplierPie: React.FC<{
 }> = ({ data, currency, onSelect }) => {
   const total = data.reduce((sum, item) => sum + Number(item.totalBilled), 0);
   if (data.length === 0 || total <= 0) {
-    return <Empty description="No supplier billing for this currency" />;
+    return (
+      <div className="py-6 text-center">
+        <PieChart className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+        <p className="text-xs text-slate-500 m-0">No supplier billing for this currency</p>
+      </div>
+    );
   }
   const radius = 48;
   const circumference = 2 * Math.PI * radius;
   let consumed = 0;
   return (
-    <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div className="flex items-center gap-6 flex-wrap">
       <svg width="180" height="180" viewBox="0 0 120 120" aria-label="Supplier billed amounts pie chart">
         <g transform="rotate(-90 60 60)">
           <circle cx="60" cy="60" r={radius} fill="transparent" stroke="#f0f0f0" strokeWidth="16" />
@@ -131,23 +136,17 @@ const SupplierPie: React.FC<{
           {formatAmount(total, currency)}
         </text>
       </svg>
-      <Space direction="vertical" size={8}>
+      <div className="space-y-2">
         {data.map((item, index) => (
-          <Button key={item.key} type="text" onClick={() => onSelect(item.key)} style={{ padding: 0 }}>
-            <Space>
-              <span style={{
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: colors[index % colors.length],
-                display: 'inline-block',
-              }} />
-              <Text strong>{item.key}</Text>
-              <Text type="secondary">{formatAmount(item.totalBilled, currency)}</Text>
-            </Space>
-          </Button>
+          <button key={item.key} type="button" onClick={() => onSelect(item.key)}
+            className="flex items-center gap-2 bg-transparent border-0 p-0 cursor-pointer hover:opacity-80 transition-opacity">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: colors[index % colors.length] }} />
+            <span className="text-xs font-bold text-slate-900">{item.key}</span>
+            <span className="text-xs text-slate-500">{formatAmount(item.totalBilled, currency)}</span>
+          </button>
         ))}
-      </Space>
+      </div>
     </div>
   );
 };
@@ -160,33 +159,37 @@ const BreakdownBars: React.FC<{
 }> = ({ data, currency, testIdPrefix, onSelect }) => {
   const maximum = Math.max(...data.map(item => Number(item.totalBilled)), 0);
   if (data.length === 0 || maximum <= 0) {
-    return <Empty description="No billed amounts for this dimension" />;
+    return (
+      <div className="py-6 text-center">
+        <BarChart3 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+        <p className="text-xs text-slate-500 m-0">No billed amounts for this dimension</p>
+      </div>
+    );
   }
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+    <div className="space-y-3 w-full">
       {data.map(item => (
         <button
           key={`${item.key}-${item.currency}`}
           data-testid={`${testIdPrefix}-${item.key}`}
           type="button"
           onClick={() => onSelect(item.key)}
-          style={{ border: 0, background: 'transparent', padding: 0, width: '100%', cursor: 'pointer' }}
+          className="border-0 bg-transparent p-0 w-full cursor-pointer text-left"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text strong>{item.key}</Text>
-            <Text>{formatAmount(item.totalBilled, currency)}</Text>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs font-bold text-slate-900">{item.key}</span>
+            <span className="text-xs font-semibold text-slate-700">{formatAmount(item.totalBilled, currency)}</span>
           </div>
-          <div style={{ height: 12, borderRadius: 8, background: '#f0f0f0', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              width: `${(Number(item.totalBilled) / maximum) * 100}%`,
-              background: 'linear-gradient(90deg, #1677ff, #69b1ff)',
-              borderRadius: 8,
-            }} />
+          <div className="h-3 rounded-lg bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-lg"
+              style={{
+                width: `${(Number(item.totalBilled) / maximum) * 100}%`,
+                background: 'linear-gradient(90deg, #1677ff, #69b1ff)',
+              }} />
           </div>
         </button>
       ))}
-    </Space>
+    </div>
   );
 };
 
@@ -270,129 +273,217 @@ const AirlineBilledAmountsPanel: React.FC = () => {
   const invoiceRows = report.invoices.filter(invoice => invoice.currency === currency);
 
   const invoiceColumns: TableColumnsType<InvoiceDrilldown> = [
-    { title: 'Invoice', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
-    { title: 'Supplier', dataIndex: 'supplierId', key: 'supplierId' },
-    { title: 'Airport', dataIndex: 'airportCode', key: 'airportCode' },
-    { title: 'Issue Date', dataIndex: 'issueDate', key: 'issueDate' },
+    { title: 'INVOICE', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+    { title: 'SUPPLIER', dataIndex: 'supplierId', key: 'supplierId' },
+    { title: 'AIRPORT', dataIndex: 'airportCode', key: 'airportCode' },
+    { title: 'ISSUE DATE', dataIndex: 'issueDate', key: 'issueDate' },
     {
-      title: 'Services',
+      title: 'SERVICES',
       dataIndex: 'serviceTypes',
       key: 'serviceTypes',
       render: (values: string[]) => (
-        <Space size={[4, 4]} wrap>{values.map(value => <Tag key={value}>{value}</Tag>)}</Space>
+        <div className="flex items-center gap-1 flex-wrap">
+          {values.map(value => (
+            <span key={value} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
+              {value}
+            </span>
+          ))}
+        </div>
       ),
     },
     {
-      title: 'Billed',
+      title: 'BILLED',
       key: 'filteredAmount',
-      align: 'right',
-      render: (_, invoice) => formatAmount(invoice.filteredAmount, invoice.currency),
+      align: 'right' as const,
+      render: (_, invoice) => (
+        <span className="text-xs font-extrabold text-slate-900">
+          {formatAmount(invoice.filteredAmount, invoice.currency)}
+        </span>
+      ),
     },
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
       render: (value: string) => (
-        <Tag color={value === 'PAID' ? 'success' : value === 'DISPUTED' ? 'error' : 'blue'}>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor[value] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
           {value}
-        </Tag>
+        </span>
       ),
     },
   ];
 
   return (
-    <Space direction="vertical" size={20} style={{ width: '100%', marginTop: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+    <div className="space-y-6 mt-2">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <Title level={3} style={{ margin: 0 }}>Billed Amounts</Title>
-          <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-            AFR1 supplier billing by airport and service, with invoice-level drill-down.
-          </Paragraph>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+                Billed Amounts
+              </h1>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
+                AFR1 supplier billing by airport and service, with invoice-level drill-down
+              </p>
+            </div>
+          </div>
         </div>
-        <Button onClick={() => navigate('/airline/invoices')} icon={<ArrowRightOutlined />}>
+
+        <button
+          onClick={() => navigate('/airline/invoices')}
+          className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg px-3.5 py-2 h-9 shadow-xs transition-colors cursor-pointer"
+        >
+          <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
           Open Invoice Workspace
-        </Button>
+        </button>
       </div>
 
-      {error && <Alert type="error" showIcon message={error} />}
+      {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
-      <Card size="small">
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} xl={5}>
-            <Select data-testid="afr1-supplier-filter" allowClear showSearch optionFilterProp="label"
-              style={{ width: '100%' }} placeholder="All suppliers" value={supplierId}
-              options={knownSuppliers.map(value => ({ value, label: value }))} onChange={setSupplierId} />
-          </Col>
-          <Col xs={24} sm={12} xl={5}>
-            <Select data-testid="afr1-airport-filter" allowClear showSearch optionFilterProp="label"
-              style={{ width: '100%' }} placeholder="All airports" value={airportCode}
-              options={airports.map(item => ({ value: item.iataCode, label: `${item.iataCode} — ${item.name}` }))}
-              onChange={setAirportCode} />
-          </Col>
-          <Col xs={24} sm={12} xl={5}>
-            <Select data-testid="afr1-service-filter" allowClear showSearch optionFilterProp="label"
-              style={{ width: '100%' }} placeholder="All services" value={serviceType}
-              options={services.map(item => ({ value: item.code, label: `${item.code} — ${item.displayName}` }))}
-              onChange={setServiceType} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <RangePicker data-testid="afr1-date-filter" style={{ width: '100%' }}
-              onChange={dates => {
-                setStartDate(dates?.[0]?.format('YYYY-MM-DD'));
-                setEndDate(dates?.[1]?.format('YYYY-MM-DD'));
-              }} />
-          </Col>
-          <Col xs={24} sm={12} xl={3}>
-            <Select data-testid="afr1-currency-filter" style={{ width: '100%' }}
-              placeholder="Currency" value={currency}
-              options={report.summaries.map(item => ({ value: item.currency, label: item.currency }))}
-              onChange={setCurrency} />
-          </Col>
-        </Row>
-      </Card>
+      {/* Filter Card */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Filter Billing</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+          <Select data-testid="afr1-supplier-filter" allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All suppliers" value={supplierId}
+            options={knownSuppliers.map(value => ({ value, label: value }))} onChange={setSupplierId} />
+          <Select data-testid="afr1-airport-filter" allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All airports" value={airportCode}
+            options={airports.map(item => ({ value: item.iataCode, label: `${item.iataCode} — ${item.name}` }))}
+            onChange={setAirportCode} />
+          <Select data-testid="afr1-service-filter" allowClear showSearch optionFilterProp="label"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="All services" value={serviceType}
+            options={services.map(item => ({ value: item.code, label: `${item.code} — ${item.displayName}` }))}
+            onChange={setServiceType} />
+          <RangePicker data-testid="afr1-date-filter"
+            className="w-full [&_input]:!text-xs !rounded-lg"
+            onChange={dates => {
+              setStartDate(dates?.[0]?.format('YYYY-MM-DD'));
+              setEndDate(dates?.[1]?.format('YYYY-MM-DD'));
+            }} />
+          <Select data-testid="afr1-currency-filter"
+            className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+            placeholder="Currency" value={currency}
+            options={report.summaries.map(item => ({ value: item.currency, label: item.currency }))}
+            onChange={setCurrency} />
+        </div>
+      </div>
 
       <Spin spinning={loading}>
         {!summary && !loading ? (
-          <Empty description="No dispatched billing matches the selected filters" />
+          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80">
+            <DollarSign className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-600 m-0">No dispatched billing matches the selected filters</p>
+          </div>
         ) : (
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={12} lg={6}><Card data-testid="afr1-total-billed"><Statistic title="Total Billed" value={summary?.totalBilled || 0} precision={2} prefix={currency} /></Card></Col>
-              <Col xs={12} lg={6}><Card data-testid="afr1-total-paid"><Statistic title="Paid" value={summary?.totalPaid || 0} precision={2} prefix={currency} valueStyle={{ color: '#389e0d' }} /></Card></Col>
-              <Col xs={12} lg={6}><Card data-testid="afr1-total-outstanding"><Statistic title="Outstanding" value={summary?.totalOutstanding || 0} precision={2} prefix={currency} valueStyle={{ color: '#cf1322' }} /></Card></Col>
-              <Col xs={12} lg={6}><Card data-testid="afr1-invoice-count"><Statistic title="Invoices" value={summary?.invoiceCount || 0} /></Card></Col>
-            </Row>
+          <div className="space-y-6">
 
-            <Row gutter={[16, 16]}>
-              <Col xs={24} xl={12}>
-                <Card title={<Space><PieChartOutlined />Supplier Share</Space>}>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div data-testid="afr1-total-billed" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Billed</span>
+                </div>
+                <p className="text-2xl font-extrabold text-slate-900 m-0">
+                  {currency} {Number(summary?.totalBilled || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div data-testid="afr1-total-paid" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Paid</span>
+                </div>
+                <p className="text-2xl font-extrabold text-emerald-600 m-0">
+                  {currency} {Number(summary?.totalPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div data-testid="afr1-total-outstanding" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outstanding</span>
+                </div>
+                <p className="text-2xl font-extrabold text-rose-600 m-0">
+                  {currency} {Number(summary?.totalOutstanding || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div data-testid="afr1-invoice-count" className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoices</span>
+                </div>
+                <p className="text-2xl font-extrabold text-slate-900 m-0">{summary?.invoiceCount || 0}</p>
+              </div>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+                  <PieChart className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Supplier Share</span>
+                </div>
+                <div className="p-6">
                   <SupplierPie data={forCurrency(report.bySupplier)} currency={currency || ''} onSelect={setSupplierId} />
-                </Card>
-              </Col>
-              <Col xs={24} xl={12}>
-                <Card title={<Space><BarChartOutlined />Airport-wise Billing</Space>}>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+                  <BarChart3 className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Airport-wise Billing</span>
+                </div>
+                <div className="p-6">
                   <BreakdownBars data={forCurrency(report.byAirport)} currency={currency || ''}
                     testIdPrefix="afr1-airport-bar" onSelect={setAirportCode} />
-                </Card>
-              </Col>
-              <Col xs={24}>
-                <Card title={<Space><BarChartOutlined />Service-wise Billing</Space>}>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden xl:col-span-2">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+                  <Layers className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Service-wise Billing</span>
+                </div>
+                <div className="p-6">
                   <BreakdownBars data={forCurrency(report.byService)} currency={currency || ''}
                     testIdPrefix="afr1-service-bar" onSelect={setServiceType} />
-                </Card>
-              </Col>
-            </Row>
+                </div>
+              </div>
+            </div>
 
-            <Card title="Invoice Drill-down" styles={{ body: { padding: 0 } }}>
+            {/* Invoice Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
+                <Receipt className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Invoice Drill-down</span>
+              </div>
               <Table data-testid="afr1-invoice-table" rowKey="id" columns={invoiceColumns}
                 dataSource={invoiceRows} pagination={{ pageSize: 10 }}
-                locale={{ emptyText: <Empty description="No invoices match the selected report filters" /> }}
-                scroll={{ x: 900 }} />
-            </Card>
-          </Space>
+                locale={{ emptyText: (
+                  <div className="py-8 text-center">
+                    <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-slate-600 m-0">No invoices match the selected report filters</p>
+                  </div>
+                )}}
+                scroll={{ x: 900 }}
+                className="[&_.ant-table-thead_th]:!bg-slate-50/90 [&_.ant-table-thead_th]:!text-slate-600 [&_.ant-table-thead_th]:!text-[11px] [&_.ant-table-thead_th]:!font-bold [&_.ant-table-thead_th]:!uppercase [&_.ant-table-thead_th]:!tracking-wider [&_.ant-table-tbody_td]:!py-3 [&_.ant-table-tbody_td]:!border-slate-200/60"
+              />
+            </div>
+
+          </div>
         )}
       </Spin>
-    </Space>
+
+    </div>
   );
 };
 
