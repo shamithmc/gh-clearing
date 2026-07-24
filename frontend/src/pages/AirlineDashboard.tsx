@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { setSimulatedUserId, unrestrictedUserId } from '../utils/simulatedAuth';
 import AirlineBilledAmountsPanel from './AirlineBilledAmountsPanel';
 import AirlineExpectedBillingPanel from './AirlineExpectedBillingPanel';
+import AirlineContractExpiryPanel from './AirlineContractExpiryPanel';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -89,6 +90,7 @@ const AirlineDashboard: React.FC = () => {
 
       <AirlineBilledAmountsPanel />
       <AirlineExpectedBillingPanel />
+      <AirlineContractExpiryPanel />
     </Space>
   );
 };

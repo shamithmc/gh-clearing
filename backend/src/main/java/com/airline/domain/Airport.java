@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "airports")
@@ -27,4 +28,18 @@ public class Airport {
 
     @Column(name = "region", nullable = false, length = 50)
     private String region;
+
+    @Column(name = "latitude", nullable = false, precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", nullable = false, precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    public Airport(String iataCode, String name, String city, String country, String region) {
+        this.iataCode = iataCode;
+        this.name = name;
+        this.city = city;
+        this.country = country;
+        this.region = region;
+    }
 }
