@@ -6,6 +6,7 @@ import { setSimulatedUserId, unrestrictedUserId } from '../utils/simulatedAuth';
 import AirlineBilledAmountsPanel from './AirlineBilledAmountsPanel';
 import AirlineExpectedBillingPanel from './AirlineExpectedBillingPanel';
 import AirlineContractExpiryPanel from './AirlineContractExpiryPanel';
+import AirlineCurrentFootprintPanel from './AirlineCurrentFootprintPanel';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -91,6 +92,7 @@ const AirlineDashboard: React.FC = () => {
       <AirlineBilledAmountsPanel />
       <AirlineExpectedBillingPanel />
       <AirlineContractExpiryPanel />
+      <AirlineCurrentFootprintPanel />
     </Space>
   );
 };
