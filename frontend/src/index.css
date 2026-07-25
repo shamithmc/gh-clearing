@@ -10,7 +10,17 @@ body {
     'Noto Color Emoji';
 }
 
-/* Ant Design Table Tailwind Styling */
+/* Hide Ant Design default zero-width trigger on mobile, using custom Tailwind header toggle */
+.ant-layout-sider-zero-width-trigger {
+  display: none !important;
+}
+
+/* Ant Design Table Tailwind & Mobile Overflow Styling */
+.ant-table-wrapper {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
 .ant-table-wrapper .ant-table {
   background: transparent !important;
 }
@@ -24,6 +34,7 @@ body {
   letter-spacing: 0.05em !important;
   border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
   padding: 10px 16px !important;
+  white-space: nowrap !important;
 }
 
 .ant-table-wrapper .ant-table-tbody > tr > td {
@@ -40,6 +51,8 @@ body {
 .ant-table-wrapper .ant-pagination {
   padding: 12px 16px !important;
   margin: 0 !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
 }
 
 /* Ant Design Card & Container Overrides */
@@ -62,4 +75,16 @@ body {
 .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #0284c7 !important;
   font-weight: 700 !important;
+}
+
+/* Mobile Viewport Sider Positioning */
+@media (max-width: 1023px) {
+  .ant-layout-sider {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 50 !important;
+    height: 100vh !important;
+  }
 }

@@ -48,13 +48,14 @@ public class InvoicePdfService {
     }
 
     private byte[] convertToPdf(String html) {
+        String cleanHtml = html.replaceAll("(?s)<style.*?>.*?</style>", "");
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document();
             PdfWriter.getInstance(document, out);
             document.open();
 
             HTMLWorker htmlWorker = new HTMLWorker(document);
-            htmlWorker.parse(new StringReader(html));
+            htmlWorker.parse(new StringReader(cleanHtml));
 
             document.close();
             return out.toByteArray();

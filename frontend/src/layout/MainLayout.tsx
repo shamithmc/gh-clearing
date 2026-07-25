@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -15,7 +15,9 @@ import {
   LogOut, 
   User, 
   Sliders,
-  Scale
+  Scale,
+  Menu as MenuIcon,
+  X
 } from 'lucide-react';
 
 const { Header, Sider, Content } = Layout;
@@ -23,6 +25,15 @@ const { Header, Sider, Content } = Layout;
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Auto-close sidebar on mobile route change
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+    }
+  }, [location.pathname, isMobile]);
 
   const storedTenantType = localStorage.getItem('simTenantType');
   const isAirline = storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
@@ -95,26 +106,52 @@ const MainLayout: React.FC = () => {
 
   return (
     <Layout className="min-h-screen bg-slate-100">
+      
+      {/* Mobile Backdrop */}
+      {isMobile && !collapsed && (
+        <div 
+          onClick={() => setCollapsed(true)} 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300" 
+        />
+      )}
+
+      {/* Responsive Sidebar */}
       <Sider 
         breakpoint="lg"
         collapsedWidth="0"
+        collapsed={collapsed}
+        onBreakpoint={(broken) => {
+          setIsMobile(broken);
+          setCollapsed(broken);
+        }}
+        onCollapse={(val) => setCollapsed(val)}
         theme="dark"
-        className="!bg-slate-900 border-r border-slate-800 shadow-xl"
+        className="!bg-slate-900 border-r border-slate-800 shadow-xl z-50 transition-all duration-300"
         width={240}
       >
         {/* Brand Header */}
-        <div className="p-4 flex items-center gap-3 border-b border-slate-800/80">
-          <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
-            {isAirline ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+        <div className="p-4 flex items-center justify-between border-b border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
+              {isAirline ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+            </div>
+            <div>
+              <h2 className="text-sm font-extrabold text-white tracking-tight m-0">
+                {isAirline ? 'AIRLINE CLEARING' : 'GH CLEARING'}
+              </h2>
+              <span className="text-[10px] font-mono text-slate-400 block tracking-wider uppercase">
+                Aviation Fintech Platform
+              </span>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-extrabold text-white tracking-tight m-0">
-              {isAirline ? 'AIRLINE CLEARING' : 'GH CLEARING'}
-            </h2>
-            <span className="text-[10px] font-mono text-slate-400 block tracking-wider uppercase">
-              Aviation Fintech Platform
-            </span>
-          </div>
+          {isMobile && (
+            <button 
+              onClick={() => setCollapsed(true)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Menu */}
@@ -141,18 +178,29 @@ const MainLayout: React.FC = () => {
         </div>
       </Sider>
 
-      <Layout className="bg-slate-50/50">
+      <Layout className="bg-slate-50/50 min-w-0">
         {/* Header Bar */}
-        <Header className="!bg-white !px-6 border-b border-slate-200/80 flex items-center justify-between !h-16 shadow-2xs sticky top-0 z-10">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Scope:</span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 font-mono">
-              {tenantId} ({isAirline ? 'AIRLINE' : 'GROUND_HANDLER'})
-            </span>
+        <Header className="!bg-white px-4 sm:!px-6 border-b border-slate-200/80 flex items-center justify-between !h-16 shadow-2xs sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            {/* Mobile Hamburger Toggle */}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="lg:hidden p-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              <MenuIcon className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Scope:</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 font-mono">
+                {tenantId} ({isAirline ? 'AIRLINE' : 'HANDLER'})
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
               <User className="w-4 h-4 text-slate-500" />
               <span className="font-semibold text-slate-800">{tenantId}</span>
               <span className="text-slate-400">|</span>
@@ -168,13 +216,13 @@ const MainLayout: React.FC = () => {
               }}
             >
               <LogOut className="w-3.5 h-3.5 text-slate-500" />
-              Reset Persona
+              <span className="hidden sm:inline">Reset Persona</span>
             </button>
           </div>
         </Header>
 
         {/* Main Content Area */}
-        <Content className="p-4 sm:p-6 lg:p-8">
+        <Content className="p-3 sm:p-6 lg:p-8 overflow-x-hidden">
           <Outlet />
         </Content>
       </Layout>

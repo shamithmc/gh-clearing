@@ -394,36 +394,36 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
       
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs">
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-xs shrink-0">
               <PieChart className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight m-0">
                 Dashboard Analytics
               </h3>
-              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0 flex items-center gap-2">
+              <p className="text-xs text-slate-500 font-normal mt-0.5 m-0 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>Receivables settlement analytics</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-300"></span>
                 <span>Monthly revenue trends</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-300"></span>
                 <span>SLA Contract expiration alerts</span>
               </p>
             </div>
           </div>
         </div>
 
-        <span className="px-3 py-1 text-xs font-bold font-mono bg-blue-50 text-blue-700 border border-blue-200 rounded-xl shadow-xs w-fit">
+        <span className="px-3 py-1 text-xs font-bold font-mono bg-blue-50 text-blue-700 border border-blue-200 rounded-xl shadow-xs w-fit shrink-0">
           {simTenantId} ({simTenantType === 'GROUND_HANDLER' ? 'Ground Handler' : 'Airline'})
         </span>
       </div>
 
       {/* Scope & Filter Toolbar */}
-      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4">
+      <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-800 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-800 text-blue-400 rounded-lg border border-slate-700">
+          <div className="p-2 bg-slate-800 text-blue-400 rounded-lg border border-slate-700 shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
@@ -432,13 +432,13 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-            <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-xs font-medium text-slate-300">Access Scope:</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
+            <UserCheck className="w-4 h-4 text-slate-400 shrink-0 hidden sm:inline" />
+            <span className="text-xs font-medium text-slate-300 shrink-0">Access Scope:</span>
             <Select 
               value={simUserId} 
-              className="w-56 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs" 
+              className="w-full min-w-0 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs" 
               onChange={handlePersonaChange}
             >
               <Option value={unrestrictedUserId(simTenantId)}>Unrestricted Global Access</Option>
@@ -446,13 +446,15 @@ const Dashboard: React.FC = () => {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-xs font-medium text-slate-300">Airline:</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-medium text-slate-300">Airline:</span>
+            </div>
             <Select
               placeholder="All Airlines"
               allowClear
-              className="w-40 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs"
+              className="w-full min-w-0 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs"
               onChange={(val) => setSelectedAirline(val)}
               value={selectedAirline}
             >
@@ -462,13 +464,15 @@ const Dashboard: React.FC = () => {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-xs font-medium text-slate-300">Airport:</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-medium text-slate-300">Airport:</span>
+            </div>
             <Select
               placeholder="All Airports"
               allowClear
-              className="w-40 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs"
+              className="w-full min-w-0 [&_.ant-select-selector]:!bg-slate-900 [&_.ant-select-selector]:!border-slate-700 [&_.ant-select-selection-item]:!text-white [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-xs"
               onChange={(val) => setSelectedAirport(val)}
               value={selectedAirport}
             >
@@ -478,11 +482,13 @@ const Dashboard: React.FC = () => {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-xs font-medium text-slate-300">Date Range:</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-medium text-slate-300">Date Range:</span>
+            </div>
             <RangePicker
-              className="w-60 [&_.ant-picker]:!bg-slate-900 [&_.ant-picker]:!border-slate-700 [&_.ant-picker-input_input]:!text-white [&_.ant-picker-input_input]:!text-xs"
+              className="w-full min-w-0 max-w-full [&_.ant-picker]:!bg-slate-900 [&_.ant-picker]:!border-slate-700 [&_.ant-picker-input_input]:!text-white [&_.ant-picker-input_input]:!text-xs"
               onChange={(dates) => {
                 if (dates && dates[0] && dates[1]) {
                   setStartDate(dates[0].format('YYYY-MM-DD'));
