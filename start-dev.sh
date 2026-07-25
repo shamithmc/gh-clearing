@@ -14,7 +14,14 @@ echo -e "\e[36m2. Building React Frontend...\e[0m"
 
 # 3. Start Backend
 echo -e "\e[36m3. Starting Spring Boot Backend in background (logs redirected to backend.log)...\e[0m"
-if command -v lsof >/dev/null 2>&1 && lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null; then
+PORT_IN_USE=false
+if command -v lsof >/dev/null 2>&1 && lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  PORT_IN_USE=true
+elif command -v netstat >/dev/null 2>&1 && netstat -ano | grep LISTENING | grep -q :8080; then
+  PORT_IN_USE=true
+fi
+
+if [ "$PORT_IN_USE" = true ]; then
   echo "Port 8080 is already in use. Stop the existing backend and run this script again." >&2
   exit 1
 fi

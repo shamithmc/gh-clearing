@@ -1,16 +1,21 @@
+# Stop Dev Environment PowerShell Script for Windows
 Write-Host "=== Stopping Dev Environment ===" -ForegroundColor Yellow
 
-# 1. Stop backend Tomcat process running on port 8080
-Write-Host "1. Terminating backend on port 8080..." -ForegroundColor Cyan
-$port8080Process = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
-if ($port8080Process) {
-    Stop-Process -Id $port8080Process -Force
-    Write-Host "Backend process terminated." -ForegroundColor Green
+Write-Host "1. Terminating backend process on port 8080..." -ForegroundColor Cyan
+$pids = (Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique
+
+if ($pids) {
+    foreach ($pidToKill in $pids) {
+        if ($pidToKill -gt 0) {
+            Write-Host "Terminating process $pidToKill..." -ForegroundColor Yellow
+            Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+            Write-Host "Backend process ($pidToKill) terminated." -ForegroundColor Green
+        }
+    }
 } else {
     Write-Host "No process found running on port 8080." -ForegroundColor Gray
 }
 
-# 2. Stop Docker services
 Write-Host "2. Stopping Docker containers..." -ForegroundColor Cyan
 docker compose down
 
