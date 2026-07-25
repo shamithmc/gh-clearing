@@ -17,7 +17,7 @@ import Marketplace from './pages/Marketplace';
 import ServiceOfferings from './pages/ServiceOfferings';
 import AirlineReviewRequests from './pages/AirlineReviewRequests';
 import AirportCostIndex from './pages/AirportCostIndex';
-import { Empty } from 'antd';
+import DisputesList from './pages/DisputesList';
 
 const TenantHome: React.FC = () => (
   localStorage.getItem('simTenantType') === 'AIRLINE' ? <AirlineDashboard /> : <Dashboard />
@@ -42,7 +42,7 @@ const App: React.FC = () => {
         <Route path="contracts/new" element={<ContractWizard />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceWizard />} />
-        <Route path="disputes" element={<Empty description="Airline dispute workspace is coming in a later Phase 6 slice" />} />
+        <Route path="disputes" element={<DisputesList />} />
         <Route path="configuration" element={<div>Configuration Placeholder</div>} />
       </Route>
     </Routes>

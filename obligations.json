@@ -83,13 +83,27 @@
       "invariant_id": "INV-10",
       "name": "Dispute Line Item Constraint",
       "test_path": "backend/src/test/java/com/airline/disputes/DisputeValidationTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/domain/Dispute*",
+        "backend/src/main/java/com/airline/service/*Dispute*",
+        "backend/src/main/java/com/airline/api/*Dispute*",
+        "backend/src/main/java/com/airline/repository/*Dispute*",
+        "backend/src/test/java/com/airline/disputes/**"
+      ]
     },
     {
       "invariant_id": "INV-11",
       "name": "Credit Note Value Limit",
       "test_path": "backend/src/test/java/com/airline/disputes/CreditNoteValueLimitTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/domain/Dispute*",
+        "backend/src/main/java/com/airline/service/*Dispute*",
+        "backend/src/main/java/com/airline/api/*Dispute*",
+        "backend/src/main/java/com/airline/repository/*Dispute*",
+        "backend/src/test/java/com/airline/disputes/**"
+      ]
     },
     {
       "invariant_id": "INV-12",
