@@ -106,7 +106,9 @@
         "tasks/**",
         "backend/pom.xml",
         "frontend/package.json",
-        "e2e/package.json"
+        "e2e/package.json",
+        "*.sh",
+        "*.ps1"
       ]
     }
   ]
