@@ -25,12 +25,15 @@ const { Header, Sider, Content } = Layout;
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Auto-close sidebar on mobile route change
   useEffect(() => {
-    setCollapsed(true);
-  }, [location.pathname]);
+    if (isMobile) {
+      setCollapsed(true);
+    }
+  }, [location.pathname, isMobile]);
 
   const storedTenantType = localStorage.getItem('simTenantType');
   const isAirline = storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
@@ -105,7 +108,7 @@ const MainLayout: React.FC = () => {
     <Layout className="min-h-screen bg-slate-100">
       
       {/* Mobile Backdrop */}
-      {!collapsed && (
+      {isMobile && !collapsed && (
         <div 
           onClick={() => setCollapsed(true)} 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300" 
@@ -117,6 +120,10 @@ const MainLayout: React.FC = () => {
         breakpoint="lg"
         collapsedWidth="0"
         collapsed={collapsed}
+        onBreakpoint={(broken) => {
+          setIsMobile(broken);
+          setCollapsed(broken);
+        }}
         onCollapse={(val) => setCollapsed(val)}
         theme="dark"
         className="!bg-slate-900 border-r border-slate-800 shadow-xl z-50 transition-all duration-300"
@@ -137,12 +144,14 @@ const MainLayout: React.FC = () => {
               </span>
             </div>
           </div>
-          <button 
-            onClick={() => setCollapsed(true)}
-            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {isMobile && (
+            <button 
+              onClick={() => setCollapsed(true)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Menu */}
