@@ -11,6 +11,7 @@ paths:
   - "backend/src/main/java/com/airline/notification/EmailNotificationListener.java"
   - "backend/src/main/java/com/airline/service/InvoiceDispatchService.java"
   - "backend/src/main/resources/schema/is-invoice.provenance.json"
+  - "backend/src/main/resources/schema/README.md"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/Dashboard.tsx"
   - "frontend/src/index.css"
@@ -30,3 +31,4 @@ invariants:
 2. Gracefully handles `MailConnectException` / `MailSendException` in `EmailNotificationListener` and `InvoiceDispatchService` when running locally without an active local SMTP mail server (Mailhog) listening on port 1025, preventing connection refused stack trace dumps.
 3. Fixes mobile viewport navigation layout in `MainLayout.tsx`, `Dashboard.tsx`, and `index.css`: hides fixed desktop Sider on mobile screens, adds a sleek header hamburger toggle button with an animated slide-over drawer and backdrop overlay, while keeping the desktop navigation sidebar expanded by default.
 4. Enhances `stop-dev.sh` and `start-dev.sh` with Windows `netstat`, `taskkill`, and `powershell` process termination fallbacks so the backend Java process on port 8080 is reliably terminated across Linux, macOS, and Windows environments, and adds `stop-dev.ps1` and `start-dev.ps1` helper scripts.
+5. Adds official IATA IS-XML V4.4.0.0 schema provenance tracking (`is-invoice.provenance.json`) and schema documentation (`backend/src/main/resources/schema/README.md`).
