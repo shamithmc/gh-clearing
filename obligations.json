@@ -8,7 +8,7 @@
       "owner": "@ground-handling/developers",
       "path_patterns": [
         "backend/src/main/java/com/airline/**",
-        "backend/src/main/resources/db/migration/**",
+        "backend/src/main/resources/**",
         "frontend/**",
         "e2e/**",
         "topology.json"

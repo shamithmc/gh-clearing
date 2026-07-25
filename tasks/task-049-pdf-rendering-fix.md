@@ -5,6 +5,7 @@ owner: Shamith
 state: REVIEW
 paths:
   - "tasks/task-049-pdf-rendering-fix.md"
+  - "obligations.json"
   - "backend/src/main/java/com/airline/pdf/InvoicePdfService.java"
   - "backend/src/main/resources/templates/invoice-pdf.html"
   - "backend/src/main/java/com/airline/notification/EmailNotificationListener.java"
@@ -14,6 +15,7 @@ paths:
 proof: INTEGRATION
 invariants:
   - INV-01
+  - INV-12
 ---
 
 ## Scope
