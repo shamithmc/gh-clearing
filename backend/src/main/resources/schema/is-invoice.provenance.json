@@ -1,0 +1,6 @@
+{
+  "schema": "is-invoice.xsd",
+  "source": "IATA IS-XML Invoice Standard V4.4.0.0",
+  "provenance": "Official IATA Standard XML Schema Definition",
+  "status": "OFFICIAL"
+}

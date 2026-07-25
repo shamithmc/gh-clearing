@@ -10,6 +10,7 @@ paths:
   - "backend/src/main/resources/templates/invoice-pdf.html"
   - "backend/src/main/java/com/airline/notification/EmailNotificationListener.java"
   - "backend/src/main/java/com/airline/service/InvoiceDispatchService.java"
+  - "backend/src/main/resources/schema/is-invoice.provenance.json"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/Dashboard.tsx"
   - "frontend/src/index.css"
