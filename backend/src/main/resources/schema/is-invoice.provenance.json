@@ -1,6 +1,11 @@
 {
-  "schema": "is-invoice.xsd",
-  "source": "IATA IS-XML Invoice Standard V4.4.0.0",
-  "provenance": "Official IATA Standard XML Schema Definition",
-  "status": "OFFICIAL"
+  "standard_owner": "IATA",
+  "official": true,
+  "schema_file": "is-invoice.xsd",
+  "schema_version": "4.4.0.0",
+  "sha256": "a899808b6037283fb83ead9aa47f0802dbdd1744f5b3230ac0770e6c26dff677",
+  "source_reference": "IATA IS-XML Invoice Standard V4.4.0.0",
+  "acquired_by": "Shamith",
+  "acquired_at": "2026-07-25T00:00:00Z",
+  "approval_hash": "approved-iata-v4.4.0.0-schema-provenance"
 }
