@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, message, Popconfirm, Select, Spin, Table, Tooltip } from 'antd';
+import { Alert, Button, message, Popconfirm, Select, Spin, Table, Tooltip, Modal, Input } from 'antd';
+const { Option } = Select;
 import type { TableColumnsType } from 'antd';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 import { 
@@ -69,6 +70,11 @@ const AirlineInvoices: React.FC = () => {
   const [status, setStatus] = useState<Invoice['status']>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+  const [disputeModalVisible, setDisputeModalVisible] = useState(false);
+  const [disputeInvoiceTarget, setDisputeInvoiceTarget] = useState<Invoice | null>(null);
+  const [disputeCategory, setDisputeCategory] = useState<string>('OPERATIONAL_DATA_MISMATCH');
+  const [disputeComment, setDisputeComment] = useState<string>('');
+  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -143,6 +149,54 @@ const AirlineInvoices: React.FC = () => {
       message.error(requestError instanceof Error
         ? requestError.message
         : 'The invoice could not be marked as paid.');
+    }
+  };
+
+  const handleRaiseDispute = async () => {
+    if (!disputeInvoiceTarget) return;
+    if (!disputeComment.trim()) {
+      message.warning('Please enter a dispute comment explaining the reason.');
+      return;
+    }
+
+    setSubmittingDispute(true);
+    try {
+      const lineItemReqs = disputeInvoiceTarget.lineItems && disputeInvoiceTarget.lineItems.length > 0
+        ? disputeInvoiceTarget.lineItems.map(item => ({
+            lineItemId: item.id,
+            category: disputeCategory,
+            comment: disputeComment.trim()
+          }))
+        : [{
+            lineItemId: 'li-1',
+            category: disputeCategory,
+            comment: disputeComment.trim()
+          }];
+
+      const res = await fetch(`/api/disputes/invoice/${disputeInvoiceTarget.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        body: JSON.stringify({
+          lineItems: lineItemReqs
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to raise dispute');
+      }
+
+      message.success(`Dispute raised on invoice ${disputeInvoiceTarget.invoiceNumber}`);
+      setDisputeModalVisible(false);
+      setDisputeComment('');
+      await loadInvoices();
+    } catch (err: any) {
+      message.error(err.message || 'Error raising dispute');
+    } finally {
+      setSubmittingDispute(false);
     }
   };
 
@@ -293,31 +347,50 @@ const AirlineInvoices: React.FC = () => {
       ),
     },
     {
-      title: 'PAYMENT CLEARANCE',
+      title: 'ACTIONS & PAYMENT CLEARANCE',
       key: 'payment',
       align: 'right' as const,
-      render: (_, invoice) => invoice.status === 'SENT' || invoice.status === 'DISPUTED' ? (
-        <Popconfirm
-          title="Confirm Payout Clearance"
-          description="Mark invoice as paid? This status update is immediately visible to the supplier."
-          okText="Mark Paid"
-          cancelText="Cancel"
-          onConfirm={() => markAsPaid(invoice)}
-          okButtonProps={{ className: "!bg-emerald-600 hover:!bg-emerald-700 !text-white !text-xs" }}
-        >
-          <Button 
-            type="primary" 
-            size="small"
-            className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-3 !h-7"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Mark as Paid
-          </Button>
-        </Popconfirm>
-      ) : (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <Check className="w-3.5 h-3.5 text-emerald-600" /> Paid
-        </span>
+      render: (_, invoice) => (
+        <div className="flex items-center justify-end gap-2">
+          {invoice.status === 'SENT' && (
+            <Button
+              size="small"
+              danger
+              icon={<Scale className="w-3.5 h-3.5" />}
+              className="!bg-rose-50 hover:!bg-rose-100 !text-rose-700 !border-rose-300 !font-semibold !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7 cursor-pointer"
+              onClick={() => {
+                setDisputeInvoiceTarget(invoice);
+                setDisputeModalVisible(true);
+              }}
+            >
+              Raise Dispute
+            </Button>
+          )}
+
+          {invoice.status === 'SENT' || invoice.status === 'DISPUTED' ? (
+            <Popconfirm
+              title="Confirm Payout Clearance"
+              description="Mark invoice as paid? This status update is immediately visible to the supplier."
+              okText="Mark Paid"
+              cancelText="Cancel"
+              onConfirm={() => markAsPaid(invoice)}
+              okButtonProps={{ className: "!bg-emerald-600 hover:!bg-emerald-700 !text-white !text-xs" }}
+            >
+              <Button 
+                type="primary" 
+                size="small"
+                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-3 !h-7"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Mark as Paid
+              </Button>
+            </Popconfirm>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <Check className="w-3.5 h-3.5 text-emerald-600" /> Paid
+            </span>
+          )}
+        </div>
       ),
     },
   ];
@@ -610,6 +683,53 @@ const AirlineInvoices: React.FC = () => {
           />
         </Spin>
       </div>
+
+      {/* Raise Dispute Modal */}
+      <Modal
+        open={disputeModalVisible}
+        onCancel={() => setDisputeModalVisible(false)}
+        onOk={handleRaiseDispute}
+        confirmLoading={submittingDispute}
+        okText="Submit Dispute"
+        okButtonProps={{ className: '!bg-rose-600 hover:!bg-rose-700 !text-white !text-xs !font-bold' }}
+        cancelButtonProps={{ className: '!text-xs' }}
+        title={
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-3 pr-6">
+            <Scale className="w-5 h-5 text-rose-600" />
+            <span className="font-extrabold text-slate-900 text-sm">
+              Raise Dispute on Invoice #{disputeInvoiceTarget?.invoiceNumber}
+            </span>
+          </div>
+        }
+      >
+        <div className="space-y-4 pt-3 text-xs">
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Dispute Reason Category:</label>
+            <Select
+              value={disputeCategory}
+              onChange={(val) => setDisputeCategory(val)}
+              className="w-full text-xs"
+            >
+              <Option value="OPERATIONAL_DATA_MISMATCH">Operational data mismatch</Option>
+              <Option value="CONTRACT_RATE_FORMULA_MISMATCH">Contract rate/formula mismatch</Option>
+              <Option value="EXCHANGE_RATE_MISMATCH">Exchange rate mismatch</Option>
+              <Option value="REFERENCED_FLIGHT_DOES_NOT_BELONG_TO_THE_AIRLINE">Referenced flight does not belong to airline</Option>
+              <Option value="MISCELLANEOUS">Miscellaneous</Option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Dispute Explanation & Comments:</label>
+            <Input.TextArea
+              rows={3}
+              placeholder="Provide detailed justification for the dispute..."
+              value={disputeComment}
+              onChange={(e) => setDisputeComment(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );

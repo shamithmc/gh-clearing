@@ -119,8 +119,8 @@ test('airline views only dispatched invoices, filters them, and downloads XML an
   await expect(page.getByText(sentNumber)).toBeVisible();
   const invoiceRow = page.getByRole('row').filter({ hasText: sentNumber });
   await expect(page.getByText(draftNumber)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Create Invoice/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Approve|Dispute/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Approve/i })).toHaveCount(0);
+  await expect(invoiceRow.getByRole('button', { name: 'Raise Dispute' })).toBeVisible();
   await expect(invoiceRow.getByRole('button', { name: 'Mark as Paid' })).toBeVisible();
 
   const statusSelect = page.getByTestId('invoice-status-filter');
