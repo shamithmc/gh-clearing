@@ -193,4 +193,79 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
       'Exchange rate must be provided and positive when invoice and contract currencies differ',
     );
   });
+
+  test('SENT invoices render in read-only state without edit or approval action buttons', async ({ page, request }) => {
+    // Seed a SENT invoice via API
+    const invoiceNum = 'INV-IMMUT-' + Date.now();
+    const createInvoiceRes = await request.post('/api/invoices', {
+      headers: {
+        'X-Mock-Tenant-Id': 'SWISSPORT',
+        'X-Mock-Tenant-Type': 'GROUND_HANDLER',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        supplierId: 'SWISSPORT',
+        invoiceNumber: invoiceNum,
+        airlineId: 'EK',
+        airportCode: 'DXB',
+        currency: 'AED',
+        exchangeRate: 1.0,
+        exchangeRateSource: 'E2E immutability test',
+        issueDate: '2026-07-01',
+        dueDate: '2026-07-31',
+        lineItems: [
+          {
+            contractId: contractId,
+            flightDate: '2026-07-10',
+            flightNumber: 'EK901',
+            aircraftReg: 'A6-EEQ',
+            origin: 'DXB',
+            destination: 'FRA',
+            chargeCode: 'PASSENGER_HANDLING',
+            serviceName: 'Passenger Handling',
+            formulaType: 'PF-01',
+            quantityDrivers: JSON.stringify({ passengers: 100 }),
+            calculatedAmount: 1000,
+          },
+        ],
+      },
+    });
+    expect(createInvoiceRes.status()).toBe(201);
+    const invoice = await createInvoiceRes.json();
+    const sentInvoiceId = invoice.id;
+
+    const ghHeaders = {
+      'X-Mock-Tenant-Id': 'SWISSPORT',
+      'X-Mock-Tenant-Type': 'GROUND_HANDLER',
+      'Content-Type': 'application/json',
+    };
+
+    // Transition: DRAFT → FINALIZED → APPROVED → SENT
+    await request.put(`/api/invoices/${sentInvoiceId}/status?status=FINALIZED`, { headers: ghHeaders });
+    await request.put(`/api/invoices/${sentInvoiceId}/status?status=APPROVED`, { headers: ghHeaders });
+    const sendRes = await request.put(`/api/invoices/${sentInvoiceId}/status?status=SENT`, { headers: ghHeaders });
+    expect(sendRes.status()).toBe(200);
+
+    // Navigate to invoices list
+    await page.goto('/');
+    await page.click('text=Invoices');
+    await page.waitForLoadState('networkidle');
+
+    // Locate the SENT invoice row
+    const invoiceRow = page.locator('tr').filter({ hasText: invoiceNum }).first();
+    await expect(invoiceRow).toBeVisible();
+
+    // Verify SENT status badge
+    await expect(invoiceRow).toContainText('Submitted to Airline');
+
+    // Assert that Finalize, Approve, and Req Mod buttons are NOT visible for SENT invoices
+    await expect(invoiceRow.locator(`button[id$="-finalize-btn"]`)).not.toBeVisible();
+    await expect(invoiceRow.locator(`button[id$="-approve-btn"]`)).not.toBeVisible();
+    await expect(invoiceRow.locator(`button[id$="-req-mod-btn"]`)).not.toBeVisible();
+    await expect(invoiceRow.locator(`button[id$="-send-btn"]`)).not.toBeVisible();
+
+    // Verify that download XML/PDF buttons ARE available (read-only access is allowed)
+    await expect(invoiceRow.getByText('XML')).toBeVisible();
+    await expect(invoiceRow.getByText('PDF')).toBeVisible();
+  });
 });

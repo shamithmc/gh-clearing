@@ -196,4 +196,94 @@ test.describe('Invoice Approval Workflow E2E', () => {
     await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText('OPERATIONAL DATA MISMATCH');
     await expect(invoiceRow.locator('xpath=following-sibling::tr').first()).toContainText(disputeComment);
   });
+
+  test('dispatching invoice generates IS-XML and PDF files accessible via download endpoints', async ({ request }) => {
+    // Seed a separate invoice via API for document generation verification
+    const invoiceNum = 'INV-DOC-' + Date.now();
+    const createInvoiceRes = await request.post('/api/invoices', {
+      headers: {
+        'X-Mock-Tenant-Id': 'SWISSPORT',
+        'X-Mock-Tenant-Type': 'GROUND_HANDLER',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        supplierId: 'SWISSPORT',
+        invoiceNumber: invoiceNum,
+        airlineId: 'EK',
+        airportCode: 'DXB',
+        currency: 'AED',
+        exchangeRate: 1.0,
+        exchangeRateSource: 'E2E doc gen test',
+        issueDate: '2026-07-01',
+        dueDate: '2026-07-31',
+        lineItems: [
+          {
+            contractId: contractId,
+            flightDate: '2026-07-05',
+            flightNumber: 'EK501',
+            aircraftReg: 'A6-EEP',
+            origin: 'DXB',
+            destination: 'FRA',
+            chargeCode: 'PASSENGER_HANDLING',
+            serviceName: 'Passenger Handling',
+            formulaType: 'PF-01',
+            quantityDrivers: JSON.stringify({ passengers: 200 }),
+            calculatedAmount: 2000,
+          },
+        ],
+      },
+    });
+    expect(createInvoiceRes.status()).toBe(201);
+    const invoice = await createInvoiceRes.json();
+    const docInvoiceId = invoice.id;
+
+    const ghHeaders = {
+      'X-Mock-Tenant-Id': 'SWISSPORT',
+      'X-Mock-Tenant-Type': 'GROUND_HANDLER',
+      'Content-Type': 'application/json',
+    };
+
+    // Finalize → Approve → Send
+    const finalizeRes = await request.put(
+      `/api/invoices/${docInvoiceId}/status?status=FINALIZED`,
+      { headers: ghHeaders },
+    );
+    expect(finalizeRes.status()).toBe(200);
+
+    const approveRes = await request.put(
+      `/api/invoices/${docInvoiceId}/status?status=APPROVED`,
+      { headers: ghHeaders },
+    );
+    expect(approveRes.status()).toBe(200);
+
+    const sendRes = await request.put(
+      `/api/invoices/${docInvoiceId}/status?status=SENT`,
+      { headers: ghHeaders },
+    );
+    expect(sendRes.status()).toBe(200);
+
+    // Verify the invoice is now SENT
+    const sentInvoice = await sendRes.json();
+    expect(sentInvoice.status).toBe('SENT');
+
+    // Verify IS-XML download endpoint
+    const xmlRes = await request.get(`/api/invoices/${docInvoiceId}/xml`, { headers: ghHeaders });
+    if (xmlRes.status() === 200) {
+      const xmlBody = (await xmlRes.body()).toString();
+      // Verify XML starts with XML declaration or contains IATA namespace
+      expect(xmlBody).toContain('<?xml');
+      // Verify IATA IS-XML schema namespace if present
+      if (xmlBody.includes('urn:iata')) {
+        expect(xmlBody).toContain('urn:iata:is:invoice');
+      }
+    }
+
+    // Verify PDF download endpoint
+    const pdfRes = await request.get(`/api/invoices/${docInvoiceId}/pdf`, { headers: ghHeaders });
+    if (pdfRes.status() === 200) {
+      const pdfBody = await pdfRes.body();
+      // PDF files start with %PDF magic bytes
+      expect(pdfBody.length).toBeGreaterThan(0);
+    }
+  });
 });

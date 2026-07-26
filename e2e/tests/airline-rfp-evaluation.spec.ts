@@ -87,7 +87,9 @@ test('airline compares and accepts a proposal, creating a supplier draft contrac
 
   await expect(dialog.getByText('This RFP has been awarded.')).toBeVisible();
   await expect(dialog.getByRole('cell', { name: 'ACCEPTED' })).toBeVisible();
+  await expect(page.getByText(new RegExp(`Proposal accepted and draft contract ${decision.seededContractId}`))).toBeVisible();
 
+  // Verify backend API contract seeding
   const contractsResponse = await page.request.get('/api/contracts', { headers: supplierHeaders });
   expect(contractsResponse.ok()).toBeTruthy();
   const contracts = await contractsResponse.json();
@@ -103,4 +105,17 @@ test('airline compares and accepts a proposal, creating a supplier draft contrac
     chargeCode: 'BAGGAGE',
     formulaType: 'PF-01',
   });
+  expect(seededContract.services[0].rateDetails.rate).toBe(18.75);
+
+  // Navigate to Ground Handler /contracts UI and verify pre-filled contract row
+  await page.addInitScript(() => {
+    localStorage.setItem('simTenantId', 'SWISSPORT');
+    localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+    localStorage.setItem('simUserId', 'dev-SWISSPORT');
+  });
+  await page.goto('/contracts');
+  await page.waitForLoadState('networkidle');
+
+  const contractRow = page.locator('tr').filter({ hasText: 'EK' }).filter({ hasText: 'DXB' }).filter({ hasText: 'DRAFT' }).first();
+  await expect(contractRow).toBeVisible();
 });
