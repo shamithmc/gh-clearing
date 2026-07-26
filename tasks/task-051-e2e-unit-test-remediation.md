@@ -15,6 +15,7 @@ paths:
   - "frontend/package.json"
   - "frontend/package-lock.json"
   - "frontend/vite.config.ts"
+  - "frontend/tsconfig.json"
   - "frontend/src/test/setup.ts"
   - "frontend/src/pages/__tests__/DisputeDetailModal.test.tsx"
   - "frontend/src/pages/__tests__/InvoiceEntryWizard.test.tsx"
