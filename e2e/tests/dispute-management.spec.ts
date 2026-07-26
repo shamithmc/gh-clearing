@@ -22,7 +22,7 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     await page.goto('/airline/invoices');
 
     // Verify header title
-    await expect(page.getByText('Dispatched Invoices')).toBeVisible();
+    await expect(page.getByText('My Invoices & Dispatched Billing')).toBeVisible();
 
     // Check if there is a SENT invoice with Raise Dispute button
     const raiseDisputeBtn = page.getByRole('button', { name: 'Raise Dispute' }).first();
