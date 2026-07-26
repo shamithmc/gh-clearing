@@ -190,7 +190,19 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     expect(dispute.id).toBeTruthy();
 
     // --- Step 2: Switch to Ground Handler and navigate to /disputes ---
+    await page.addInitScript(() => {
+      localStorage.setItem('simTenantId', 'SWISSPORT');
+      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+      localStorage.setItem('simUserId', 'dev-SWISSPORT');
+    });
     await page.goto('/disputes');
+    await page.evaluate(() => {
+      localStorage.setItem('simTenantId', 'SWISSPORT');
+      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+      localStorage.setItem('simUserId', 'dev-SWISSPORT');
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
 
     // Locate the dispute in the table and open it
