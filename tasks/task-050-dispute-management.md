@@ -19,6 +19,7 @@ paths:
   - "frontend/src/pages/AirlineInvoices.tsx"
   - "frontend/src/App.tsx"
   - "e2e/tests/dispute-management.spec.ts"
+  - "e2e/tests/airline-invoices.spec.ts"
 proof: INTEGRATION
 invariants:
   - INV-01
@@ -40,4 +41,4 @@ invariants:
    - `DisputesList.tsx`: Responsive Ant Design + Tailwind dispute queue workspace with status tabs (`All`, `Open`, `Responded`, `Resolved`), dimension filters, and summary metrics cards (SDR1 / ADR1).
    - `DisputeDetailModal.tsx`: Interactive modal for dispute thread messaging, line-item details, and credit note issuance.
    - `AirlineInvoices.tsx`: Adds **Raise Dispute** button and modal on `SENT` invoices for airline users (`EK`).
-5. **E2E & Unit Test Verification**: Full unit and Playwright integration coverage (`dispute-management.spec.ts`).
+5. **E2E & Unit Test Verification**: Full unit and Playwright integration coverage (`dispute-management.spec.ts`, `airline-invoices.spec.ts`).
