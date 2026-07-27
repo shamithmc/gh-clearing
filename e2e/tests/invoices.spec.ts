@@ -129,7 +129,6 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     await expect(page).toHaveURL(/\/invoices/);
 
     await page.reload();
-    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('table').first()).toContainText(invoiceNum);
     await expect(page.locator('table').first()).toContainText('Draft');
@@ -249,7 +248,6 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     // Navigate to invoices list
     await page.goto('/');
     await page.click('text=Invoices');
-    await page.waitForLoadState('networkidle');
 
     // Locate the SENT invoice row
     const invoiceRow = page.locator('tr').filter({ hasText: invoiceNum }).first();

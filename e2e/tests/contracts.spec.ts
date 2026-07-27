@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
+  test.beforeEach(async ({ request }) => {
+    await request.put('/api/tenants/SWISSPORT/configuration', {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Mock-Tenant-Id': 'PLATFORM',
+        'X-Mock-Tenant-Type': 'PLATFORM_ADMIN',
+        'X-Mock-User-Id': 'dev-PLATFORM',
+      },
+      data: {
+        emailIds: 'swissport@test.com',
+        invoiceBackdatingDays: 30,
+        regionalClassification: 'MIDDLE_EAST',
+        enabledAirlines: ['EK', 'LH'],
+        enabledAirports: ['DXB', 'FRA'],
+      },
+    });
+  });
+
   test('successfully draft, submit, and approve a contract', async ({ page }) => {
     // 1. Go to root page and navigate via sidebar menu to avoid Tomcat subpath routing 401s
     await page.goto('/');

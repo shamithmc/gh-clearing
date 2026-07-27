@@ -196,13 +196,6 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
       localStorage.setItem('simUserId', 'dev-SWISSPORT');
     });
     await page.goto('/disputes');
-    await page.evaluate(() => {
-      localStorage.setItem('simTenantId', 'SWISSPORT');
-      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
-      localStorage.setItem('simUserId', 'dev-SWISSPORT');
-    });
-    await page.reload();
-    await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
 
     // Locate the dispute in the table and open it
@@ -227,9 +220,6 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
 
     // --- Step 4: Verify Credit Note Issued badge on invoice detail page ---
     await page.goto(`/invoices`);
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
     const invoiceRow = page.locator('tr').filter({ hasText: invoiceNumber }).first();
     await expect(invoiceRow).toBeVisible();
 
