@@ -3,6 +3,30 @@ import { test, expect } from '@playwright/test';
 test.describe('Invoice Entry Wizard and Listing E2E', () => {
   let contractId = '';
 
+  test.beforeEach(async ({ page, request }) => {
+    await request.put('/api/tenants/SWISSPORT/configuration', {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Mock-Tenant-Id': 'PLATFORM',
+        'X-Mock-Tenant-Type': 'PLATFORM_ADMIN',
+        'X-Mock-User-Id': 'dev-PLATFORM',
+      },
+      data: {
+        emailIds: 'swissport@test.com',
+        invoiceBackdatingDays: 30,
+        regionalClassification: 'MIDDLE_EAST',
+        enabledAirlines: ['EK', 'LH'],
+        enabledAirports: ['DXB', 'FRA'],
+      },
+    });
+
+    await page.addInitScript(() => {
+      localStorage.setItem('simTenantId', 'SWISSPORT');
+      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+      localStorage.setItem('simUserId', 'dev-SWISSPORT');
+    });
+  });
+
   test.beforeAll(async ({ request }) => {
     // 1. Create a contract via API (returns status DRAFT)
     const createContractRes = await request.post('/api/contracts', {
@@ -96,6 +120,7 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     await page.click('#invoice-wizard-next-btn');
 
     // --- Step 2: Line Items ---
+    await expect(page.locator('#invoice-wizard-add-flight-btn')).toBeVisible();
     await page.click('#invoice-wizard-add-flight-btn');
 
     await page.click('#lineItems_0_flightDate');

@@ -21,8 +21,8 @@ test('eligible ground handler views an airline RFP and submits a proposal throug
       emailIds: 'rfp@swissport.test',
       invoiceBackdatingDays: 30,
       regionalClassification: 'MIDDLE_EAST',
-      enabledAirlines: ['EK'],
-      enabledAirports: ['DXB'],
+      enabledAirlines: ['EK', 'LH'],
+      enabledAirports: ['DXB', 'FRA'],
     },
   });
   expect(configuration.ok()).toBeTruthy();

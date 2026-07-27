@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
-  test.beforeEach(async ({ request }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('simTenantId', 'SWISSPORT');
+      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+      localStorage.setItem('simUserId', 'dev-SWISSPORT');
+    });
+
     await request.put('/api/tenants/SWISSPORT/configuration', {
       headers: {
         'Content-Type': 'application/json',

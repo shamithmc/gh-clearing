@@ -28,8 +28,8 @@ test('supplier RFP summary retains awarded requests and shows the winning outcom
       emailIds: 'rfp-summary@swissport.test',
       invoiceBackdatingDays: 30,
       regionalClassification: 'MIDDLE_EAST',
-      enabledAirlines: ['EK'],
-      enabledAirports: ['DXB'],
+      enabledAirlines: ['EK', 'LH'],
+      enabledAirports: ['DXB', 'FRA'],
     },
   });
   expect(configuration.ok()).toBeTruthy();
