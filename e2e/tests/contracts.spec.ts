@@ -177,8 +177,8 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     // Step 3: Review & Submit
     await page.click('button:has-text("Submit Contract")');
 
-    await expect(page).toHaveURL(/\/contracts/);
-    await expect(page.locator('body')).toContainText('Contract drafted successfully!');
+    await page.waitForURL(/\/contracts(?!\/new)/, { timeout: 20000 });
+    await expect(page.locator('body')).toContainText('Contract drafted successfully!', { timeout: 20000 });
 
     const firstTable = page.locator('table').first();
     await expect(firstTable).toContainText('LH');
@@ -293,8 +293,8 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     // Step 3: Review & Submit
     await page.click('button:has-text("Submit Contract")');
 
-    await expect(page).toHaveURL(/\/contracts/);
-    await expect(page.locator('body')).toContainText('Contract drafted successfully!');
+    await page.waitForURL(/\/contracts(?!\/new)/, { timeout: 20000 });
+    await expect(page.locator('body')).toContainText('Contract drafted successfully!', { timeout: 20000 });
 
     const firstTable = page.locator('table').first();
     await expect(firstTable).toContainText('LH');

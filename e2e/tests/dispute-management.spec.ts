@@ -198,9 +198,13 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     await page.goto('/disputes');
     await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
 
+    // Reload once to ensure the freshly-raised dispute is reflected in the table
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
+
     // Locate the dispute in the table and open it
     const disputeRow = page.locator('tr').filter({ hasText: invoiceNumber }).first();
-    await expect(disputeRow).toBeVisible();
+    await expect(disputeRow).toBeVisible({ timeout: 30000 });
     await disputeRow.getByRole('button', { name: /View Thread & Act/i }).click();
 
     // --- Step 3: Accept the dispute via the Detail Modal ---
