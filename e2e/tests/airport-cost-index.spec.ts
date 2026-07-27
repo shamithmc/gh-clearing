@@ -21,12 +21,6 @@ const supplierHeaders = (supplierId: string) => ({
 });
 
 test('airline sees only confidentiality-safe airport cost index segments', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem('simTenantId', 'EK');
-    localStorage.setItem('simTenantType', 'AIRLINE');
-    localStorage.setItem('simUserId', 'dev-EK');
-  });
-
   const dnata = await page.request.get('/api/tenants/DNATA', { headers: platformHeaders });
   if (dnata.status() === 404) {
     const createTenant = await page.request.post('/api/tenants', {

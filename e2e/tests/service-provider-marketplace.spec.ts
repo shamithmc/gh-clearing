@@ -23,8 +23,8 @@ test('supplier publishes an offering and airline discovers it and starts an RFP'
       emailIds: 'marketplace@swissport.test',
       invoiceBackdatingDays: 30,
       regionalClassification: 'MIDDLE_EAST',
-      enabledAirlines: ['EK', 'LH'],
-      enabledAirports: ['DXB', 'FRA'],
+      enabledAirlines: ['EK'],
+      enabledAirports: ['DXB'],
     },
   });
   expect(configuration.ok()).toBeTruthy();
