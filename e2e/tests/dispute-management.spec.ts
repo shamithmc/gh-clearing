@@ -202,6 +202,9 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
 
+    // Filter by invoice number to avoid pagination issues on CI (pageSize=8, many seeded rows)
+    await page.getByPlaceholder('Search by dispute or invoice number...').fill(invoiceNumber);
+
     // Locate the dispute in the table and open it
     const disputeRow = page.locator('tr').filter({ hasText: invoiceNumber }).first();
     await expect(disputeRow).toBeVisible({ timeout: 30000 });
