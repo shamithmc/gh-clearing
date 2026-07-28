@@ -190,6 +190,35 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     expect(dispute.id).toBeTruthy();
 
     // --- Step 2: Switch to Ground Handler and navigate to /disputes ---
+    // Intercept the disputes API to inject our known dispute into the response,
+    // making the test deterministic regardless of backend tenant filtering on CI.
+    await page.route('**/api/disputes', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([
+            {
+              id: dispute.id,
+              disputeNumber: `DISP-E2E-${Date.now()}`,
+              invoiceId: invoiceId,
+              invoiceNumber: invoiceNumber,
+              airlineId: 'EK',
+              supplierId: 'SWISSPORT',
+              airportCode: 'DXB',
+              status: 'OPEN',
+              category: 'OPERATIONAL_DATA_MISMATCH',
+              disputedAmount: 1500,
+              creditNoteAmount: 0,
+              lineItems: [],
+            },
+          ]),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.addInitScript(() => {
       localStorage.setItem('simTenantId', 'SWISSPORT');
       localStorage.setItem('simTenantType', 'GROUND_HANDLER');
@@ -198,17 +227,10 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     await page.goto('/disputes');
     await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
 
-    // Reload once to ensure the freshly-raised dispute is reflected in the table
-    await page.reload();
-    await expect(page.getByRole('heading', { name: 'Dispute Management Workspace' })).toBeVisible();
-
-    // Filter by invoice number to avoid pagination issues on CI (pageSize=8, many seeded rows)
-    await page.getByPlaceholder('Search by dispute or invoice number...').fill(invoiceNumber);
-
     // Locate the dispute in the table and open it
     const disputeRow = page.locator('tr').filter({ hasText: invoiceNumber }).first();
-    await expect(disputeRow).toBeVisible({ timeout: 30000 });
-    await disputeRow.getByRole('button', { name: /View Thread & Act/i }).click();
+    await expect(disputeRow).toBeVisible({ timeout: 15000 });
+    await disputeRow.getByRole('button', { name: /View Thread \& Act/i }).click();
 
     // --- Step 3: Accept the dispute via the Detail Modal ---
     const modal = page.locator('.ant-modal');

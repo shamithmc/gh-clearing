@@ -136,23 +136,23 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
 
     // Step 1: Header Details
     await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Lufthansa (LH)")');
+    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
 
     await page.click('#airportCode');
     await page.click('.ant-select-item-option-content:has-text("FRA - Frankfurt")');
 
     await page.click('input[placeholder="Start date"]');
     await page.keyboard.press('Control+A');
-    await page.keyboard.insertText('2026-01-01');
+    await page.keyboard.insertText('2026-02-01');
     await page.keyboard.press('Enter');
 
     await page.click('input[placeholder="End date"]');
     await page.keyboard.press('Control+A');
-    await page.keyboard.insertText('2026-12-31');
+    await page.keyboard.insertText('2026-11-30');
     await page.keyboard.press('Enter');
 
     await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("EUR")');
+    await page.click('.ant-select-item-option-content:has-text("AED")');
 
     await page.click('button:has-text("Next")');
 
@@ -181,7 +181,7 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await expect(page).toHaveURL(/\/contracts/, { timeout: 5000 });
 
     const firstTable = page.locator('table').first();
-    await expect(firstTable).toContainText('LH');
+    await expect(firstTable).toContainText('EK');
     await expect(firstTable).toContainText('FRA');
     await expect(firstTable).toContainText('DRAFT');
   });
@@ -252,19 +252,19 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
 
     // Step 1: Header Details
     await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Lufthansa (LH)")');
+    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
 
     await page.click('#airportCode');
     await page.click('.ant-select-item-option-content:has-text("DXB - Dubai")');
 
     await page.click('input[placeholder="Start date"]');
     await page.keyboard.press('Control+A');
-    await page.keyboard.insertText('2026-03-01');
+    await page.keyboard.insertText('2026-04-01');
     await page.keyboard.press('Enter');
 
     await page.click('input[placeholder="End date"]');
     await page.keyboard.press('Control+A');
-    await page.keyboard.insertText('2027-02-28');
+    await page.keyboard.insertText('2027-03-31');
     await page.keyboard.press('Enter');
 
     await page.click('#currency');
@@ -297,7 +297,7 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await expect(page).toHaveURL(/\/contracts/, { timeout: 5000 });
 
     const firstTable = page.locator('table').first();
-    await expect(firstTable).toContainText('LH');
+    await expect(firstTable).toContainText('EK');
     await expect(firstTable).toContainText('DXB');
     await expect(firstTable).toContainText('DRAFT');
   });
