@@ -1,0 +1,4 @@
+app:
+  storage:
+    # Render's container runs as a non-root user; /tmp is writable but ephemeral.
+    local-dir: ${STORAGE_LOCAL_DIR:/tmp/gh-clearing/uploads}
