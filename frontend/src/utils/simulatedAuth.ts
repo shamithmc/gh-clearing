@@ -15,8 +15,9 @@ export const simulatedAuthHeaders = (
   tenantId: string,
   tenantType: string,
   userId = getSimulatedUserId(tenantId)
-): Record<string, string> => ({
+): Record<string, string> => isKeycloakAuthenticated() ? {} : ({
   'X-Mock-Tenant-Id': tenantId,
   'X-Mock-Tenant-Type': tenantType,
   'X-Mock-User-Id': userId,
 });
+import { isKeycloakAuthenticated } from '../auth/keycloakAuth';

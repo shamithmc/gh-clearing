@@ -38,6 +38,7 @@
       "antd",
       "@ant-design/icons",
       "axios",
+      "keycloak-js",
       "lucide-react",
       "typescript",
       "vite",

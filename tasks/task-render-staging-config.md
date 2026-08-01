@@ -2,7 +2,7 @@
 id: TASK-RENDER-STAGING
 title: "Add Render Staging Deployment Configuration"
 owner: Shamith
-state: REVIEW
+state: DONE
 paths:
   - "backend/src/main/resources/deploy/Dockerfile"
   - "backend/src/main/resources/deploy/Dockerfile.dockerignore"

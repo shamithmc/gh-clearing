@@ -19,6 +19,7 @@ import {
   Menu as MenuIcon,
   X
 } from 'lucide-react';
+import { getAuthenticatedUser, isKeycloakAuthenticated, logout } from '../auth/keycloakAuth';
 
 const { Header, Sider, Content } = Layout;
 
@@ -35,9 +36,13 @@ const MainLayout: React.FC = () => {
     }
   }, [location.pathname, isMobile]);
 
-  const storedTenantType = localStorage.getItem('simTenantType');
-  const isAirline = storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
-  const tenantId = isAirline ? localStorage.getItem('simTenantId') || 'EK' : localStorage.getItem('simTenantId') || 'SWISSPORT';
+  const authenticatedUser = getAuthenticatedUser();
+  const storedTenantType = authenticatedUser?.tenantType ?? localStorage.getItem('simTenantType');
+  const isAirline = authenticatedUser
+    ? authenticatedUser.tenantType === 'AIRLINE'
+    : storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
+  const tenantId = authenticatedUser?.tenantId
+    ?? (isAirline ? localStorage.getItem('simTenantId') || 'EK' : localStorage.getItem('simTenantId') || 'SWISSPORT');
 
   const groundHandlerMenuItems = [
     {
@@ -202,21 +207,17 @@ const MainLayout: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
               <User className="w-4 h-4 text-slate-500" />
-              <span className="font-semibold text-slate-800">{tenantId}</span>
+              <span className="font-semibold text-slate-800">{authenticatedUser?.username ?? tenantId}</span>
               <span className="text-slate-400">|</span>
               <span className="text-slate-500 font-medium">{isAirline ? 'Airline Operations' : 'Handler Station'}</span>
             </div>
 
             <button 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors shadow-2xs cursor-pointer"
-              onClick={() => {
-                localStorage.removeItem('simTenantId');
-                localStorage.removeItem('simTenantType');
-                window.location.reload();
-              }}
+              onClick={() => void logout()}
             >
               <LogOut className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Reset Persona</span>
+              <span className="hidden sm:inline">{isKeycloakAuthenticated() ? 'Sign out' : 'Reset Persona'}</span>
             </button>
           </div>
         </Header>

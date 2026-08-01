@@ -2,6 +2,10 @@ app:
   storage:
     # Render's container runs as a non-root user; /tmp is writable but ephemeral.
     local-dir: ${STORAGE_LOCAL_DIR:/tmp/gh-clearing/uploads}
+  auth:
+    keycloak:
+      enabled: ${KEYCLOAK_FRONTEND_ENABLED:true}
+      client-id: ${KEYCLOAK_CLIENT_ID:gh-clearing-web}
 
 spring:
   flyway:
