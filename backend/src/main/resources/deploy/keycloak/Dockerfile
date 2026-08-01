@@ -15,8 +15,8 @@ RUN /opt/keycloak/bin/kc.sh build
 FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
 COPY --from=postgres-client /mnt/rootfs /
 COPY --from=keycloak-build /opt/keycloak/ /opt/keycloak/
-COPY --chmod=755 keycloak/render-entrypoint.sh /opt/keycloak/bin/render-entrypoint.sh
-COPY keycloak/realm-gh-clearing.json /opt/keycloak/data/import/realm-gh-clearing.json
+COPY --chmod=755 backend/src/main/resources/deploy/keycloak/render-entrypoint.sh /opt/keycloak/bin/render-entrypoint.sh
+COPY backend/src/main/resources/deploy/keycloak/realm-gh-clearing.json /opt/keycloak/data/import/realm-gh-clearing.json
 
 ENTRYPOINT ["/opt/keycloak/bin/render-entrypoint.sh"]
 CMD ["start", "--optimized", "--import-realm"]

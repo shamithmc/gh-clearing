@@ -53,7 +53,7 @@ projects:
             runtime: docker
             plan: free
             region: singapore
-            dockerfilePath: ./keycloak/Dockerfile
+            dockerfilePath: ./backend/src/main/resources/deploy/keycloak/Dockerfile
             dockerContext: .
             healthCheckPath: /realms/gh-clearing
             autoDeployTrigger: checksPass
