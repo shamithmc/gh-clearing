@@ -199,8 +199,18 @@ test('airline sees only confidentiality-safe airport cost index segments', async
   await expect(page.getByRole('heading', { name: 'Airport Cost Index' })).toBeVisible();
   const aircraftFilter = page.getByTestId('cost-index-aircraft-filter');
   await aircraftFilter.click();
+  const filteredIndexResponse = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/market-intelligence/airport-cost-index'
+      && url.searchParams.get('aircraftType') === aircraftType
+      && response.ok();
+  });
   await aircraftFilter.getByRole('combobox').fill(aircraftType);
-  await aircraftFilter.getByRole('combobox').press('Enter');
+  await page.locator('.ant-select-dropdown:visible .ant-select-item-option:visible')
+    .filter({ hasText: aircraftType })
+    .click();
+  await filteredIndexResponse;
+  await expect(aircraftFilter).toContainText(aircraftType);
   const costIndexTable = page.getByTestId('airport-cost-index-table');
   const baggageRow = costIndexTable.getByRole('row')
     .filter({ hasText: aircraftType })

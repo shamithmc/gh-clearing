@@ -110,7 +110,7 @@ const InvoiceWizard: React.FC = () => {
 
   const calculateLineItemAmount = (item: any) => {
     if (!item || !item.chargeCode) return 0;
-    const contractSvc = selectedContractServices.find(s => s.chargeCode === item.chargeCode);
+    const contractSvc = selectedContractServices.find(s => s?.chargeCode === item.chargeCode);
     if (!contractSvc) return 0;
 
     const rate = contractSvc.rateDetails?.rate || 0;
@@ -131,8 +131,8 @@ const InvoiceWizard: React.FC = () => {
 
   const getLineItemsPreview = () => {
     const values = form.getFieldsValue();
-    return (values.lineItems || []).map((item: any) => {
-      const contractSvc = selectedContractServices.find(s => s.chargeCode === item.chargeCode);
+    return (values.lineItems || []).filter(Boolean).map((item: any) => {
+      const contractSvc = selectedContractServices.find(s => s?.chargeCode === item.chargeCode);
       const calcAmount = calculateLineItemAmount(item);
       return {
         ...item,
@@ -148,8 +148,8 @@ const InvoiceWizard: React.FC = () => {
   };
 
   const onFinish = (values: any) => {
-    const lineItemsPayload = (values.lineItems || []).map((item: any) => {
-      const contractSvc = selectedContractServices.find(s => s.chargeCode === item.chargeCode);
+    const lineItemsPayload = (values.lineItems || []).filter(Boolean).map((item: any) => {
+      const contractSvc = selectedContractServices.find(s => s?.chargeCode === item.chargeCode);
       const calcAmount = calculateLineItemAmount(item);
       const fDate = item.flightDate && dayjs.isDayjs(item.flightDate) 
         ? item.flightDate.format('YYYY-MM-DD') 
@@ -358,7 +358,7 @@ const InvoiceWizard: React.FC = () => {
                   <div className="space-y-4">
                     {fields.map(({ key, name, ...restField }) => {
                       const currentLineItem = lineItemsValues[name] || form.getFieldValue(['lineItems', name]);
-                      const matchedSvc = selectedContractServices.find(s => s.chargeCode === currentLineItem?.chargeCode);
+                      const matchedSvc = selectedContractServices.find(s => s?.chargeCode === currentLineItem?.chargeCode);
 
                     return (
                       <div key={key} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">

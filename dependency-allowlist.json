@@ -49,7 +49,12 @@
       "@vitejs/plugin-react",
       "typescript",
       "@playwright/test",
-      "@types/react-router-dom"
+      "@types/react-router-dom",
+      "vitest",
+      "@testing-library/react",
+      "@testing-library/jest-dom",
+      "@testing-library/user-event",
+      "jsdom"
     ]
   }
 }

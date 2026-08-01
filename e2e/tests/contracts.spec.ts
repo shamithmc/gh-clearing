@@ -1,6 +1,30 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
+  test.beforeEach(async ({ page, request }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('simTenantId', 'SWISSPORT');
+      localStorage.setItem('simTenantType', 'GROUND_HANDLER');
+      localStorage.setItem('simUserId', 'dev-SWISSPORT');
+    });
+
+    await request.put('/api/tenants/SWISSPORT/configuration', {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Mock-Tenant-Id': 'PLATFORM',
+        'X-Mock-Tenant-Type': 'PLATFORM_ADMIN',
+        'X-Mock-User-Id': 'dev-PLATFORM',
+      },
+      data: {
+        emailIds: 'swissport@test.com',
+        invoiceBackdatingDays: 30,
+        regionalClassification: 'MIDDLE_EAST',
+        enabledAirlines: ['EK', 'LH'],
+        enabledAirports: ['DXB', 'FRA'],
+      },
+    });
+  });
+
   test('successfully draft, submit, and approve a contract', async ({ page }) => {
     // 1. Go to root page and navigate via sidebar menu to avoid Tomcat subpath routing 401s
     await page.goto('/');
@@ -102,5 +126,179 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     // Explicitly assert that the action buttons are not visible (ignoring the row expansion button)
     await expect(contractRow.locator('button:has-text("Approve")')).not.toBeVisible();
     await expect(contractRow.locator('button:has-text("Request Review")')).not.toBeVisible();
+  });
+
+  test('successfully draft contract with Slab-Based Incremental Pricing (PF-03)', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Contracts');
+    await page.click('button:has-text("Create Contract")');
+    await expect(page).toHaveURL(/\/contracts\/new/);
+
+    // Step 1: Header Details
+    await page.click('#airlineId');
+    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
+
+    await page.click('#airportCode');
+    await page.click('.ant-select-item-option-content:has-text("FRA - Frankfurt")');
+
+    await page.click('input[placeholder="Start date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2026-02-01');
+    await page.keyboard.press('Enter');
+
+    await page.click('input[placeholder="End date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2026-11-30');
+    await page.keyboard.press('Enter');
+
+    await page.click('#currency');
+    await page.click('.ant-select-item-option-content:has-text("AED")');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 2: Service Lines — PF-03 (Tiered Volume)
+    await page.click('button:has-text("Add Service Line")');
+
+    await page.click('#services_0_chargeCode');
+    await page.click('.ant-select-item-option-content:has-text("BAGGAGE")');
+
+    await page.fill('#services_0_serviceName', 'E2E Baggage Handling - Tiered');
+
+    await page.click('#services_0_formulaType');
+    await page.click('.ant-select-item-option-content:has-text("PF-03 (Tiered Volume)")');
+
+    await page.fill('#services_0_quantityDriver', 'bags');
+    await page.fill('#services_0_uom', 'BAG');
+    await page.fill('#services_0_taxCode', 'VAT-19');
+    await page.fill('#services_0_rate', '8.00');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 3: Review & Submit
+    await page.click('button:has-text("Submit Contract")');
+
+    await expect(page.locator('body')).toContainText('Contract drafted successfully!', { timeout: 20000 });
+    await expect(page).toHaveURL(/\/contracts/, { timeout: 5000 });
+
+    const firstTable = page.locator('table').first();
+    await expect(firstTable).toContainText('EK');
+    await expect(firstTable).toContainText('FRA');
+    await expect(firstTable).toContainText('DRAFT');
+  });
+
+  test('successfully draft contract with Time-Based Pricing (PF-05)', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Contracts');
+    await page.click('button:has-text("Create Contract")');
+    await expect(page).toHaveURL(/\/contracts\/new/);
+
+    // Step 1: Header Details
+    await page.click('#airlineId');
+    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
+
+    await page.click('#airportCode');
+    await page.click('.ant-select-item-option-content:has-text("DXB - Dubai")');
+
+    await page.click('input[placeholder="Start date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2026-06-01');
+    await page.keyboard.press('Enter');
+
+    await page.click('input[placeholder="End date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2027-05-31');
+    await page.keyboard.press('Enter');
+
+    await page.click('#currency');
+    await page.click('.ant-select-item-option-content:has-text("AED")');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 2: Service Lines — PF-05 (Time Band Rate)
+    await page.click('button:has-text("Add Service Line")');
+
+    await page.click('#services_0_chargeCode');
+    await page.click('.ant-select-item-option-content:has-text("DEICING")');
+
+    await page.fill('#services_0_serviceName', 'E2E De-icing - Time Based');
+
+    await page.click('#services_0_formulaType');
+    await page.click('.ant-select-item-option-content:has-text("PF-05 (Time Band Rate)")');
+
+    await page.fill('#services_0_quantityDriver', 'hours');
+    await page.fill('#services_0_uom', 'HR');
+    await page.fill('#services_0_taxCode', 'VAT-5');
+    await page.fill('#services_0_rate', '250.00');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 3: Review & Submit
+    await page.click('button:has-text("Submit Contract")');
+
+    await expect(page).toHaveURL(/\/contracts/);
+    await expect(page.locator('body')).toContainText('Contract drafted successfully!');
+
+    const firstTable = page.locator('table').first();
+    await expect(firstTable).toContainText('EK');
+    await expect(firstTable).toContainText('DXB');
+    await expect(firstTable).toContainText('DRAFT');
+  });
+
+  test('successfully draft contract with MTOW Weight-Based Pricing (PF-07)', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Contracts');
+    await page.click('button:has-text("Create Contract")');
+    await expect(page).toHaveURL(/\/contracts\/new/);
+
+    // Step 1: Header Details
+    await page.click('#airlineId');
+    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
+
+    await page.click('#airportCode');
+    await page.click('.ant-select-item-option-content:has-text("DXB - Dubai")');
+
+    await page.click('input[placeholder="Start date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2026-04-01');
+    await page.keyboard.press('Enter');
+
+    await page.click('input[placeholder="End date"]');
+    await page.keyboard.press('Control+A');
+    await page.keyboard.insertText('2027-03-31');
+    await page.keyboard.press('Enter');
+
+    await page.click('#currency');
+    await page.click('.ant-select-item-option-content:has-text("USD")');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 2: Service Lines — PF-07 (Custom Formula / MTOW Weight-Based)
+    await page.click('button:has-text("Add Service Line")');
+
+    await page.click('#services_0_chargeCode');
+    await page.click('.ant-select-item-option-content:has-text("PASSENGER_HANDLING")');
+
+    await page.fill('#services_0_serviceName', 'E2E MTOW Weight-Based Handling');
+
+    await page.click('#services_0_formulaType');
+    await page.click('.ant-select-item-option-content:has-text("PF-07 (Custom Formula)")');
+
+    await page.fill('#services_0_quantityDriver', 'mtow_tonnes');
+    await page.fill('#services_0_uom', 'TON');
+    await page.fill('#services_0_taxCode', 'VAT-0');
+    await page.fill('#services_0_rate', '0.85');
+
+    await page.click('button:has-text("Next")');
+
+    // Step 3: Review & Submit
+    await page.click('button:has-text("Submit Contract")');
+
+    await expect(page.locator('body')).toContainText('Contract drafted successfully!', { timeout: 20000 });
+    await expect(page).toHaveURL(/\/contracts/, { timeout: 5000 });
+
+    const firstTable = page.locator('table').first();
+    await expect(firstTable).toContainText('EK');
+    await expect(firstTable).toContainText('DXB');
+    await expect(firstTable).toContainText('DRAFT');
   });
 });

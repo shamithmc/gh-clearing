@@ -28,7 +28,9 @@ public class DisputeService {
     public List<Dispute> getDisputesForCurrentTenant() {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
-        return disputeRepository.findAllForTenant(tenantId, tenantType);
+        List<Dispute> disputes = disputeRepository.findAllForTenant(tenantId, tenantType);
+        disputes.forEach(this::initializeResponseAssociations);
+        return disputes;
     }
 
     @Transactional(readOnly = true)
@@ -36,13 +38,16 @@ public class DisputeService {
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
 
+        Dispute dispute;
         if ("AIRLINE".equals(tenantType)) {
-            return disputeRepository.findByIdAndAirlineId(id, tenantId)
+            dispute = disputeRepository.findByIdAndAirlineId(id, tenantId)
                     .orElseThrow(() -> new java.util.NoSuchElementException("Dispute not found: " + id));
         } else {
-            return disputeRepository.findByIdAndSupplierId(id, tenantId)
+            dispute = disputeRepository.findByIdAndSupplierId(id, tenantId)
                     .orElseThrow(() -> new java.util.NoSuchElementException("Dispute not found: " + id));
         }
+        initializeResponseAssociations(dispute);
+        return dispute;
     }
 
     @Transactional
@@ -173,5 +178,12 @@ public class DisputeService {
         dispute.getMessages().add(msg);
 
         return disputeRepository.save(dispute);
+    }
+
+    private void initializeResponseAssociations(Dispute dispute) {
+        // Controllers return the domain object after the service transaction closes.
+        // Load both lazy collections here so JSON serialization cannot fail later.
+        dispute.getLineItems().size();
+        dispute.getMessages().size();
     }
 }
