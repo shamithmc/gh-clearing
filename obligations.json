@@ -115,6 +115,7 @@
         "CODEOWNERS",
         "dependency-allowlist.json",
         "docs/development-contract.md",
+        "docs/phase-1-9-development-audit.md",
         "gates/**",
         "obligations.json",
         "tasks/**",

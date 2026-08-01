@@ -6,8 +6,12 @@ state: REVIEW
 paths:
   - "tasks/task-051-e2e-unit-test-remediation.md"
   - "dependency-allowlist.json"
+  - "obligations.json"
+  - "backend/src/main/java/com/airline/service/DisputeService.java"
+  - "docs/phase-1-9-development-audit.md"
   - "e2e/playwright.config.ts"
   - "e2e/tests/airline-rfp-evaluation.spec.ts"
+  - "e2e/tests/airport-cost-index.spec.ts"
   - "e2e/tests/contracts.spec.ts"
   - "e2e/tests/dispute-management.spec.ts"
   - "e2e/tests/invoice-approval.spec.ts"
@@ -17,6 +21,9 @@ paths:
   - "frontend/vite.config.ts"
   - "frontend/tsconfig.json"
   - "frontend/src/test/setup.ts"
+  - "frontend/src/pages/DisputeDetailModal.tsx"
+  - "frontend/src/pages/DisputesList.tsx"
+  - "frontend/src/pages/InvoiceWizard.tsx"
   - "frontend/src/pages/__tests__/DisputeDetailModal.test.tsx"
   - "frontend/src/pages/__tests__/InvoiceEntryWizard.test.tsx"
 proof: E2E
