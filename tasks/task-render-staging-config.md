@@ -4,9 +4,9 @@ title: "Add Render Staging Deployment Configuration"
 owner: Shamith
 state: REVIEW
 paths:
-  - ".dockerignore"
-  - "Dockerfile"
-  - "render.yaml"
+  - "backend/Dockerfile"
+  - "backend/Dockerfile.dockerignore"
+  - "backend/render.yaml"
   - "backend/src/main/java/com/airline/config/DevUserInitializer.java"
   - "backend/src/main/java/com/airline/config/SecurityConfig.java"
   - "backend/src/main/java/com/airline/security/DevAuthFilter.java"
