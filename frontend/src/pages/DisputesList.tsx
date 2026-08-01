@@ -54,12 +54,12 @@ const DisputesList: React.FC = () => {
   const totalDisputedAmount = disputes.reduce((sum, d) => sum + (d.disputedAmount || 0), 0);
   const totalCreditNoteAmount = disputes.reduce((sum, d) => sum + (d.creditNoteAmount || 0), 0);
   const openDisputesCount = disputes.filter(d => d.status === 'OPEN' || d.status === 'UNDER_REVIEW' || d.status === 'RESPONDED').length;
-  const resolvedDisputesCount = disputes.filter(d => d.status === 'ACCEPTED' || d.status === 'RESOLVED').length;
+  const resolvedDisputesCount = disputes.filter(d => d.status === 'ACCEPTED').length;
 
   const filteredDisputes = disputes.filter(d => {
     if (activeTab === 'OPEN' && !(d.status === 'OPEN' || d.status === 'UNDER_REVIEW')) return false;
     if (activeTab === 'RESPONDED' && d.status !== 'RESPONDED') return false;
-    if (activeTab === 'RESOLVED' && !(d.status === 'ACCEPTED' || d.status === 'RESOLVED')) return false;
+    if (activeTab === 'RESOLVED' && d.status !== 'ACCEPTED') return false;
     if (selectedAirline && d.airlineId !== selectedAirline) return false;
     if (selectedAirport && d.airportCode !== selectedAirport) return false;
     if (searchText) {
@@ -76,8 +76,7 @@ const DisputesList: React.FC = () => {
       case 'OPEN': return <Tag color="orange" className="font-semibold">OPEN</Tag>;
       case 'UNDER_REVIEW': return <Tag color="blue" className="font-semibold">UNDER REVIEW</Tag>;
       case 'RESPONDED': return <Tag color="purple" className="font-semibold">RESPONDED</Tag>;
-      case 'ACCEPTED':
-      case 'RESOLVED': return <Tag color="green" className="font-semibold">ACCEPTED / RESOLVED</Tag>;
+      case 'ACCEPTED': return <Tag color="green" className="font-semibold">ACCEPTED</Tag>;
       case 'REJECTED': return <Tag color="red" className="font-semibold">REJECTED</Tag>;
       case 'ESCALATED': return <Tag color="magenta" className="font-semibold">ESCALATED</Tag>;
       default: return <Tag>{status}</Tag>;

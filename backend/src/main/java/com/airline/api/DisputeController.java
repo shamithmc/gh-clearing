@@ -6,6 +6,7 @@ import com.airline.service.DisputeService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,16 +19,19 @@ public class DisputeController {
     private final DisputeService disputeService;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
     public ResponseEntity<List<Dispute>> getDisputes() {
         return ResponseEntity.ok(disputeService.getDisputesForCurrentTenant());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
     public ResponseEntity<Dispute> getDisputeById(@PathVariable String id) {
         return ResponseEntity.ok(disputeService.getDisputeById(id));
     }
 
     @PostMapping("/invoice/{invoiceId}")
+    @PreAuthorize("hasAuthority('INVOICE_DISPUTER')")
     public ResponseEntity<Dispute> createDispute(
             @PathVariable String invoiceId,
             @RequestBody InvoiceDisputeRequest request) {
@@ -36,6 +40,7 @@ public class DisputeController {
     }
 
     @PostMapping("/{id}/respond")
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
     public ResponseEntity<Dispute> respondToDispute(
             @PathVariable String id,
             @RequestBody DisputeResponsePayload payload) {

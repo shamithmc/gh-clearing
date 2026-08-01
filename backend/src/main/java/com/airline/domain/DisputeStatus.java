@@ -5,7 +5,6 @@ public enum DisputeStatus {
     UNDER_REVIEW,
     RESPONDED,
     ACCEPTED,
-    RESOLVED,
     REJECTED,
     ESCALATED
 }

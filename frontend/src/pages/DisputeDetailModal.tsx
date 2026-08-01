@@ -64,7 +64,7 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
   const currentTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
   const currentUserId = getSimulatedUserId(currentTenantId);
 
-  const handleAction = async (actionType: 'RESPOND' | 'ACCEPT' | 'REJECT' | 'ESCALATE') => {
+  const handleAction = async (actionType: 'ACKNOWLEDGE' | 'RESPOND' | 'ACCEPT' | 'REJECT' | 'ESCALATE') => {
     if (!responseMsg.trim() && actionType === 'RESPOND') {
       antMessage.warning('Please enter a response message.');
       return;
@@ -85,7 +85,8 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update dispute status');
+        const errorBody = await res.json().catch(() => null);
+        throw new Error(errorBody?.message || 'Failed to update dispute status');
       }
 
       antMessage.success(`Dispute updated (${actionType})`);
@@ -104,13 +105,25 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
       case 'OPEN': return <Tag color="orange" className="font-semibold">OPEN</Tag>;
       case 'UNDER_REVIEW': return <Tag color="blue" className="font-semibold">UNDER REVIEW</Tag>;
       case 'RESPONDED': return <Tag color="purple" className="font-semibold">RESPONDED</Tag>;
-      case 'ACCEPTED':
-      case 'RESOLVED': return <Tag color="green" className="font-semibold">ACCEPTED / RESOLVED</Tag>;
+      case 'ACCEPTED': return <Tag color="green" className="font-semibold">ACCEPTED</Tag>;
       case 'REJECTED': return <Tag color="red" className="font-semibold">REJECTED</Tag>;
       case 'ESCALATED': return <Tag color="magenta" className="font-semibold">ESCALATED</Tag>;
       default: return <Tag>{status}</Tag>;
     }
   };
+
+  const groundHandlerCanWork = currentTenantType === 'GROUND_HANDLER'
+    && ['OPEN', 'UNDER_REVIEW', 'RESPONDED'].includes(dispute.status);
+  const canAcknowledge = currentTenantType === 'GROUND_HANDLER' && dispute.status === 'OPEN';
+  const canRespond = currentTenantType === 'GROUND_HANDLER'
+    ? ['OPEN', 'UNDER_REVIEW'].includes(dispute.status)
+    : ['RESPONDED', 'REJECTED'].includes(dispute.status);
+  const canReject = currentTenantType === 'GROUND_HANDLER'
+    && ['OPEN', 'UNDER_REVIEW'].includes(dispute.status);
+  const canEscalate = currentTenantType === 'GROUND_HANDLER'
+    ? ['OPEN', 'UNDER_REVIEW'].includes(dispute.status)
+    : ['RESPONDED', 'REJECTED'].includes(dispute.status);
+  const hasAvailableAction = groundHandlerCanWork || canRespond || canEscalate;
 
   return (
     <Modal
@@ -206,7 +219,7 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
         <Divider className="my-2" />
 
         {/* Action Panel */}
-        {dispute.status !== 'ACCEPTED' && dispute.status !== 'RESOLVED' && dispute.status !== 'REJECTED' && (
+        {hasAvailableAction && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">
               Submit Response or Decision
@@ -222,19 +235,30 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <div className="flex items-center gap-2">
-                <Button 
-                  type="primary"
-                  icon={<Send className="w-3.5 h-3.5" />}
-                  onClick={() => handleAction('RESPOND')}
-                  loading={loadingAction === 'RESPOND'}
-                  className="bg-blue-600 text-xs font-semibold rounded-xl"
-                >
-                  Send Response
-                </Button>
+                {canAcknowledge && (
+                  <Button
+                    onClick={() => handleAction('ACKNOWLEDGE')}
+                    loading={loadingAction === 'ACKNOWLEDGE'}
+                    className="text-xs font-semibold rounded-xl"
+                  >
+                    Acknowledge
+                  </Button>
+                )}
+                {canRespond && (
+                  <Button
+                    type="primary"
+                    icon={<Send className="w-3.5 h-3.5" />}
+                    onClick={() => handleAction('RESPOND')}
+                    loading={loadingAction === 'RESPOND'}
+                    className="bg-blue-600 text-xs font-semibold rounded-xl"
+                  >
+                    Send Response
+                  </Button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
-                {currentTenantType === 'GROUND_HANDLER' ? (
+                {groundHandlerCanWork && (
                   <Button
                     type="primary"
                     danger
@@ -245,7 +269,8 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
                   >
                     Accept & Issue Credit Note
                   </Button>
-                ) : (
+                )}
+                {canReject && (
                   <Button
                     type="primary"
                     danger
@@ -258,14 +283,16 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
                   </Button>
                 )}
 
-                <Button
-                  icon={<AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                  onClick={() => handleAction('ESCALATE')}
-                  loading={loadingAction === 'ESCALATE'}
-                  className="text-xs font-semibold rounded-xl"
-                >
-                  Escalate
-                </Button>
+                {canEscalate && (
+                  <Button
+                    icon={<AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                    onClick={() => handleAction('ESCALATE')}
+                    loading={loadingAction === 'ESCALATE'}
+                    className="text-xs font-semibold rounded-xl"
+                  >
+                    Escalate
+                  </Button>
+                )}
               </div>
             </div>
           </div>

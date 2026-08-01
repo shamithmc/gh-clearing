@@ -153,6 +153,44 @@ class DimensionalAccessTest {
     }
 
     @Test
+    void getDispute_enforcesEveryRestrictedDimension() {
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getSubject()).thenReturn("dispute-handler");
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("DISPUTE_HANDLER"))));
+
+        com.airline.repository.DisputeRepository disputeRepository =
+                mock(com.airline.repository.DisputeRepository.class);
+        com.airline.service.DisputeService disputeService = new com.airline.service.DisputeService(
+                disputeRepository,
+                mock(com.airline.repository.InvoiceRepository.class),
+                mock(com.airline.service.InvoiceService.class),
+                tenantContext,
+                dimensionalSecurityEvaluator);
+        Dispute dispute = Dispute.builder()
+                .id("dispute-1")
+                .airlineId("EK")
+                .supplierId("SWISSPORT")
+                .airportCode("DXB")
+                .status(DisputeStatus.OPEN)
+                .lineItems(new ArrayList<>())
+                .messages(new ArrayList<>())
+                .build();
+        dispute.getLineItems().add(DisputeLineItem.builder()
+                .id("line-1")
+                .dispute(dispute)
+                .chargeCode("BAGGAGE")
+                .build());
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(disputeRepository.findByIdAndSupplierId("dispute-1", "SWISSPORT"))
+                .thenReturn(Optional.of(dispute));
+
+        assertThat(disputeService.getDisputeById("dispute-1")).isSameAs(dispute);
+        verify(dimensionalSecurityEvaluator).verifyAccess("DXB", "EK", Set.of("BAGGAGE"));
+    }
+
+    @Test
     void createContract_withPermittedDimensions_succeeds() {
         mockSecurityContext("user-1");
 

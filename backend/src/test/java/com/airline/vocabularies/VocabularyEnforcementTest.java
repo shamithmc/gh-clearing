@@ -1,6 +1,8 @@
 package com.airline.vocabularies;
 
 import com.airline.domain.ChargeCode;
+import com.airline.domain.DisputeAction;
+import com.airline.domain.DisputeStatus;
 import com.airline.repository.ChargeCodeRepository;
 import com.airline.service.ReferenceDataService;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,25 @@ class VocabularyEnforcementTest {
     void validChargeCodeSet_containsExactly25Codes() {
         // The closed vocabulary MUST contain exactly 25 codes as per §3.3.3
         assertThat(ReferenceDataService.VALID_CHARGE_CODES).hasSize(25);
+    }
+
+    @Test
+    void disputeStatuses_matchArchitectureClosedVocabulary() {
+        assertThat(DisputeStatus.values()).containsExactlyInAnyOrder(
+                DisputeStatus.OPEN,
+                DisputeStatus.UNDER_REVIEW,
+                DisputeStatus.RESPONDED,
+                DisputeStatus.ACCEPTED,
+                DisputeStatus.REJECTED,
+                DisputeStatus.ESCALATED);
+    }
+
+    @Test
+    void disputeActions_rejectUnsupportedValues() {
+        assertThat(DisputeAction.parse("accept")).isEqualTo(DisputeAction.ACCEPT);
+        assertThatThrownBy(() -> DisputeAction.parse("RESOLVE_ANYWAY"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported dispute action");
     }
 
     @Test
