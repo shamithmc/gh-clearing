@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+.vscode
+.agents
+.codex
+**/node_modules
+**/target
+**/dist
+backend.log
+e2e
+e2e.nxt
+assets
+decisions
+docs
+gates
+tasks

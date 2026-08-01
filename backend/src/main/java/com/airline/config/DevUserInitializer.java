@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.HashSet;
 
 @Component
-@Profile({"dev", "e2e"})
+@Profile({"dev", "e2e", "staging"})
 public class DevUserInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
