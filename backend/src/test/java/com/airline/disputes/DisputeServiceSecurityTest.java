@@ -6,6 +6,7 @@ import com.airline.domain.Dispute;
 import com.airline.domain.DisputeCategory;
 import com.airline.domain.DisputeLineItem;
 import com.airline.domain.DisputeStatus;
+import com.airline.domain.CreditNote;
 import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceLineItem;
 import com.airline.domain.InvoiceStatus;
@@ -14,7 +15,7 @@ import com.airline.repository.InvoiceRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import com.airline.service.DisputeService;
-import com.airline.service.InvoiceService;
+import com.airline.service.CreditNoteService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class DisputeServiceSecurityTest {
     private InvoiceRepository invoiceRepository;
 
     @Mock
-    private InvoiceService invoiceService;
+    private CreditNoteService creditNoteService;
 
     @Mock
     private TenantContext tenantContext;
@@ -64,7 +65,7 @@ class DisputeServiceSecurityTest {
         disputeService = new DisputeService(
                 disputeRepository,
                 invoiceRepository,
-                invoiceService,
+                creditNoteService,
                 tenantContext,
                 dimensionalSecurityEvaluator);
     }
@@ -136,21 +137,23 @@ class DisputeServiceSecurityTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("DISPUTE_APPROVER");
 
-        verifyNoInteractions(invoiceService);
+        verifyNoInteractions(creditNoteService);
     }
 
     @Test
     void accept_approverGeneratesCreditAndTerminatesDispute() {
         Dispute dispute = mockGroundHandlerDispute(DisputeStatus.OPEN, "DISPUTE_APPROVER");
         when(disputeRepository.save(dispute)).thenReturn(dispute);
+        when(creditNoteService.generateForAcceptedDispute(dispute, "Dispute accepted: Approved adjustment"))
+                .thenReturn(CreditNote.builder().amount(new BigDecimal("1500.00")).build());
 
         Dispute result = disputeService.respondToDispute(
                 "dispute-1", "Approved adjustment", "ACCEPT");
 
         assertThat(result.getStatus()).isEqualTo(DisputeStatus.ACCEPTED);
         assertThat(result.getCreditNoteAmount()).isEqualByComparingTo("1500.00");
-        verify(invoiceService).generateCreditNote(
-                "invoice-1", new BigDecimal("1500.00"), "Dispute accepted: Approved adjustment");
+        verify(creditNoteService).generateForAcceptedDispute(
+                dispute, "Dispute accepted: Approved adjustment");
     }
 
     @Test
@@ -162,7 +165,7 @@ class DisputeServiceSecurityTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("status ACCEPTED");
 
-        verifyNoInteractions(invoiceService);
+        verifyNoInteractions(creditNoteService);
     }
 
     @Test
@@ -213,7 +216,7 @@ class DisputeServiceSecurityTest {
         when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         Dispute dispute = dispute(status);
-        when(disputeRepository.findByIdAndSupplierId("dispute-1", "SWISSPORT"))
+        when(disputeRepository.findByIdAndSupplierIdForUpdate("dispute-1", "SWISSPORT"))
                 .thenReturn(Optional.of(dispute));
         return dispute;
     }
@@ -223,7 +226,7 @@ class DisputeServiceSecurityTest {
         when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         Dispute dispute = dispute(status);
-        when(disputeRepository.findByIdAndAirlineId("dispute-1", "EK"))
+        when(disputeRepository.findByIdAndAirlineIdForUpdate("dispute-1", "EK"))
                 .thenReturn(Optional.of(dispute));
         return dispute;
     }

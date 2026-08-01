@@ -329,28 +329,6 @@ public class InvoiceService {
     }
 
     @Transactional
-    public Invoice generateCreditNote(String id, BigDecimal amount, String reason) {
-        Invoice existing = getInvoice(id);
-
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Credit note amount must be positive");
-        }
-
-        BigDecimal newTotalCredit = (existing.getCreditNoteAmount() == null ? BigDecimal.ZERO : existing.getCreditNoteAmount())
-                .add(amount);
-
-        // INV-11: The total value of all Credit Notes generated for a disputed Invoice MUST NOT exceed the total value of the original Invoice
-        if (newTotalCredit.compareTo(existing.getTotalAmount()) > 0) {
-            throw new IllegalArgumentException("Total value of credit notes cannot exceed original invoice total amount");
-        }
-
-        existing.setCreditNoteAmount(newTotalCredit);
-        Invoice saved = invoiceRepository.save(existing);
-        audit(saved.getId(), "CREDIT_NOTE_GENERATED", "Credit note of " + amount + " generated. Reason: " + reason);
-        return saved;
-    }
-
-    @Transactional
     public void deleteInvoice(String id) {
         Invoice existing = getInvoice(id);
 

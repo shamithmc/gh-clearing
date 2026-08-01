@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.math.BigDecimal;
 import com.airline.api.dto.InvoiceDisputeRequest;
 
 @RestController
@@ -105,11 +104,4 @@ public class InvoiceController {
         return invoiceService.disputeInvoice(id, request);
     }
 
-    @PutMapping("/{id}/credit-note")
-    public Invoice generateCreditNote(
-            @PathVariable String id,
-            @RequestParam BigDecimal amount,
-            @RequestParam String reason) {
-        return invoiceService.generateCreditNote(id, amount, reason);
-    }
 }

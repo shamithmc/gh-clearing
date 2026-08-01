@@ -105,10 +105,15 @@
       "test_path": "backend/src/test/java/com/airline/disputes/CreditNoteValueLimitTest.java",
       "owner": "@ground-handling/developers",
       "path_patterns": [
+        "backend/src/main/java/com/airline/domain/CreditNote*",
+        "backend/src/main/java/com/airline/service/*CreditNote*",
+        "backend/src/main/java/com/airline/api/*CreditNote*",
+        "backend/src/main/java/com/airline/repository/*CreditNote*",
         "backend/src/main/java/com/airline/domain/Dispute*",
         "backend/src/main/java/com/airline/service/*Dispute*",
         "backend/src/main/java/com/airline/api/*Dispute*",
         "backend/src/main/java/com/airline/repository/*Dispute*",
+        "backend/src/main/resources/db/migration/*credit_notes*",
         "backend/src/test/java/com/airline/disputes/**"
       ]
     },

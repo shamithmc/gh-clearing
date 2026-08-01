@@ -118,6 +118,7 @@ class TenantIsolationTest {
                 com.airline.repository.ContractRepository.class,
                 com.airline.repository.ContractAuditLogRepository.class,
                 com.airline.repository.ContractReviewRequestRepository.class,
+                com.airline.repository.CreditNoteRepository.class,
                 com.airline.repository.DisputeRepository.class,
                 com.airline.repository.InvoiceRepository.class,
                 com.airline.repository.InvoiceAuditLogRepository.class,
