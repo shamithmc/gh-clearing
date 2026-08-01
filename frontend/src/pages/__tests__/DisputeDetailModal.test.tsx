@@ -114,7 +114,7 @@ describe('DisputeDetailModal', () => {
     expect(screen.getByRole('button', { name: /Accept & Issue Credit Note/i })).toBeInTheDocument();
   });
 
-  it('shows Reject Dispute button for AIRLINE tenant', () => {
+  it('does not expose supplier decision actions to an airline on an open dispute', () => {
     localStorage.setItem('simTenantType', 'AIRLINE');
     localStorage.setItem('simTenantId', 'EK');
 
@@ -127,7 +127,40 @@ describe('DisputeDetailModal', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /Reject Dispute/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Reject Dispute/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Accept & Issue Credit Note/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Submit Response or Decision')).not.toBeInTheDocument();
+  });
+
+  it('allows an airline to push back or escalate after a supplier response', () => {
+    localStorage.setItem('simTenantType', 'AIRLINE');
+    localStorage.setItem('simTenantId', 'EK');
+
+    render(
+      <DisputeDetailModal
+        visible={true}
+        dispute={{ ...mockDispute, status: 'RESPONDED' }}
+        onClose={onClose}
+        onRefresh={onRefresh}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Send Response/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Escalate/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Reject Dispute/i })).not.toBeInTheDocument();
+  });
+
+  it('allows a ground handler to acknowledge an open dispute', () => {
+    render(
+      <DisputeDetailModal
+        visible={true}
+        dispute={mockDispute}
+        onClose={onClose}
+        onRefresh={onRefresh}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Acknowledge/i })).toBeInTheDocument();
   });
 
   it('hides action panel when dispute is ACCEPTED', () => {

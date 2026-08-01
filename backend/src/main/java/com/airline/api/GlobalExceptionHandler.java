@@ -24,4 +24,11 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN)
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Access denied"));
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Invalid state transition"));
+    }
 }
