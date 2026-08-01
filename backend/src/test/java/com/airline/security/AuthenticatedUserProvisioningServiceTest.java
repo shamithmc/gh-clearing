@@ -43,7 +43,8 @@ class AuthenticatedUserProvisioningServiceTest {
         Tenant tenant = Tenant.builder().id("EK").name("Emirates")
                 .type(Tenant.TenantType.AIRLINE).status(Tenant.TenantStatus.ACTIVE).build();
         when(tenantRepository.findById("EK")).thenReturn(Optional.of(tenant));
-        when(userRepository.findById("6ac9d616-1c13-4ff0-b50a-c725b8b55004")).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndTenantId(
+                "6ac9d616-1c13-4ff0-b50a-c725b8b55004", "EK")).thenReturn(Optional.empty());
 
         var response = service.provision(authentication("EK", "AIRLINE"));
 

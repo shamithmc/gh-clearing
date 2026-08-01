@@ -61,7 +61,7 @@ public class AuthenticatedUserProvisioningService {
             throw new AccessDeniedException("Authenticated user has no application roles");
         }
 
-        User user = userRepository.findById(userId).orElseGet(() -> User.builder()
+        User user = userRepository.findByIdAndTenantId(userId, tenantId).orElseGet(() -> User.builder()
                 .id(userId)
                 .tenantId(tenantId)
                 .username(username)
