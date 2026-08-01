@@ -1,9 +1,10 @@
-package com.airline.service;
+package com.airline.security;
 
 import com.airline.domain.Tenant;
 import com.airline.domain.User;
 import com.airline.repository.TenantRepository;
 import com.airline.repository.UserRepository;
+import com.airline.service.AuthenticatedUserProvisioningService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
