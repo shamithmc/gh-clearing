@@ -103,8 +103,10 @@ test.describe('Invoice Approval Workflow E2E', () => {
     const invoiceNum = 'INV-APP-' + Math.floor(Math.random() * 1000000);
     await page.fill('input[placeholder="INV-2026-0001"]', invoiceNum);
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("AED")');
+    await page.locator('#currency').locator('xpath=../..').click();
+    await page.locator('.ant-select-dropdown:visible')
+      .getByText('AED', { exact: true })
+      .click();
 
     await page.fill('#exchangeRate', '1.0');
     await page.fill('#exchangeRateSource', 'E2E reference rate');

@@ -100,8 +100,10 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     const invoiceNum = 'INV-E2E-' + Math.floor(Math.random() * 1000000);
     await page.fill('input[placeholder="INV-2026-0001"]', invoiceNum);
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("AED")');
+    await page.locator('#currency').locator('xpath=../..').click();
+    await page.locator('.ant-select-dropdown:visible')
+      .getByText('AED', { exact: true })
+      .click();
 
     await page.fill('#exchangeRate', '1.0');
     await page.fill('#exchangeRateSource', 'E2E reference rate');
@@ -176,8 +178,7 @@ test.describe('Invoice Entry Wizard and Listing E2E', () => {
     const invoiceNum2 = 'INV-E2E-' + Math.floor(Math.random() * 1000000);
     await page.fill('input[placeholder="INV-2026-0001"]', invoiceNum2);
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("USD")');
+    await expect(page.locator('#currency').locator('xpath=../..')).toContainText('USD');
 
     await page.fill('#exchangeRate', '-0.5');
     await page.fill('#exchangeRateSource', 'E2E invalid rate');

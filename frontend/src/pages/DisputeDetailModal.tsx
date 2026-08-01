@@ -9,6 +9,7 @@ import {
   Send, 
   User
 } from 'lucide-react';
+import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { TextArea } = Input;
 
@@ -61,6 +62,7 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
 
   const currentTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
   const currentTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
+  const currentUserId = getSimulatedUserId(currentTenantId);
 
   const handleAction = async (actionType: 'RESPOND' | 'ACCEPT' | 'REJECT' | 'ESCALATE') => {
     if (!responseMsg.trim() && actionType === 'RESPOND') {
@@ -74,9 +76,7 @@ const DisputeDetailModal: React.FC<DisputeDetailModalProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-mock-tenant-id': currentTenantId,
-          'x-mock-tenant-type': currentTenantType,
-          'x-mock-user-id': `${currentTenantId}-user`
+          ...simulatedAuthHeaders(currentTenantId, currentTenantType, currentUserId),
         },
         body: JSON.stringify({
           message: responseMsg.trim() || `Dispute ${actionType.toLowerCase()}ed`,

@@ -189,34 +189,19 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     const dispute = await disputeRes.json();
     expect(dispute.id).toBeTruthy();
 
-    // --- Step 2: Switch to Ground Handler and navigate to /disputes ---
-    // Intercept the disputes API to inject our known dispute into the response,
-    // making the test deterministic regardless of backend tenant filtering on CI.
+    // --- Step 2: Switch to Ground Handler and navigate to the queue ---
+    // Keep this test focused on the real acceptance mutation. Queue retrieval is
+    // covered separately; isolate this row from persistent data left by other specs.
     await page.route('**/api/disputes', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify([
-            {
-              id: dispute.id,
-              disputeNumber: `DISP-E2E-${Date.now()}`,
-              invoiceId: invoiceId,
-              invoiceNumber: invoiceNumber,
-              airlineId: 'EK',
-              supplierId: 'SWISSPORT',
-              airportCode: 'DXB',
-              status: 'OPEN',
-              category: 'OPERATIONAL_DATA_MISMATCH',
-              disputedAmount: 1500,
-              creditNoteAmount: 0,
-              lineItems: [],
-            },
-          ]),
+          body: JSON.stringify([dispute]),
         });
-      } else {
-        await route.continue();
+        return;
       }
+      await route.continue();
     });
 
     await page.addInitScript(() => {
@@ -242,7 +227,12 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     );
 
     // Click "Accept & Issue Credit Note"
+    const acceptResponsePromise = page.waitForResponse(response =>
+      response.url().includes(`/api/disputes/${dispute.id}/respond`)
+      && response.request().method() === 'POST');
     await modal.getByRole('button', { name: /Accept & Issue Credit Note/i }).click();
+    const acceptResponse = await acceptResponsePromise;
+    expect(acceptResponse.status()).toBe(200);
 
     // Assert success toast
     await expect(page.getByText(/Dispute updated \(ACCEPT\)/i)).toBeVisible();
@@ -252,22 +242,16 @@ test.describe('Phase 9 — Dispute Management Workspace & Airline Flow E2E', () 
     const invoiceRow = page.locator('tr').filter({ hasText: invoiceNumber }).first();
     await expect(invoiceRow).toBeVisible();
 
-    // --- Step 5: Verify credit note XML payload via API ---
-    const creditNoteRes = await request.put(
-      `/api/invoices/${invoiceId}/credit-note?amount=1500&reason=Dispute%20accepted`,
-      { headers: ghHeaders },
-    );
-    // If credit note endpoint is available, it should succeed or the dispute acceptance already issued it
-    if (creditNoteRes.status() === 200) {
-      const updatedInvoice = await creditNoteRes.json();
-      expect(updatedInvoice).toBeTruthy();
-    }
+    // --- Step 5: Verify acceptance itself issued the credit note ---
+    const invoiceRes = await request.get(`/api/invoices/${invoiceId}`, { headers: ghHeaders });
+    expect(invoiceRes.status()).toBe(200);
+    const updatedInvoice = await invoiceRes.json();
+    expect(Number(updatedInvoice.creditNoteAmount)).toBe(1500);
 
     // Verify XML generation endpoint returns valid XML for the invoice
     const xmlRes = await request.get(`/api/invoices/${invoiceId}/xml`, { headers: ghHeaders });
-    if (xmlRes.status() === 200) {
-      const xmlBody = (await xmlRes.body()).toString();
-      expect(xmlBody).toContain('<?xml');
-    }
+    expect(xmlRes.status()).toBe(200);
+    const xmlBody = (await xmlRes.body()).toString();
+    expect(xmlBody).toContain('<?xml');
   });
 });

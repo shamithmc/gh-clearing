@@ -8,6 +8,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import DisputeDetailModal, { DisputeItem } from './DisputeDetailModal';
+import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
 const { Option } = Select;
 
@@ -23,16 +24,13 @@ const DisputesList: React.FC = () => {
 
   const tenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
   const tenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+  const userId = getSimulatedUserId(tenantId);
 
   const fetchDisputes = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/disputes', {
-        headers: {
-          'x-mock-tenant-id': tenantId,
-          'x-mock-tenant-type': tenantType,
-          'x-mock-user-id': `${tenantId}-user`
-        }
+        headers: simulatedAuthHeaders(tenantId, tenantType, userId),
       });
       if (res.ok) {
         const data = await res.json();
@@ -50,7 +48,7 @@ const DisputesList: React.FC = () => {
 
   useEffect(() => {
     fetchDisputes();
-  }, [tenantId, tenantType]);
+  }, [tenantId, tenantType, userId]);
 
   // Metric Computations (SDR1 / ADR1)
   const totalDisputedAmount = disputes.reduce((sum, d) => sum + (d.disputedAmount || 0), 0);
