@@ -4,6 +4,12 @@
 
 This directory contains the XML Schema Definition (`is-invoice.xsd`) and provenance metadata (`is-invoice.provenance.json`) for generating and validating IATA IS-XML electronic invoices across the Airline Ground Handling Cost Management Platform.
 
+`is-credit-note.xsd` is a separate, local application interchange contract under
+the `urn:ghcm:credit-note:1.0` namespace. It provides deterministic validation for
+credit-note records and must not be described as official IATA IS-XML. Replacing
+it with the licensed official artifact remains part of the independently governed
+IATA conformance remediation.
+
 ---
 
 ## 1. Schema Provenance & Official Standard Reference

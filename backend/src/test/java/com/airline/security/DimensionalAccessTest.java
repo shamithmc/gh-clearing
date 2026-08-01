@@ -167,7 +167,7 @@ class DimensionalAccessTest {
         com.airline.service.DisputeService disputeService = new com.airline.service.DisputeService(
                 disputeRepository,
                 mock(com.airline.repository.InvoiceRepository.class),
-                mock(com.airline.service.InvoiceService.class),
+                mock(com.airline.service.CreditNoteService.class),
                 tenantContext,
                 dimensionalSecurityEvaluator);
         Dispute dispute = Dispute.builder()

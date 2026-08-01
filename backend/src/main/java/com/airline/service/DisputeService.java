@@ -27,7 +27,7 @@ public class DisputeService {
 
     private final DisputeRepository disputeRepository;
     private final InvoiceRepository invoiceRepository;
-    private final InvoiceService invoiceService;
+    private final CreditNoteService creditNoteService;
     private final TenantContext tenantContext;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
@@ -171,9 +171,9 @@ public class DisputeService {
 
     @Transactional
     public Dispute respondToDispute(String disputeId, String responseMessage, String action) {
-        Dispute dispute = getDisputeById(disputeId);
         String tenantId = tenantContext.getCurrentTenantId();
         String tenantType = tenantContext.getCurrentTenantType();
+        Dispute dispute = getDisputeForUpdate(disputeId, tenantId, tenantType);
         DisputeAction disputeAction = DisputeAction.parse(action);
 
         if (responseMessage == null || responseMessage.trim().isEmpty()) {
@@ -243,11 +243,9 @@ public class DisputeService {
                 requireRole("DISPUTE_APPROVER");
                 requireState(dispute, action,
                         DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW, DisputeStatus.RESPONDED);
-                invoiceService.generateCreditNote(
-                        dispute.getInvoiceId(),
-                        dispute.getDisputedAmount(),
-                        "Dispute accepted: " + responseMessage);
-                dispute.setCreditNoteAmount(dispute.getDisputedAmount());
+                CreditNote creditNote = creditNoteService.generateForAcceptedDispute(
+                        dispute, "Dispute accepted: " + responseMessage);
+                dispute.setCreditNoteAmount(creditNote.getAmount());
                 dispute.setStatus(DisputeStatus.ACCEPTED);
             }
         }
@@ -277,6 +275,22 @@ public class DisputeService {
             throw new IllegalStateException(
                     "Cannot " + action + " dispute in status " + dispute.getStatus());
         }
+    }
+
+    private Dispute getDisputeForUpdate(String id, String tenantId, String tenantType) {
+        Dispute dispute;
+        if ("AIRLINE".equals(tenantType)) {
+            dispute = disputeRepository.findByIdAndAirlineIdForUpdate(id, tenantId)
+                    .orElseThrow(() -> new java.util.NoSuchElementException("Dispute not found: " + id));
+        } else if ("GROUND_HANDLER".equals(tenantType)) {
+            dispute = disputeRepository.findByIdAndSupplierIdForUpdate(id, tenantId)
+                    .orElseThrow(() -> new java.util.NoSuchElementException("Dispute not found: " + id));
+        } else {
+            throw new AccessDeniedException("Dispute actions are unavailable to the current tenant type");
+        }
+        initializeResponseAssociations(dispute);
+        verifyDisputeDimensions(dispute);
+        return dispute;
     }
 
     private String requireDisputeReader() {
