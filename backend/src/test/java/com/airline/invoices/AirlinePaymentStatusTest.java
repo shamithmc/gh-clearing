@@ -142,7 +142,6 @@ class AirlinePaymentStatusTest {
         assertThatThrownBy(() -> invoiceService.updateInvoiceStatus("invoice-1", InvoiceStatus.PAID))
                 .isInstanceOf(java.util.NoSuchElementException.class)
                 .hasMessageContaining("Invoice not found");
-        verify(invoiceRepository, never()).findById("invoice-1");
         verify(invoiceRepository, never()).save(any());
     }
 

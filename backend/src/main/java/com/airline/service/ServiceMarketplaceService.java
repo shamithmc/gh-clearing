@@ -69,7 +69,7 @@ public class ServiceMarketplaceService {
                 .orElseThrow(() -> new NoSuchElementException("Service type not found: " + serviceType));
         verifyOfferingDimensions(airportCode, serviceType);
 
-        SupplierConfiguration configuration = supplierConfigurationRepository.findById(supplierId)
+        SupplierConfiguration configuration = supplierConfigurationRepository.findByTenantId(supplierId)
                 .orElseThrow(() -> new IllegalStateException("Supplier configuration is required"));
         if (!configuration.getEnabledAirports().contains(airportCode)) {
             throw new AccessDeniedException("Supplier is not configured to operate at airport: " + airportCode);

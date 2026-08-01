@@ -45,7 +45,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Airline users are implicitly restricted to their tenant airline");
         }
-        if (userRepository.existsById(request.getId())) {
+        if (userRepository.existsByIdAndTenantId(request.getId(), tenantId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "User with id '" + request.getId() + "' already exists");
         }
@@ -75,14 +75,9 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getUser(String tenantId, String userId) {
         authorizeTenantManagement(tenantId);
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndTenantId(userId, tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "User not found: " + userId));
-        // Enforce cross-tenant access prevention (INV-01)
-        if (!user.getTenantId().equals(tenantId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User does not belong to tenant: " + tenantId);
-        }
         return user;
     }
 

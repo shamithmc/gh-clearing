@@ -55,7 +55,7 @@ class SupplierConfigurationSecurityTest {
         config.setTenantId("gh-1");
 
         when(tenantRepository.findById("gh-1")).thenReturn(Optional.of(gh));
-        when(supplierConfigurationRepository.findById("gh-1")).thenReturn(Optional.of(config));
+        when(supplierConfigurationRepository.findByTenantId("gh-1")).thenReturn(Optional.of(config));
 
         SupplierConfiguration result = supplierConfigurationService.getConfiguration("gh-1");
         assertThat(result.getTenantId()).isEqualTo("gh-1");

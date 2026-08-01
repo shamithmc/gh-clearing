@@ -1,15 +1,17 @@
 package com.airline.repository;
 
 import com.airline.domain.SupplierConfiguration;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Set;
+import java.util.Optional;
 
 @Repository
-public interface SupplierConfigurationRepository extends JpaRepository<SupplierConfiguration, String> {
+public interface SupplierConfigurationRepository extends TenantScopedRepository<SupplierConfiguration, String> {
+
+    Optional<SupplierConfiguration> findByTenantId(String tenantId);
 
     @Query("""
             select distinct configuration.tenantId

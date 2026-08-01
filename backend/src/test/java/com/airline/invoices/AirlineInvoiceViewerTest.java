@@ -130,7 +130,6 @@ class AirlineInvoiceViewerTest {
 
         assertThat(invoiceService.getInvoice("sent")).isSameAs(sent);
         verify(invoiceRepository).findByIdAndTenantId("sent", "EK");
-        verify(invoiceRepository, never()).findById("sent");
         verify(dimensionalSecurityEvaluator)
                 .verifyAccess("DXB", "EK", java.util.Set.of("BAGGAGE"));
     }

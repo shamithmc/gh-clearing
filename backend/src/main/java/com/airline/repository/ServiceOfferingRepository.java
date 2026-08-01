@@ -1,14 +1,13 @@
 package com.airline.repository;
 
 import com.airline.domain.ServiceOffering;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ServiceOfferingRepository extends JpaRepository<ServiceOffering, String> {
+public interface ServiceOfferingRepository extends TenantScopedRepository<ServiceOffering, String> {
 
     List<ServiceOffering> findAllByTenantIdOrderByAirportCodeAscServiceTypeAsc(String tenantId);
 

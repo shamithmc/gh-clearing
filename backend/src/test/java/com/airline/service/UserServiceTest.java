@@ -118,7 +118,7 @@ class UserServiceTest {
         authenticate("AIRLINE_ADMIN");
         airlineContext("EK");
         when(tenantRepository.findById("EK")).thenReturn(Optional.of(activeTenant("EK", Tenant.TenantType.AIRLINE)));
-        when(userRepository.existsById("new-user")).thenReturn(true);
+        when(userRepository.existsByIdAndTenantId("new-user", "EK")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.createUser("EK", request(Set.of("MIS_VIEWER"))))
                 .isInstanceOf(ResponseStatusException.class)

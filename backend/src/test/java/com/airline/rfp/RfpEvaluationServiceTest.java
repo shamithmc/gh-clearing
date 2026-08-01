@@ -74,7 +74,7 @@ class RfpEvaluationServiceTest {
         Rfp rfp = rfp();
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         when(rfpRepository.findByIdAndTenantId("rfp-1", "EK")).thenReturn(Optional.of(rfp));
-        when(proposalRepository.findAllByRfpIdOrderByProposedRateAsc("rfp-1"))
+        when(proposalRepository.findAllByRfpIdForOwnerOrderByProposedRateAsc("rfp-1", "EK"))
                 .thenReturn(List.of(proposal("p-low", "DNATA", "15.00"),
                         proposal("p-high", "SWISSPORT", "18.75")));
 
@@ -93,9 +93,9 @@ class RfpEvaluationServiceTest {
         RfpProposal competitor = proposal("proposal-2", "DNATA", "15.00");
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         when(rfpRepository.findByIdAndTenantId("rfp-1", "EK")).thenReturn(Optional.of(rfp));
-        when(proposalRepository.findByIdAndRfpId("proposal-1", "rfp-1"))
+        when(proposalRepository.findByIdAndRfpIdForOwner("proposal-1", "rfp-1", "EK"))
                 .thenReturn(Optional.of(accepted));
-        when(proposalRepository.findAllByRfpIdOrderByProposedRateAsc("rfp-1"))
+        when(proposalRepository.findAllByRfpIdForOwnerOrderByProposedRateAsc("rfp-1", "EK"))
                 .thenReturn(List.of(competitor, accepted));
         when(contractRepository.save(any(Contract.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -131,7 +131,7 @@ class RfpEvaluationServiceTest {
         RfpProposal proposal = proposal("proposal-1", "SWISSPORT", "18.75");
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         when(rfpRepository.findByIdAndTenantId("rfp-1", "EK")).thenReturn(Optional.of(rfp));
-        when(proposalRepository.findByIdAndRfpId("proposal-1", "rfp-1"))
+        when(proposalRepository.findByIdAndRfpIdForOwner("proposal-1", "rfp-1", "EK"))
                 .thenReturn(Optional.of(proposal));
 
         RfpProposalDecisionResponse response = service.decide(
@@ -148,7 +148,7 @@ class RfpEvaluationServiceTest {
     void proposalFromAnotherRfpCannotBeEvaluated() {
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");
         when(rfpRepository.findByIdAndTenantId("rfp-1", "EK")).thenReturn(Optional.of(rfp()));
-        when(proposalRepository.findByIdAndRfpId("foreign-proposal", "rfp-1"))
+        when(proposalRepository.findByIdAndRfpIdForOwner("foreign-proposal", "rfp-1", "EK"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.decide(

@@ -85,14 +85,9 @@ public class DimensionalSecurityEvaluator {
                     "Authenticated user identifier is missing");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndTenantId(userId, tenantContext.getCurrentTenantId())
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
                         "Authenticated user is not provisioned"));
-
-        if (!tenantContext.getCurrentTenantId().equals(user.getTenantId())) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Authenticated user does not belong to the current tenant");
-        }
 
         return user;
     }

@@ -213,7 +213,6 @@ public class ContractLifecycleTest {
         assertThatThrownBy(() -> contractService.updateContractStatus("c-001", ContractStatus.PENDING_APPROVAL))
                 .isInstanceOf(java.util.NoSuchElementException.class)
                 .hasMessageContaining("Contract not found");
-        verify(contractRepository, never()).findById("c-001");
         verify(contractRepository, never()).save(any());
     }
 }

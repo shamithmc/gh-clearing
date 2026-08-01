@@ -9,8 +9,11 @@
       "path_patterns": [
         "backend/src/main/java/com/airline/**",
         "backend/src/main/resources/**",
+        "backend/src/test/java/com/airline/**",
         "frontend/**",
         "e2e/**",
+        "obligations.json",
+        "tasks/**",
         "topology.json"
       ]
     },
