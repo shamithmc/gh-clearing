@@ -22,6 +22,7 @@
       "path_patterns": [
         "backend/src/main/java/com/airline/api/Dispute*",
         "backend/src/main/java/com/airline/service/Dispute*",
+        "backend/src/test/java/com/airline/api/Dispute*",
         "backend/src/test/java/com/airline/reports/**",
         "backend/src/test/java/com/airline/security/**"
       ]
