@@ -16,9 +16,12 @@ projects:
             healthCheckPath: /
             autoDeployTrigger: checksPass
             envVars:
-              # The current UI uses simulated auth headers. Never reuse this profile for production.
               - key: SPRING_PROFILES_ACTIVE
                 value: staging
+              - key: KEYCLOAK_ISSUER_URI
+                sync: false
+              - key: KEYCLOAK_JWK_SET_URI
+                sync: false
               - key: DB_HOST
                 fromDatabase:
                   name: gh-clearing-staging-db

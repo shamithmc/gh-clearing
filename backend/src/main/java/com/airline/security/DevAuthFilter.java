@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-@Profile({"dev", "e2e", "staging"})
+@Profile({"dev", "e2e"})
 public class DevAuthFilter extends OncePerRequestFilter {
 
     @Override

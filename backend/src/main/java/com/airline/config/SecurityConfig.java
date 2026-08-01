@@ -56,7 +56,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Profile({"dev", "e2e", "staging"})
+    @Profile({"dev", "e2e"})
     public FilterRegistrationBean<com.airline.security.DevAuthFilter> devAuthFilterRegistration(
             com.airline.security.DevAuthFilter devAuthFilter) {
         FilterRegistrationBean<com.airline.security.DevAuthFilter> registration =
