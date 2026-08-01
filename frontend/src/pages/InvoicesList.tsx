@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Table, Select, Modal, Input, message, Tooltip } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
+import { isKeycloakAuthenticated } from '../auth/keycloakAuth';
 import { 
   FilePlus, 
   CheckCircle2, 
@@ -64,6 +65,7 @@ interface Invoice {
 }
 
 const InvoicesList: React.FC = () => {
+  const usingKeycloak = isKeycloakAuthenticated();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [simTenantId, setSimTenantId] = useState<string>(localStorage.getItem('simTenantId') || 'SWISSPORT');
   const [simTenantType, setSimTenantType] = useState<string>(localStorage.getItem('simTenantType') || 'GROUND_HANDLER');
@@ -772,11 +774,13 @@ const InvoicesList: React.FC = () => {
                   {simTenantType}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 m-0">Simulating active user persona credentials and clearance policies</p>
+              <p className="text-xs text-slate-300 m-0">
+                {usingKeycloak ? 'Scope enforced from the authenticated Keycloak identity' : 'Simulating active user persona credentials and clearance policies'}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          {!usingKeycloak && <div className="flex flex-wrap items-center gap-4">
             <div id="tenant-select-container" className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
               <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-xs font-medium text-slate-300">Simulate Tenant:</span>
@@ -803,7 +807,7 @@ const InvoicesList: React.FC = () => {
                 <Option value={scopedUserId(simTenantId)}>DXB / EK / BAGGAGE Scoped</Option>
               </Select>
             </div>
-          </div>
+          </div>}
 
         </div>
       </div>

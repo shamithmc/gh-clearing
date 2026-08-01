@@ -1,0 +1,85 @@
+{
+  "realm": "gh-clearing",
+  "displayName": "GH Clearing",
+  "enabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "PLATFORM_ADMIN" },
+      { "name": "AIRLINE_ADMIN" },
+      { "name": "ADMIN" },
+      { "name": "GROUND_HANDLER_ADMIN" },
+      { "name": "CONTRACT_ENTRY" },
+      { "name": "CONTRACT_APPROVER" },
+      { "name": "CONTRACT_VIEWER" },
+      { "name": "CONTRACT_REVIEWER" },
+      { "name": "INVOICE_ENTRY" },
+      { "name": "INVOICE_APPROVER" },
+      { "name": "INVOICE_REVIEWER" },
+      { "name": "INVOICE_DISPUTER" },
+      { "name": "STATUS_UPDATER" },
+      { "name": "PAYMENT_UPDATER" },
+      { "name": "MIS_VIEWER" },
+      { "name": "RFP_RAISER" },
+      { "name": "RFP_MONITOR" },
+      { "name": "DISPUTE_HANDLER" },
+      { "name": "DISPUTE_APPROVER" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "gh-clearing-web",
+      "name": "GH Clearing Web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://gh-clearing-staging.onrender.com/*"
+      ],
+      "webOrigins": [
+        "https://gh-clearing-staging.onrender.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://gh-clearing-staging.onrender.com/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenant-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "tenant-type",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_type",
+            "claim.name": "tenant_type",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

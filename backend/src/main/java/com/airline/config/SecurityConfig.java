@@ -12,13 +12,17 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @EnableWebSecurity
@@ -28,13 +32,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            ObjectProvider<com.airline.security.DevAuthFilter> devAuthFilterProvider) throws Exception {
+            ObjectProvider<com.airline.security.DevAuthFilter> devAuthFilterProvider,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/api/auth/config").permitAll()
                 .requestMatchers(
                     "/", "/index.html", "/assets/**", "/favicon.ico", "/error",
                     "/actuator/health",
@@ -44,7 +50,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
             );
 
         com.airline.security.DevAuthFilter devAuthFilter = devAuthFilterProvider.getIfAvailable();
@@ -70,20 +76,39 @@ public class SecurityConfig {
      * Spring Security GrantedAuthority objects (INV-02: Dimensional Scope Enforcement).
      */
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+    public JwtAuthenticationConverter jwtAuthenticationConverter(
+            @Value("${app.auth.keycloak.client-id:}") String clientId) {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Object rolesClaim = jwt.getClaim("roles");
-            if (rolesClaim instanceof Collection<?> roles) {
-                return roles.stream()
-                        .map(Object::toString)
-                        .map(SimpleGrantedAuthority::new)
-                        .map(a -> (org.springframework.security.core.GrantedAuthority) a)
-                        .toList();
-            }
-            return List.of();
-        });
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> extractRoles(jwt.getClaims(), clientId).stream()
+                .map(SimpleGrantedAuthority::new)
+                .map(a -> (org.springframework.security.core.GrantedAuthority) a)
+                .toList());
         return converter;
+    }
+
+    static Set<String> extractRoles(Map<String, Object> claims, String clientId) {
+        LinkedHashSet<String> roles = new LinkedHashSet<>();
+        addRoles(roles, claims.get("roles"));
+
+        Object realmAccess = claims.get("realm_access");
+        if (realmAccess instanceof Map<?, ?> realmMap) {
+            addRoles(roles, realmMap.get("roles"));
+        }
+
+        Object resourceAccess = claims.get("resource_access");
+        if (resourceAccess instanceof Map<?, ?> resources && clientId != null && !clientId.isBlank()) {
+            Object clientAccess = resources.get(clientId);
+            if (clientAccess instanceof Map<?, ?> clientMap) {
+                addRoles(roles, clientMap.get("roles"));
+            }
+        }
+        return roles;
+    }
+
+    private static void addRoles(Set<String> destination, Object claim) {
+        if (claim instanceof Collection<?> values) {
+            values.stream().map(Object::toString).filter(value -> !value.isBlank()).forEach(destination::add);
+        }
     }
 
     @Bean

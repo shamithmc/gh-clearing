@@ -19,9 +19,13 @@ projects:
               - key: SPRING_PROFILES_ACTIVE
                 value: staging
               - key: KEYCLOAK_ISSUER_URI
-                sync: false
+                value: https://gh-clearing-keycloak.onrender.com/realms/gh-clearing
               - key: KEYCLOAK_JWK_SET_URI
-                sync: false
+                value: https://gh-clearing-keycloak.onrender.com/realms/gh-clearing/protocol/openid-connect/certs
+              - key: KEYCLOAK_CLIENT_ID
+                value: gh-clearing-web
+              - key: KEYCLOAK_FRONTEND_ENABLED
+                value: "true"
               - key: DB_HOST
                 fromDatabase:
                   name: gh-clearing-staging-db
@@ -44,6 +48,56 @@ projects:
                 value: "false"
               - key: APP_MAIL_DISPATCH_ENABLED
                 value: "false"
+          - type: web
+            name: gh-clearing-keycloak
+            runtime: docker
+            plan: free
+            region: singapore
+            dockerfilePath: ./keycloak/Dockerfile
+            dockerContext: .
+            healthCheckPath: /realms/gh-clearing
+            autoDeployTrigger: checksPass
+            envVars:
+              - key: KC_DB
+                value: postgres
+              - key: KC_DB_URL_HOST
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: host
+              - key: KC_DB_URL_PORT
+                value: "5432"
+              - key: KC_DB_URL_DATABASE
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: database
+              - key: KC_DB_SCHEMA
+                value: keycloak
+              - key: KC_DB_USERNAME
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: user
+              - key: KC_DB_PASSWORD
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: password
+              - key: KC_DB_POOL_INITIAL_SIZE
+                value: "2"
+              - key: KC_DB_POOL_MIN_SIZE
+                value: "2"
+              - key: KC_DB_POOL_MAX_SIZE
+                value: "5"
+              - key: KC_HOSTNAME
+                value: https://gh-clearing-keycloak.onrender.com
+              - key: KC_HTTP_ENABLED
+                value: "true"
+              - key: KC_HTTP_PORT
+                value: "10000"
+              - key: KC_PROXY_HEADERS
+                value: xforwarded
+              - key: KC_BOOTSTRAP_ADMIN_USERNAME
+                value: admin
+              - key: KC_BOOTSTRAP_ADMIN_PASSWORD
+                sync: false
         databases:
           - name: gh-clearing-staging-db
             plan: free
