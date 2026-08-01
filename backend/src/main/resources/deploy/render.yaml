@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+projects:
+  - name: gh-clearing
+    environments:
+      - name: staging
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: gh-clearing-staging
+            runtime: docker
+            plan: free
+            region: singapore
+            dockerfilePath: ./backend/src/main/resources/deploy/Dockerfile
+            dockerContext: .
+            healthCheckPath: /
+            autoDeployTrigger: checksPass
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: staging
+              - key: KEYCLOAK_ISSUER_URI
+                sync: false
+              - key: KEYCLOAK_JWK_SET_URI
+                sync: false
+              - key: DB_HOST
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: host
+              - key: DB_PORT
+                value: "5432"
+              - key: DB_NAME
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: database
+              - key: DB_USER
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: user
+              - key: DB_PASSWORD
+                fromDatabase:
+                  name: gh-clearing-staging-db
+                  property: password
+              - key: NOTIFICATIONS_ENABLED
+                value: "false"
+              - key: APP_MAIL_DISPATCH_ENABLED
+                value: "false"
+        databases:
+          - name: gh-clearing-staging-db
+            plan: free
+            region: singapore
+            postgresMajorVersion: "16"
+            databaseName: gh_clearing
+            user: gh_clearing
+            ipAllowList: []
