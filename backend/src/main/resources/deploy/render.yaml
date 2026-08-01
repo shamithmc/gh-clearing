@@ -11,7 +11,7 @@ projects:
             runtime: docker
             plan: free
             region: singapore
-            dockerfilePath: ./backend/Dockerfile
+            dockerfilePath: ./backend/src/main/resources/deploy/Dockerfile
             dockerContext: .
             healthCheckPath: /
             autoDeployTrigger: checksPass
