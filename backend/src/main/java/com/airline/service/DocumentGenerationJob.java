@@ -37,10 +37,10 @@ public class DocumentGenerationJob {
 
     @Async
     @Transactional
-    public void generateAndDispatch(String invoiceId) {
+    public void generateAndDispatch(String invoiceId, String tenantId) {
         logger.info("Starting asynchronous document generation and dispatch for invoice ID: {}", invoiceId);
         try {
-            Invoice invoice = invoiceRepository.findById(invoiceId)
+            Invoice invoice = invoiceRepository.findByIdAndTenantId(invoiceId, tenantId)
                     .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
             // Generate IS-XML and PDF

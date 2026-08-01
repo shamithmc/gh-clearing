@@ -1,14 +1,8 @@
 package com.airline.service;
 
 import com.airline.api.dto.AirportCostIndexResponse;
-import com.airline.domain.Airport;
-import com.airline.domain.Invoice;
-import com.airline.domain.InvoiceLineItem;
-import com.airline.domain.InvoiceStatus;
-import com.airline.repository.AirportRepository;
 import com.airline.repository.ChargeCodeRepository;
-import com.airline.repository.InvoiceRepository;
-import com.airline.repository.MtowRecordRepository;
+import com.airline.repository.MarketIntelligenceRepository;
 import com.airline.security.DimensionalSecurityEvaluator;
 import com.airline.security.TenantContext;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,42 +11,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 public class AirportCostIndexService {
 
-    private static final Set<InvoiceStatus> ELIGIBLE_STATUSES =
-            Set.of(InvoiceStatus.SENT, InvoiceStatus.DISPUTED, InvoiceStatus.PAID);
-    private static final int MINIMUM_SUPPLIERS = 2;
-
-    private final InvoiceRepository invoiceRepository;
-    private final AirportRepository airportRepository;
+    private final MarketIntelligenceRepository marketIntelligenceRepository;
     private final ChargeCodeRepository chargeCodeRepository;
-    private final MtowRecordRepository mtowRecordRepository;
     private final TenantContext tenantContext;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
 
     public AirportCostIndexService(
-            InvoiceRepository invoiceRepository,
-            AirportRepository airportRepository,
+            MarketIntelligenceRepository marketIntelligenceRepository,
             ChargeCodeRepository chargeCodeRepository,
-            MtowRecordRepository mtowRecordRepository,
             TenantContext tenantContext,
             DimensionalSecurityEvaluator dimensionalSecurityEvaluator) {
-        this.invoiceRepository = invoiceRepository;
-        this.airportRepository = airportRepository;
+        this.marketIntelligenceRepository = marketIntelligenceRepository;
         this.chargeCodeRepository = chargeCodeRepository;
-        this.mtowRecordRepository = mtowRecordRepository;
         this.tenantContext = tenantContext;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
     }
@@ -74,64 +52,36 @@ public class AirportCostIndexService {
         String serviceFilter = normalize(serviceType);
         String aircraftFilter = normalize(aircraftType);
         String operationFilter = normalize(operationType);
-        Map<IndexKey, Aggregate> aggregates = new HashMap<>();
+        List<AirportCostIndexResponse> results = new ArrayList<>();
 
-        for (Invoice invoice : invoiceRepository.findByStatusIn(ELIGIBLE_STATUSES)) {
-            Airport airport = airportRepository.findById(invoice.getAirportCode()).orElse(null);
-            if (airport == null
-                    || !matches(airport.getIataCode(), airportFilter)
-                    || !matches(airport.getRegion(), regionFilter)
-                    || !dimensionalSecurityEvaluator.isAirportPermitted(airport.getIataCode())) {
+        for (var aggregate : marketIntelligenceRepository.findAnonymizedAggregates(airlineId)) {
+            if (!matches(aggregate.getAirportCode(), airportFilter)
+                    || !matches(aggregate.getRegion(), regionFilter)
+                    || !dimensionalSecurityEvaluator.isAirportPermitted(aggregate.getAirportCode())) {
                 continue;
             }
-
-            for (InvoiceLineItem item : invoice.getLineItems()) {
-                if (!matches(item.getChargeCode(), serviceFilter)
-                        || !dimensionalSecurityEvaluator.isChargeCodePermitted(item.getChargeCode())) {
-                    continue;
-                }
-                String resolvedAircraftType = resolveAircraftType(item);
-                String resolvedOperationType = resolveOperationType(item);
-                if (!matches(resolvedAircraftType, aircraftFilter)
-                        || !matches(resolvedOperationType, operationFilter)) {
-                    continue;
-                }
-
-                IndexKey key = new IndexKey(
-                        airport.getIataCode(),
-                        airport.getName(),
-                        airport.getRegion(),
-                        item.getChargeCode(),
-                        resolvedAircraftType,
-                        resolvedOperationType,
-                        invoice.getCurrency());
-                aggregates.computeIfAbsent(key, ignored -> new Aggregate())
-                        .add(invoice.getSupplierId(), item.getCalculatedAmount());
+            if (!matches(aggregate.getServiceType(), serviceFilter)
+                    || !dimensionalSecurityEvaluator.isChargeCodePermitted(aggregate.getServiceType())
+                    || !matches(aggregate.getAircraftType(), aircraftFilter)
+                    || !matches(aggregate.getOperationType(), operationFilter)) {
+                continue;
             }
-        }
-
-        List<AirportCostIndexResponse> results = new ArrayList<>();
-        aggregates.forEach((key, aggregate) -> {
-            if (aggregate.suppliers.size() < MINIMUM_SUPPLIERS) {
-                return;
-            }
-            String serviceName = chargeCodeRepository.findById(key.serviceType())
+            String serviceName = chargeCodeRepository.findById(aggregate.getServiceType())
                     .map(chargeCode -> chargeCode.getDisplayName())
-                    .orElse(key.serviceType());
+                    .orElse(aggregate.getServiceType());
             results.add(AirportCostIndexResponse.builder()
-                    .airportCode(key.airportCode())
-                    .airportName(key.airportName())
-                    .region(key.region())
-                    .serviceType(key.serviceType())
+                    .airportCode(aggregate.getAirportCode())
+                    .airportName(aggregate.getAirportName())
+                    .region(aggregate.getRegion())
+                    .serviceType(aggregate.getServiceType())
                     .serviceName(serviceName)
-                    .aircraftType(key.aircraftType())
-                    .operationType(key.operationType())
-                    .currency(key.currency())
-                    .averageCost(aggregate.total.divide(
-                            BigDecimal.valueOf(aggregate.observations), 2, RoundingMode.HALF_UP))
-                    .observationCount(aggregate.observations)
+                    .aircraftType(aggregate.getAircraftType())
+                    .operationType(aggregate.getOperationType())
+                    .currency(aggregate.getCurrency())
+                    .averageCost(aggregate.getAverageCost().setScale(2, java.math.RoundingMode.HALF_UP))
+                    .observationCount(aggregate.getObservationCount())
                     .build());
-        });
+        }
         results.sort(Comparator.comparing(AirportCostIndexResponse::getRegion)
                 .thenComparing(AirportCostIndexResponse::getAirportCode)
                 .thenComparing(AirportCostIndexResponse::getServiceType)
@@ -156,31 +106,6 @@ public class AirportCostIndexService {
         return tenantContext.getCurrentTenantId();
     }
 
-    private String resolveAircraftType(InvoiceLineItem item) {
-        String explicitType = normalize(item.getAircraftType());
-        if (explicitType != null) {
-            return explicitType;
-        }
-        String registration = normalize(item.getAircraftReg());
-        if (registration == null) {
-            return "UNKNOWN";
-        }
-        return mtowRecordRepository.findById(registration)
-                .map(record -> normalize(record.getAircraftType()))
-                .orElse("UNKNOWN");
-    }
-
-    private String resolveOperationType(InvoiceLineItem item) {
-        Airport origin = airportRepository.findById(normalize(item.getOrigin())).orElse(null);
-        Airport destination = airportRepository.findById(normalize(item.getDestination())).orElse(null);
-        if (origin == null || destination == null) {
-            return "UNKNOWN";
-        }
-        return origin.getCountry().equalsIgnoreCase(destination.getCountry())
-                ? "DOMESTIC"
-                : "INTERNATIONAL";
-    }
-
     private String normalize(String value) {
         return value == null || value.isBlank()
                 ? null
@@ -191,28 +116,4 @@ public class AirportCostIndexService {
         return filter == null || (value != null && value.equalsIgnoreCase(filter));
     }
 
-    private record IndexKey(
-            String airportCode,
-            String airportName,
-            String region,
-            String serviceType,
-            String aircraftType,
-            String operationType,
-            String currency) {
-    }
-
-    private static final class Aggregate {
-        private final Set<String> suppliers = new HashSet<>();
-        private BigDecimal total = BigDecimal.ZERO;
-        private long observations;
-
-        private void add(String supplierId, BigDecimal amount) {
-            if (supplierId == null || amount == null) {
-                return;
-            }
-            suppliers.add(supplierId);
-            total = total.add(amount);
-            observations++;
-        }
-    }
 }

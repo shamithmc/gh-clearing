@@ -245,15 +245,16 @@ public class InvoiceService {
             audit(saved.getId(), targetStatus.name(), comments);
             
             final String invoiceId = saved.getId();
+            final String supplierId = saved.getSupplierId();
             if (TransactionSynchronizationManager.isActualTransactionActive()) {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        documentGenerationJob.generateAndDispatch(invoiceId);
+                        documentGenerationJob.generateAndDispatch(invoiceId, supplierId);
                     }
                 });
             } else {
-                documentGenerationJob.generateAndDispatch(invoiceId);
+                documentGenerationJob.generateAndDispatch(invoiceId, supplierId);
             }
             
             return saved;

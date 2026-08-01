@@ -23,7 +23,7 @@ public class SupplierConfigurationService {
     @Transactional
     public SupplierConfiguration getConfiguration(String tenantId) {
         verifyTenantIsGroundHandler(tenantId);
-        return supplierConfigurationRepository.findById(tenantId)
+        return supplierConfigurationRepository.findByTenantId(tenantId)
                 .orElseGet(() -> createDefaultConfiguration(tenantId));
     }
 
@@ -31,7 +31,7 @@ public class SupplierConfigurationService {
     public SupplierConfiguration updateConfiguration(String tenantId, SupplierConfigurationRequest request) {
         verifyTenantIsGroundHandler(tenantId);
         
-        SupplierConfiguration config = supplierConfigurationRepository.findById(tenantId)
+        SupplierConfiguration config = supplierConfigurationRepository.findByTenantId(tenantId)
                 .orElseGet(() -> SupplierConfiguration.builder()
                         .tenantId(tenantId)
                         .enabledAirlines(new HashSet<>())

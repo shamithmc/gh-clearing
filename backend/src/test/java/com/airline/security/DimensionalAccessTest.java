@@ -76,7 +76,9 @@ class DimensionalAccessTest {
     @Test
     void evaluator_withUnprovisionedUser_failsClosed() {
         mockSecurityContext("unknown-user");
-        when(userRepository.findById("unknown-user")).thenReturn(Optional.empty());
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(userRepository.findByIdAndTenantId("unknown-user", "SWISSPORT"))
+                .thenReturn(Optional.empty());
         DimensionalSecurityEvaluator evaluator =
                 new DimensionalSecurityEvaluator(userRepository, tenantContext);
 
@@ -86,17 +88,17 @@ class DimensionalAccessTest {
     }
 
     @Test
-    void evaluator_withUserFromDifferentTenant_failsClosed() {
+    void evaluator_withUserFromDifferentTenant_failsClosedAtRepositoryBoundary() {
         mockSecurityContext("user-1");
-        User user = User.builder().id("user-1").tenantId("GH-OTHER").build();
-        when(userRepository.findById("user-1")).thenReturn(Optional.of(user));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(userRepository.findByIdAndTenantId("user-1", "SWISSPORT"))
+                .thenReturn(Optional.empty());
         DimensionalSecurityEvaluator evaluator =
                 new DimensionalSecurityEvaluator(userRepository, tenantContext);
 
         assertThatThrownBy(() -> evaluator.isAirlinePermitted("EK"))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("current tenant");
+                .hasMessageContaining("not provisioned");
     }
 
     @Test
@@ -109,8 +111,9 @@ class DimensionalAccessTest {
                 .airlineRestrictions(Set.of("EK"))
                 .chargeCodeRestrictions(Set.of("BAGGAGE"))
                 .build();
-        when(userRepository.findById("user-1")).thenReturn(Optional.of(user));
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(userRepository.findByIdAndTenantId("user-1", "SWISSPORT"))
+                .thenReturn(Optional.of(user));
         DimensionalSecurityEvaluator evaluator =
                 new DimensionalSecurityEvaluator(userRepository, tenantContext);
 

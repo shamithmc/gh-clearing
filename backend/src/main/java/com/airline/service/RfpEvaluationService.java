@@ -60,7 +60,8 @@ public class RfpEvaluationService {
     public List<AirlineRfpProposalResponse> listProposals(String rfpId) {
         Rfp rfp = loadOwnedRfp(rfpId);
         verifyDimensionalAccess(rfp);
-        return proposalRepository.findAllByRfpIdOrderByProposedRateAsc(rfpId).stream()
+        return proposalRepository.findAllByRfpIdForOwnerOrderByProposedRateAsc(
+                        rfpId, rfp.getTenantId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -78,7 +79,8 @@ public class RfpEvaluationService {
             throw new IllegalArgumentException("Proposal decision must be ACCEPTED or REJECTED");
         }
 
-        RfpProposal proposal = proposalRepository.findByIdAndRfpId(proposalId, rfpId)
+        RfpProposal proposal = proposalRepository.findByIdAndRfpIdForOwner(
+                        proposalId, rfpId, rfp.getTenantId())
                 .orElseThrow(() -> new NoSuchElementException("Proposal not found"));
         if (proposal.getStatus() != RfpProposalStatus.SUBMITTED) {
             throw new IllegalStateException("Only submitted proposals can be evaluated");
@@ -93,7 +95,7 @@ public class RfpEvaluationService {
 
         String seededContractId = null;
         if (request.getStatus() == RfpProposalStatus.ACCEPTED) {
-            rejectOtherProposals(rfpId, proposalId, decidedBy, decidedAt);
+            rejectOtherProposals(rfpId, rfp.getTenantId(), proposalId, decidedBy, decidedAt);
             rfp.setStatus(RfpStatus.AWARDED);
             rfp.setAwardedProposalId(proposalId);
             rfpRepository.save(rfp);
@@ -137,8 +139,10 @@ public class RfpEvaluationService {
     }
 
     private void rejectOtherProposals(
-            String rfpId, String acceptedProposalId, String decidedBy, OffsetDateTime decidedAt) {
-        List<RfpProposal> rejected = proposalRepository.findAllByRfpIdOrderByProposedRateAsc(rfpId).stream()
+            String rfpId, String airlineId, String acceptedProposalId,
+            String decidedBy, OffsetDateTime decidedAt) {
+        List<RfpProposal> rejected = proposalRepository
+                .findAllByRfpIdForOwnerOrderByProposedRateAsc(rfpId, airlineId).stream()
                 .filter(candidate -> !candidate.getId().equals(acceptedProposalId))
                 .filter(candidate -> candidate.getStatus() == RfpProposalStatus.SUBMITTED)
                 .peek(candidate -> {

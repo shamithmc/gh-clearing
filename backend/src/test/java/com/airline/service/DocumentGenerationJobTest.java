@@ -48,14 +48,15 @@ class DocumentGenerationJobTest {
         byte[] xmlBytes = "<xml></xml>".getBytes();
         byte[] pdfBytes = "%PDF-1.4".getBytes();
 
-        when(invoiceRepository.findById("inv-1")).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.findByIdAndTenantId("inv-1", "GH-1"))
+                .thenReturn(Optional.of(invoice));
         when(xmlGeneratorService.generate(invoice)).thenReturn(xmlBytes);
         when(pdfService.generate(invoice)).thenReturn(pdfBytes);
         when(fileStorageService.store("INV-100.xml", xmlBytes)).thenReturn("xml-key");
         when(fileStorageService.store("INV-100.pdf", pdfBytes)).thenReturn("pdf-key");
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        documentGenerationJob.generateAndDispatch("inv-1");
+        documentGenerationJob.generateAndDispatch("inv-1", "GH-1");
 
         verify(invoiceRepository).save(invoice);
         verify(dispatchService).dispatch(invoice, xmlBytes, pdfBytes);

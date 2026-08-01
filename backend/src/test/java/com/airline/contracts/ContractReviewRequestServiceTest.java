@@ -114,7 +114,6 @@ class ContractReviewRequestServiceTest {
         assertThatThrownBy(() -> service.create("contract-1", "Review this"))
                 .isInstanceOf(java.util.NoSuchElementException.class)
                 .hasMessageContaining("Contract not found");
-        verify(contractRepository, never()).findById("contract-1");
         verify(reviewRequestRepository, never()).save(any());
     }
 
@@ -176,7 +175,6 @@ class ContractReviewRequestServiceTest {
         assertThatThrownBy(service::getGroundHandlerQueue)
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Only ground handlers");
-        verify(reviewRequestRepository, never()).findAll();
     }
 
     @Test

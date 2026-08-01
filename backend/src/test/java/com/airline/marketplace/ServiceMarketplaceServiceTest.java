@@ -98,7 +98,7 @@ class ServiceMarketplaceServiceTest {
                 .tenantId("SWISSPORT")
                 .enabledAirports(new HashSet<>(java.util.Set.of("DXB")))
                 .build();
-        when(supplierConfigurationRepository.findById("SWISSPORT"))
+        when(supplierConfigurationRepository.findByTenantId("SWISSPORT"))
                 .thenReturn(Optional.of(configuration));
         when(offeringRepository.existsByTenantIdAndAirportCodeAndServiceType(
                 "SWISSPORT", "DXB", "BAGGAGE")).thenReturn(false);
@@ -124,7 +124,7 @@ class ServiceMarketplaceServiceTest {
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(dimensionalSecurityEvaluator.isAirportPermitted("DXB")).thenReturn(true);
         when(dimensionalSecurityEvaluator.isChargeCodePermitted("BAGGAGE")).thenReturn(true);
-        when(supplierConfigurationRepository.findById("SWISSPORT"))
+        when(supplierConfigurationRepository.findByTenantId("SWISSPORT"))
                 .thenReturn(Optional.of(SupplierConfiguration.builder()
                         .tenantId("SWISSPORT")
                         .enabledAirports(new HashSet<>())

@@ -95,7 +95,6 @@ class RfpServiceTest {
         assertThat(rfpService.listOwn()).isEmpty();
 
         verify(rfpRepository).findAllByTenantIdOrderByCreatedAtDesc("EK");
-        verify(rfpRepository, never()).findAll();
     }
 
     @Test

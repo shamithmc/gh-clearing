@@ -37,7 +37,7 @@ public class DevUserInitializer implements ApplicationRunner {
             return;
         }
 
-        User user = userRepository.findById(userId).orElseGet(() -> User.builder()
+        User user = userRepository.findByIdAndTenantId(userId, tenantId).orElseGet(() -> User.builder()
                 .id(userId).tenantId(tenantId).username(userId)
                 .email(userId.toLowerCase() + "@local.invalid").build());
         user.setRolesRaw("SWISSPORT".equals(tenantId)
