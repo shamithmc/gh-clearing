@@ -17,24 +17,24 @@ public class AuthController {
 
     private final AuthenticatedUserProvisioningService provisioningService;
     private final boolean browserAuthEnabled;
-    private final String issuerUri;
+    private final String apiHostname;
     private final String clientId;
 
     public AuthController(
             AuthenticatedUserProvisioningService provisioningService,
-            @Value("${app.auth.keycloak.enabled:false}") boolean browserAuthEnabled,
-            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String issuerUri,
-            @Value("${app.auth.keycloak.client-id:}") String clientId) {
+            @Value("${app.auth.workos.enabled:false}") boolean browserAuthEnabled,
+            @Value("${app.auth.workos.api-hostname:api.workos.com}") String apiHostname,
+            @Value("${app.auth.workos.client-id:}") String clientId) {
         this.provisioningService = provisioningService;
         this.browserAuthEnabled = browserAuthEnabled;
-        this.issuerUri = issuerUri;
+        this.apiHostname = apiHostname;
         this.clientId = clientId;
     }
 
     @GetMapping("/config")
     public BrowserAuthConfigResponse config() {
-        boolean enabled = browserAuthEnabled && !issuerUri.isBlank() && !clientId.isBlank();
-        return new BrowserAuthConfigResponse(enabled, enabled ? issuerUri : "", enabled ? clientId : "");
+        boolean enabled = browserAuthEnabled && !apiHostname.isBlank() && !clientId.isBlank();
+        return new BrowserAuthConfigResponse(enabled, enabled ? apiHostname : "", enabled ? clientId : "");
     }
 
     @PostMapping("/session")

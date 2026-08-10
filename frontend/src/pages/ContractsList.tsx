@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Table, Select, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
-import { isKeycloakAuthenticated } from '../auth/keycloakAuth';
+import { isWorkOsAuthenticated } from '../auth/workosAuth';
 import { 
   FileText, 
   Plus, 
@@ -44,7 +44,7 @@ interface Contract {
 }
 
 const ContractsList: React.FC = () => {
-  const usingKeycloak = isKeycloakAuthenticated();
+  const usingWorkOs = isWorkOsAuthenticated();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
@@ -432,7 +432,7 @@ const ContractsList: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            {!usingKeycloak && <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+            {!usingWorkOs && <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
               <Filter className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-xs font-medium text-slate-300">Status Filter:</span>
               <Select 
@@ -449,7 +449,7 @@ const ContractsList: React.FC = () => {
               </Select>
             </div>}
 
-            {!usingKeycloak && <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+            {!usingWorkOs && <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
               <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-xs font-medium text-slate-300">Tenant:</span>
               <Select 

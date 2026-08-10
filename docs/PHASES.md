@@ -16,7 +16,7 @@ Each phase delivers a **working, deployable product** that builds on the previou
 |---|---|---|
 | 1.1 | **Project Scaffolding** | Spring Boot 3.x project, module structure, CI/CD pipeline, dev/staging/prod environments |
 | 1.2 | **Database Setup** | PostgreSQL with multi-tenant schema (discriminator-based), Flyway migrations |
-| 1.3 | **Authentication & Identity** | Keycloak integration, OAuth2/OIDC login, user registration |
+| 1.3 | **Authentication & Identity** | WorkOS AuthKit integration, OAuth2/OIDC login, user registration |
 | 1.4 | **Tenant Management** | Platform admin can create ground handler and airline tenants |
 | 1.5 | **User & Role Management** | Admin assigns roles to users within a tenant (all ground handler roles defined, dimensional restrictions stored but not enforced yet) |
 | 1.6 | **Reference Data — IATA Charge Codes** | Seed all 25 charge codes as system reference data |
@@ -29,7 +29,7 @@ Each phase delivers a **working, deployable product** that builds on the previou
 
 - Java 21 + Spring Boot 3.x + Spring Security
 - PostgreSQL + Flyway
-- Keycloak (auth)
+- WorkOS AuthKit (auth)
 - React + TypeScript + Ant Design (frontend shell)
 - Docker + CI/CD pipeline
 - Redis (session store)

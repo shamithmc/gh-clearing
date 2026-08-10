@@ -28,8 +28,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/gh-clearing}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/gh-clearing/protocol/openid-connect/certs}
+          issuer-uri: ${WORKOS_ISSUER_URI:https://api.workos.com/}
+          jwk-set-uri: ${WORKOS_JWK_SET_URI:https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID:client_unconfigured}}
 
   # Spring Mail — uses Mailhog locally (docker-compose port 1025)
   mail:
