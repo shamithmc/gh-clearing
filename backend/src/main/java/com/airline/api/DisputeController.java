@@ -1,14 +1,21 @@
 package com.airline.api;
 
+import com.airline.api.dto.DisputeAttachmentResponse;
 import com.airline.api.dto.InvoiceDisputeRequest;
 import com.airline.domain.Dispute;
+import com.airline.service.DisputeAttachmentService;
 import com.airline.service.DisputeService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -17,6 +24,7 @@ import java.util.List;
 public class DisputeController {
 
     private final DisputeService disputeService;
+    private final DisputeAttachmentService disputeAttachmentService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
@@ -46,6 +54,40 @@ public class DisputeController {
             @RequestBody DisputeResponsePayload payload) {
         Dispute dispute = disputeService.respondToDispute(id, payload.getMessage(), payload.getAction());
         return ResponseEntity.ok(dispute);
+    }
+
+    @PostMapping(value = "/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
+    public ResponseEntity<DisputeAttachmentResponse> uploadAttachment(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(DisputeAttachmentResponse.from(
+                disputeAttachmentService.upload(id, file)));
+    }
+
+    @GetMapping("/{id}/attachments")
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
+    public ResponseEntity<List<DisputeAttachmentResponse>> listAttachments(@PathVariable String id) {
+        return ResponseEntity.ok(disputeAttachmentService.list(id).stream()
+                .map(DisputeAttachmentResponse::from)
+                .toList());
+    }
+
+    @GetMapping("/{id}/attachments/{attachmentId}")
+    @PreAuthorize("hasAnyAuthority('INVOICE_DISPUTER', 'DISPUTE_HANDLER', 'DISPUTE_APPROVER')")
+    public ResponseEntity<byte[]> downloadAttachment(
+            @PathVariable String id,
+            @PathVariable String attachmentId) {
+        DisputeAttachmentService.AttachmentDownload download =
+                disputeAttachmentService.download(id, attachmentId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(download.metadata().getMediaType()))
+                .contentLength(download.content().length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(download.metadata().getOriginalFilename(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.content());
     }
 
     @Data
