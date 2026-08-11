@@ -9,6 +9,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Profile;
@@ -71,44 +75,50 @@ public class SecurityConfig {
         return registration;
     }
 
-    /**
-     * Extracts roles from the "roles" claim in the JWT and converts them to
-     * Spring Security GrantedAuthority objects (INV-02: Dimensional Scope Enforcement).
-     */
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter(
-            @Value("${app.auth.keycloak.client-id:}") String clientId) {
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
+            @Value("${app.auth.workos.client-id:${WORKOS_CLIENT_ID:client_unconfigured}}") String clientId) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(issuerUri),
+                new com.airline.security.WorkOsClientIdValidator(clientId)));
+        return decoder;
+    }
+
+    /** Maps signed WorkOS organization roles into the closed application vocabulary. */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> extractRoles(jwt.getClaims(), clientId).stream()
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> extractRoles(jwt.getClaims()).stream()
                 .map(SimpleGrantedAuthority::new)
                 .map(a -> (org.springframework.security.core.GrantedAuthority) a)
                 .toList());
         return converter;
     }
 
-    static Set<String> extractRoles(Map<String, Object> claims, String clientId) {
+    static Set<String> extractRoles(Map<String, Object> claims) {
         LinkedHashSet<String> roles = new LinkedHashSet<>();
+        addRoles(roles, claims.get("role"));
         addRoles(roles, claims.get("roles"));
-
-        Object realmAccess = claims.get("realm_access");
-        if (realmAccess instanceof Map<?, ?> realmMap) {
-            addRoles(roles, realmMap.get("roles"));
-        }
-
-        Object resourceAccess = claims.get("resource_access");
-        if (resourceAccess instanceof Map<?, ?> resources && clientId != null && !clientId.isBlank()) {
-            Object clientAccess = resources.get(clientId);
-            if (clientAccess instanceof Map<?, ?> clientMap) {
-                addRoles(roles, clientMap.get("roles"));
-            }
-        }
         return roles;
     }
 
     private static void addRoles(Set<String> destination, Object claim) {
         if (claim instanceof Collection<?> values) {
-            values.stream().map(Object::toString).filter(value -> !value.isBlank()).forEach(destination::add);
+            values.stream().map(Object::toString).map(SecurityConfig::normalizeRole)
+                    .filter(value -> !value.isBlank()).forEach(destination::add);
+        } else if (claim != null) {
+            String role = normalizeRole(claim.toString());
+            if (!role.isBlank()) {
+                destination.add(role);
+            }
         }
+    }
+
+    private static String normalizeRole(String role) {
+        return role.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     @Bean

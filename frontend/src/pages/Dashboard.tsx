@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Select, DatePicker, Spin, Empty } from 'antd';
 import axios from 'axios';
 import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
-import { isKeycloakAuthenticated } from '../auth/keycloakAuth';
+import { isWorkOsAuthenticated } from '../auth/workosAuth';
 import SupplierOperationalFootprintPanel from './SupplierOperationalFootprintPanel';
 import { 
   DollarSign, 
@@ -60,7 +60,7 @@ interface ExpiringContract {
 }
 
 const Dashboard: React.FC = () => {
-  const usingKeycloak = isKeycloakAuthenticated();
+  const usingWorkOs = isWorkOsAuthenticated();
   const [loading, setLoading] = useState(true);
   const [receivables, setReceivables] = useState<ReceivablesSummary | null>(null);
   const [invoicedTrend, setInvoicedTrend] = useState<InvoicedTrend[]>([]);
@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {!usingKeycloak && <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
+          {!usingWorkOs && <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-2.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700">
             <UserCheck className="w-4 h-4 text-slate-400 shrink-0 hidden sm:inline" />
             <span className="text-xs font-medium text-slate-300 shrink-0">Access Scope:</span>
             <Select 

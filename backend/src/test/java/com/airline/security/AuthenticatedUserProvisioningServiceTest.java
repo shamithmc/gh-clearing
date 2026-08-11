@@ -39,19 +39,19 @@ class AuthenticatedUserProvisioningServiceTest {
     }
 
     @Test
-    void provisionsAuthenticatedKeycloakSubjectForItsTenant() {
+    void provisionsAuthenticatedWorkOsSubjectForItsTenant() {
         Tenant tenant = Tenant.builder().id("EK").name("Emirates")
                 .type(Tenant.TenantType.AIRLINE).status(Tenant.TenantStatus.ACTIVE).build();
         when(tenantRepository.findById("EK")).thenReturn(Optional.of(tenant));
         when(userRepository.findByIdAndTenantId(
-                "6ac9d616-1c13-4ff0-b50a-c725b8b55004", "EK")).thenReturn(Optional.empty());
+                "user_01JNS7VK1HMX7CT0C6V4ZHZZNX", "EK")).thenReturn(Optional.empty());
 
         var response = service.provision(authentication("EK", "AIRLINE"));
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         User user = userCaptor.getValue();
-        assertThat(user.getId()).isEqualTo("6ac9d616-1c13-4ff0-b50a-c725b8b55004");
+        assertThat(user.getId()).isEqualTo("user_01JNS7VK1HMX7CT0C6V4ZHZZNX");
         assertThat(user.getTenantId()).isEqualTo("EK");
         assertThat(user.getRoles()).containsExactlyInAnyOrder("MIS_VIEWER", "CONTRACT_VIEWER");
         assertThat(response.tenantType()).isEqualTo("AIRLINE");
@@ -72,7 +72,7 @@ class AuthenticatedUserProvisioningServiceTest {
     private JwtAuthenticationToken authentication(String tenantId, String tenantType) {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
-                .subject("6ac9d616-1c13-4ff0-b50a-c725b8b55004")
+                .subject("user_01JNS7VK1HMX7CT0C6V4ZHZZNX")
                 .claim("tenant_id", tenantId)
                 .claim("tenant_type", tenantType)
                 .claim("preferred_username", "staging-airline")

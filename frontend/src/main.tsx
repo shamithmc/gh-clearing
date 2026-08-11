@@ -2,13 +2,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
+import { AuthKitProvider } from '@workos-inc/authkit-react';
 import App from './App.tsx';
 import './index.css';
-import { initializeAuthentication } from './auth/keycloakAuth.ts';
+import { loadBrowserAuthConfig, WorkOsAuthenticationGate } from './auth/workosAuth.tsx';
 
 const root = createRoot(document.getElementById('root')!);
 
-const renderApplication = () => root.render(
+const application = (
   <StrictMode>
     <BrowserRouter>
       <ConfigProvider theme={{
@@ -20,8 +21,17 @@ const renderApplication = () => root.render(
         <App />
       </ConfigProvider>
     </BrowserRouter>
-  </StrictMode>,
+  </StrictMode>
 );
+
+const renderApplication = async () => {
+  const config = await loadBrowserAuthConfig();
+  root.render(config.enabled ? (
+    <AuthKitProvider clientId={config.clientId} apiHostname={config.apiHostname}>
+      <WorkOsAuthenticationGate>{application}</WorkOsAuthenticationGate>
+    </AuthKitProvider>
+  ) : application);
+};
 
 const renderAuthenticationError = (error: unknown) => root.render(
   <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
@@ -40,4 +50,4 @@ const renderAuthenticationError = (error: unknown) => root.render(
   </div>,
 );
 
-void initializeAuthentication().then(renderApplication).catch(renderAuthenticationError);
+void renderApplication().catch(renderAuthenticationError);

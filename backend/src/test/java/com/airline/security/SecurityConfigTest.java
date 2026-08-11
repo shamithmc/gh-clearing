@@ -10,22 +10,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SecurityConfigTest {
 
     @Test
-    void extractsFlatRealmAndClientRoles() {
+    void extractsAndNormalizesWorkOsSingleAndMultipleRoles() {
         Map<String, Object> claims = Map.of(
-                "roles", List.of("MIS_VIEWER"),
-                "realm_access", Map.of("roles", List.of("CONTRACT_VIEWER")),
-                "resource_access", Map.of(
-                        "gh-clearing-web", Map.of("roles", List.of("INVOICE_REVIEWER", "MIS_VIEWER"))));
+                "role", "mis-viewer",
+                "roles", List.of("contract-viewer", "INVOICE_REVIEWER"));
 
-        assertThat(SecurityConfig.extractRoles(claims, "gh-clearing-web"))
+        assertThat(SecurityConfig.extractRoles(claims))
                 .containsExactly("MIS_VIEWER", "CONTRACT_VIEWER", "INVOICE_REVIEWER");
     }
 
     @Test
-    void ignoresRolesForOtherClients() {
-        Map<String, Object> claims = Map.of(
-                "resource_access", Map.of("another-client", Map.of("roles", List.of("ADMIN"))));
+    void ignoresUnrelatedClaims() {
+        Map<String, Object> claims = Map.of("permissions", List.of("invoices:view"));
 
-        assertThat(SecurityConfig.extractRoles(claims, "gh-clearing-web")).isEmpty();
+        assertThat(SecurityConfig.extractRoles(claims)).isEmpty();
     }
 }

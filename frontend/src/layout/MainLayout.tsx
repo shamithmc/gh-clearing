@@ -19,7 +19,7 @@ import {
   Menu as MenuIcon,
   X
 } from 'lucide-react';
-import { getAuthenticatedUser, isKeycloakAuthenticated, logout } from '../auth/keycloakAuth';
+import { getAuthenticatedUser, isWorkOsAuthenticated, logout } from '../auth/workosAuth';
 
 const { Header, Sider, Content } = Layout;
 
@@ -217,7 +217,7 @@ const MainLayout: React.FC = () => {
               onClick={() => void logout()}
             >
               <LogOut className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">{isKeycloakAuthenticated() ? 'Sign out' : 'Reset Persona'}</span>
+              <span className="hidden sm:inline">{isWorkOsAuthenticated() ? 'Sign out' : 'Reset Persona'}</span>
             </button>
           </div>
         </Header>

@@ -1,3 +1,5 @@
+import { isWorkOsAuthenticated } from '../auth/workosAuth';
+
 export const unrestrictedUserId = (tenantId: string) => `dev-${tenantId}`;
 export const scopedUserId = (tenantId: string) => `dev-${tenantId}-scoped`;
 
@@ -15,9 +17,8 @@ export const simulatedAuthHeaders = (
   tenantId: string,
   tenantType: string,
   userId = getSimulatedUserId(tenantId)
-): Record<string, string> => isKeycloakAuthenticated() ? {} : ({
+): Record<string, string> => isWorkOsAuthenticated() ? {} : ({
   'X-Mock-Tenant-Id': tenantId,
   'X-Mock-Tenant-Type': tenantType,
   'X-Mock-User-Id': userId,
 });
-import { isKeycloakAuthenticated } from '../auth/keycloakAuth';

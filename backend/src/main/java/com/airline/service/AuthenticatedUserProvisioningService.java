@@ -52,7 +52,7 @@ public class AuthenticatedUserProvisioningService {
         String username = limited(firstNonBlank(
                 authentication.getToken().getClaimAsString("preferred_username"), userId), 50);
         String email = limited(firstNonBlank(
-                authentication.getToken().getClaimAsString("email"), username + "@keycloak.invalid"), 100);
+                authentication.getToken().getClaimAsString("email"), username + "@workos.invalid"), 100);
         Set<String> roles = authentication.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .filter(APPLICATION_ROLES::contains)
