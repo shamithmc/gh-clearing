@@ -30,21 +30,34 @@ public class LocalFileStorageService implements FileStorageService {
 
     @Override
     public String store(String filename, byte[] bytes) {
-        // Generate a unique path key under storage directory
-        String extension = "";
-        int dotIndex = filename.lastIndexOf('.');
-        if (dotIndex > 0) {
-            extension = filename.substring(dotIndex);
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("Filename must not be null or empty");
         }
-        
-        String key = UUID.randomUUID().toString() + extension;
+        Path requestedPath = Path.of(filename.replace('\\', '/')).normalize();
+        if (requestedPath.isAbsolute() || requestedPath.startsWith("..")) {
+            throw new IllegalArgumentException("Cannot store file outside of storage directory");
+        }
+
+        String extension = "";
+        String requestedFileName = requestedPath.getFileName().toString();
+        int dotIndex = requestedFileName.lastIndexOf('.');
+        if (dotIndex > 0) {
+            extension = requestedFileName.substring(dotIndex);
+        }
+
+        Path requestedParent = requestedPath.getParent();
+        String key = (requestedParent == null ? Path.of("") : requestedParent)
+                .resolve(UUID.randomUUID().toString() + extension)
+                .toString()
+                .replace('\\', '/');
         Path targetPath = this.storageDirectory.resolve(key).normalize();
 
-        if (!targetPath.getParent().equals(this.storageDirectory)) {
+        if (!targetPath.startsWith(this.storageDirectory) || targetPath.equals(this.storageDirectory)) {
             throw new IllegalArgumentException("Cannot store file outside of storage directory");
         }
 
         try {
+            Files.createDirectories(targetPath.getParent());
             Files.write(targetPath, bytes);
             return key;
         } catch (IOException e) {
@@ -60,7 +73,7 @@ public class LocalFileStorageService implements FileStorageService {
 
         Path filePath = this.storageDirectory.resolve(fileKey).normalize();
 
-        if (!filePath.getParent().equals(this.storageDirectory)) {
+        if (!filePath.startsWith(this.storageDirectory) || filePath.equals(this.storageDirectory)) {
             throw new IllegalArgumentException("Cannot access file outside of storage directory");
         }
 
@@ -83,7 +96,7 @@ public class LocalFileStorageService implements FileStorageService {
 
         Path filePath = this.storageDirectory.resolve(fileKey).normalize();
 
-        if (!filePath.getParent().equals(this.storageDirectory)) {
+        if (!filePath.startsWith(this.storageDirectory) || filePath.equals(this.storageDirectory)) {
             throw new IllegalArgumentException("Cannot delete file outside of storage directory");
         }
 

@@ -28,8 +28,11 @@
         "backend/src/main/java/com/airline/security/**",
         "backend/src/main/java/com/airline/service/AuthenticatedUserProvisioningService.java",
         "backend/src/main/java/com/airline/api/Dispute*",
+        "backend/src/main/java/com/airline/api/dto/DisputeAttachment*",
         "backend/src/main/java/com/airline/service/Dispute*",
+        "backend/src/main/java/com/airline/service/*Attachment*",
         "backend/src/test/java/com/airline/api/Dispute*",
+        "backend/src/test/java/com/airline/service/*Attachment*",
         "backend/src/test/java/com/airline/reports/**",
         "docs/workos-authkit-setup.md",
         "backend/src/test/java/com/airline/security/**"
@@ -108,7 +111,11 @@
         "backend/src/main/java/com/airline/domain/Dispute*",
         "backend/src/main/java/com/airline/service/*Dispute*",
         "backend/src/main/java/com/airline/api/*Dispute*",
+        "backend/src/main/java/com/airline/api/dto/DisputeAttachment*",
         "backend/src/main/java/com/airline/repository/*Dispute*",
+        "backend/src/main/java/com/airline/service/*Attachment*",
+        "backend/src/main/resources/db/migration/*dispute_attachment*",
+        "backend/src/test/java/com/airline/service/*Attachment*",
         "backend/src/test/java/com/airline/disputes/**"
       ]
     },
