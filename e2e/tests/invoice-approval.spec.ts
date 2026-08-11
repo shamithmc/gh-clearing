@@ -289,9 +289,18 @@ test.describe('Invoice Approval Workflow E2E', () => {
     );
     expect(sendRes.status()).toBe(200);
 
-    // Verify the invoice is now SENT
-    const sentInvoice = await sendRes.json();
-    expect(sentInvoice.status).toBe('SENT');
+    // The send request queues durable work; SENT is only visible after delivery.
+    const queuedInvoice = await sendRes.json();
+    expect(queuedInvoice.status).toBe('APPROVED');
+    await expect.poll(async () => {
+      const dispatchRes = await request.get(`/api/invoices/${docInvoiceId}/dispatch`, { headers: ghHeaders });
+      expect(dispatchRes.status()).toBe(200);
+      return (await dispatchRes.json()).status;
+    }).toBe('DELIVERED');
+
+    const deliveredInvoiceRes = await request.get(`/api/invoices/${docInvoiceId}`, { headers: ghHeaders });
+    expect(deliveredInvoiceRes.status()).toBe(200);
+    expect((await deliveredInvoiceRes.json()).status).toBe('SENT');
 
     // Verify IS-XML download endpoint
     const xmlRes = await request.get(`/api/invoices/${docInvoiceId}/xml`, { headers: ghHeaders });

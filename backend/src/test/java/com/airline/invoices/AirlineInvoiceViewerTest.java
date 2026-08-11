@@ -51,7 +51,7 @@ class AirlineInvoiceViewerTest {
     void setUp() {
         invoiceService = new InvoiceService(invoiceRepository, contractRepository, pricingEngine,
                 tenantContext, new ObjectMapper(), invoiceAuditLogRepository, documentGenerationJob,
-                dimensionalSecurityEvaluator, isXmlGeneratorService, applicationEventPublisher);
+                dimensionalSecurityEvaluator, applicationEventPublisher);
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("invoice-reviewer", "n/a", "INVOICE_REVIEWER"));
         when(tenantContext.getCurrentTenantId()).thenReturn("EK");

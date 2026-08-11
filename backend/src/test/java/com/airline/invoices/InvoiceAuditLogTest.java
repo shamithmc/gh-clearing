@@ -201,16 +201,26 @@ public class InvoiceAuditLogTest {
 
         when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
         when(invoiceRepository.findByIdAndTenantId("inv-uuid-2", "SWISSPORT")).thenReturn(Optional.of(existing));
-        when(invoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invoiceRepository.findByIdAndSupplierIdForUpdate("inv-uuid-2", "SWISSPORT"))
+                .thenReturn(Optional.of(existing));
+        when(documentGenerationJob.queue(existing)).thenReturn(InvoiceDispatchJob.builder()
+                .id("dispatch-job-1")
+                .invoiceId(existing.getId())
+                .tenantId(existing.getSupplierId())
+                .status(InvoiceDispatchStatus.QUEUED)
+                .build());
 
-        invoiceService.updateInvoiceStatus("inv-uuid-2", InvoiceStatus.SENT);
+        Invoice result = invoiceService.updateInvoiceStatus("inv-uuid-2", InvoiceStatus.SENT);
 
         ArgumentCaptor<InvoiceAuditLog> logCaptor = ArgumentCaptor.forClass(InvoiceAuditLog.class);
         verify(invoiceAuditLogRepository).save(logCaptor.capture());
 
         InvoiceAuditLog log = logCaptor.getValue();
         assertThat(log.getInvoiceId()).isEqualTo("inv-uuid-2");
-        assertThat(log.getAction()).isEqualTo("SENT");
+        assertThat(log.getAction()).isEqualTo("DISPATCH_QUEUED");
         assertThat(log.getUserId()).isEqualTo("test-user-3");
+        assertThat(result.getStatus()).isEqualTo(InvoiceStatus.APPROVED);
+        verify(documentGenerationJob).generateAndDispatch("inv-uuid-2", "SWISSPORT");
+        verify(invoiceRepository, never()).save(existing);
     }
 }

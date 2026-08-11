@@ -62,31 +62,31 @@ class IataXmlComplianceTest {
     void xmlValidationFailurePreventsSentTransition_INV_09() {
         com.airline.repository.InvoiceRepository invoiceRepository =
                 mock(com.airline.repository.InvoiceRepository.class);
-        com.airline.security.TenantContext tenantContext = mock(com.airline.security.TenantContext.class);
         IsXmlGeneratorService generator = mock(IsXmlGeneratorService.class);
-        com.airline.service.InvoiceService invoiceService = new com.airline.service.InvoiceService(
+        com.airline.service.InvoiceDispatchJobStateService stateService =
+                mock(com.airline.service.InvoiceDispatchJobStateService.class);
+        com.airline.service.InvoiceDispatchService dispatchService =
+                mock(com.airline.service.InvoiceDispatchService.class);
+        com.airline.service.DocumentGenerationJob job = new com.airline.service.DocumentGenerationJob(
                 invoiceRepository,
-                mock(com.airline.repository.ContractRepository.class),
-                mock(com.airline.pricing.PricingEngine.class),
-                tenantContext,
-                new com.fasterxml.jackson.databind.ObjectMapper(),
-                mock(com.airline.repository.InvoiceAuditLogRepository.class),
-                mock(com.airline.service.DocumentGenerationJob.class),
-                mock(com.airline.security.DimensionalSecurityEvaluator.class),
                 generator,
-                mock(org.springframework.context.ApplicationEventPublisher.class));
+                mock(com.airline.pdf.InvoicePdfService.class),
+                mock(com.airline.service.FileStorageService.class),
+                dispatchService,
+                stateService);
         Invoice invoice = buildTestInvoice();
         invoice.setStatus(InvoiceStatus.APPROVED);
-        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(stateService.claim(invoice.getId(), "SWISSPORT")).thenReturn(true);
         when(invoiceRepository.findByIdAndTenantId(invoice.getId(), "SWISSPORT"))
                 .thenReturn(java.util.Optional.of(invoice));
         doThrow(new XmlGenerationException("schema invalid"))
                 .when(generator).generate(invoice);
 
-        assertThatThrownBy(() -> invoiceService.updateInvoiceStatus(invoice.getId(), InvoiceStatus.SENT))
-                .isInstanceOf(XmlGenerationException.class);
+        job.generateAndDispatch(invoice.getId(), "SWISSPORT");
+
         assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.APPROVED);
-        verify(invoiceRepository, never()).save(any());
+        verify(stateService).markFailed(eq(invoice.getId()), eq("SWISSPORT"), any(XmlGenerationException.class));
+        verifyNoInteractions(dispatchService);
     }
 
     private Invoice buildTestInvoice() {

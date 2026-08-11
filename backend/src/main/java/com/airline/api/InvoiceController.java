@@ -2,6 +2,7 @@ package com.airline.api;
 
 import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceStatus;
+import com.airline.api.dto.InvoiceDispatchStatusResponse;
 import com.airline.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -55,6 +56,11 @@ public class InvoiceController {
             @RequestParam InvoiceStatus status,
             @RequestParam(required = false) String comments) {
         return invoiceService.updateInvoiceStatus(id, status, comments);
+    }
+
+    @GetMapping("/{id}/dispatch")
+    public InvoiceDispatchStatusResponse getDispatchStatus(@PathVariable String id) {
+        return InvoiceDispatchStatusResponse.from(invoiceService.getDispatchStatus(id));
     }
 
     @DeleteMapping("/{id}")
