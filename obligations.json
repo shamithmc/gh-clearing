@@ -77,6 +77,9 @@
       "path_patterns": [
         "backend/src/main/java/com/airline/domain/Invoice*",
         "backend/src/main/java/com/airline/service/*Invoice*",
+        "backend/src/main/java/com/airline/service/DocumentGenerationJob.java",
+        "backend/src/main/resources/db/migration/*invoice_dispatch*",
+        "backend/src/test/java/com/airline/dispatch/**",
         "backend/src/test/java/com/airline/invoices/**"
       ]
     },
@@ -86,8 +89,13 @@
       "test_path": "backend/src/test/java/com/airline/xml/IataXmlComplianceTest.java",
       "owner": "@ground-handling/developers",
       "path_patterns": [
+        "backend/src/main/java/com/airline/domain/InvoiceDispatch*",
+        "backend/src/main/java/com/airline/service/DocumentGenerationJob.java",
+        "backend/src/main/java/com/airline/service/InvoiceDispatch*",
         "backend/src/main/java/com/airline/xml/**",
+        "backend/src/main/resources/db/migration/*invoice_dispatch*",
         "backend/src/main/resources/schema/**",
+        "backend/src/test/java/com/airline/dispatch/**",
         "backend/src/test/java/com/airline/xml/**"
       ]
     },

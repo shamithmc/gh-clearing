@@ -55,7 +55,6 @@ class TenantIsolationTest {
                 invoiceAuditLogRepository,
                 documentGenerationJob,
                 dimensionalSecurityEvaluator,
-                isXmlGeneratorService,
                 applicationEventPublisher);
     }
 

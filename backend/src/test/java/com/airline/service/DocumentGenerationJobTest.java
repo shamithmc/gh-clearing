@@ -34,6 +34,9 @@ class DocumentGenerationJobTest {
     @Mock
     private InvoiceDispatchService dispatchService;
 
+    @Mock
+    private InvoiceDispatchJobStateService stateService;
+
     @InjectMocks
     private DocumentGenerationJob documentGenerationJob;
 
@@ -42,7 +45,7 @@ class DocumentGenerationJobTest {
         Invoice invoice = Invoice.builder()
                 .id("inv-1")
                 .invoiceNumber("INV-100")
-                .status(InvoiceStatus.SENT)
+                .status(InvoiceStatus.APPROVED)
                 .build();
 
         byte[] xmlBytes = "<xml></xml>".getBytes();
@@ -50,20 +53,16 @@ class DocumentGenerationJobTest {
 
         when(invoiceRepository.findByIdAndTenantId("inv-1", "GH-1"))
                 .thenReturn(Optional.of(invoice));
+        when(stateService.claim("inv-1", "GH-1")).thenReturn(true);
         when(xmlGeneratorService.generate(invoice)).thenReturn(xmlBytes);
         when(pdfService.generate(invoice)).thenReturn(pdfBytes);
         when(fileStorageService.store("INV-100.xml", xmlBytes)).thenReturn("xml-key");
         when(fileStorageService.store("INV-100.pdf", pdfBytes)).thenReturn("pdf-key");
-        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
         documentGenerationJob.generateAndDispatch("inv-1", "GH-1");
 
-        verify(invoiceRepository).save(invoice);
         verify(dispatchService).dispatch(invoice, xmlBytes, pdfBytes);
-        
-        assert "xml-key".equals(invoice.getXmlFileKey());
-        assert "pdf-key".equals(invoice.getPdfFileKey());
-        assert invoice.getXmlGeneratedAt() != null;
-        assert invoice.getPdfGeneratedAt() != null;
+        verify(stateService).markDelivered(
+                eq("inv-1"), eq("GH-1"), eq("xml-key"), eq("pdf-key"), any());
+        verify(stateService, never()).markFailed(any(), any(), any());
     }
 }

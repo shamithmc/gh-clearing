@@ -4,6 +4,7 @@ import com.airline.domain.Contract;
 import com.airline.domain.Invoice;
 import com.airline.domain.InvoiceLineItem;
 import com.airline.domain.InvoiceStatus;
+import com.airline.domain.InvoiceDispatchJob;
 import com.airline.domain.ServiceConfiguration;
 import com.airline.notification.PaymentMarkedEvent;
 import com.airline.pdf.InvoicePdfService;
@@ -12,7 +13,6 @@ import com.airline.repository.InvoiceRepository;
 import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
 import com.airline.security.DimensionalSecurityEvaluator;
-import com.airline.xml.IsXmlGeneratorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,7 +44,6 @@ public class InvoiceService {
     private final com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository;
     private final DocumentGenerationJob documentGenerationJob;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
-    private final IsXmlGeneratorService isXmlGeneratorService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
@@ -55,7 +54,6 @@ public class InvoiceService {
                           com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
                           DocumentGenerationJob documentGenerationJob,
                           DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
-                          IsXmlGeneratorService isXmlGeneratorService,
                           ApplicationEventPublisher applicationEventPublisher) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
@@ -65,7 +63,6 @@ public class InvoiceService {
         this.invoiceAuditLogRepository = invoiceAuditLogRepository;
         this.documentGenerationJob = documentGenerationJob;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
-        this.isXmlGeneratorService = isXmlGeneratorService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -238,14 +235,13 @@ public class InvoiceService {
             if (currentStatus != InvoiceStatus.APPROVED) {
                 throw new IllegalStateException("Only APPROVED invoices can be SENT");
             }
-            // INV-09: validate the generated IS-XML before the SENT state is persisted.
-            isXmlGeneratorService.generate(existing);
-            existing.setStatus(targetStatus);
-            Invoice saved = invoiceRepository.save(existing);
-            audit(saved.getId(), targetStatus.name(), comments);
+            String supplierId = existing.getSupplierId();
+            existing = invoiceRepository.findByIdAndSupplierIdForUpdate(id, supplierId)
+                    .orElseThrow(() -> new java.util.NoSuchElementException("Invoice not found: " + id));
+            InvoiceDispatchJob job = documentGenerationJob.queue(existing);
+            audit(existing.getId(), "DISPATCH_QUEUED", "Dispatch job " + job.getId());
             
-            final String invoiceId = saved.getId();
-            final String supplierId = saved.getSupplierId();
+            final String invoiceId = existing.getId();
             if (TransactionSynchronizationManager.isActualTransactionActive()) {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
@@ -257,7 +253,7 @@ public class InvoiceService {
                 documentGenerationJob.generateAndDispatch(invoiceId, supplierId);
             }
             
-            return saved;
+            return existing;
         } else if (targetStatus == InvoiceStatus.DISPUTED) {
             // INV-10: An Airline user MUST NOT initiate a Dispute against an Invoice that is in DRAFT or FINALIZED status
             if (currentStatus != InvoiceStatus.SENT) {
@@ -288,6 +284,14 @@ public class InvoiceService {
                     saved.getCurrency()));
         }
         return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public InvoiceDispatchJob getDispatchStatus(String id) {
+        Invoice invoice = getInvoice(id);
+        return documentGenerationJob.find(invoice.getId(), invoice.getSupplierId())
+                .orElseThrow(() -> new java.util.NoSuchElementException(
+                        "Invoice dispatch has not been requested: " + id));
     }
 
     @Transactional

@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests that InvoiceDispatchService sends an email with XML and PDF attachments.
@@ -41,6 +42,7 @@ class InvoiceDispatchTest {
         // Inject @Value fields that are not populated outside Spring context
         ReflectionTestUtils.setField(dispatchService, "fromAddress", "noreply@ghcp.test");
         ReflectionTestUtils.setField(dispatchService, "dispatchEnabled", true);
+        ReflectionTestUtils.setField(dispatchService, "simulateDelivery", false);
     }
 
     @Test
@@ -62,15 +64,40 @@ class InvoiceDispatchTest {
     }
 
     @Test
-    void testDispatchIsSkippedWhenDisabled() {
+    void testDisabledDispatchFailsTruthfully() {
         ReflectionTestUtils.setField(dispatchService, "dispatchEnabled", false);
 
         Invoice invoice = buildTestInvoice();
-        dispatchService.dispatch(invoice, "<Invoice/>".getBytes(), "%PDF".getBytes());
+        assertThatThrownBy(() -> dispatchService.dispatch(
+                invoice, "<Invoice/>".getBytes(), "%PDF".getBytes()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("disabled");
 
-        // Should NOT call mail sender at all
         verify(mailSender, never()).createMimeMessage();
         verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void testMissingRecipientsFailsTruthfully() {
+        Invoice invoice = buildTestInvoice();
+        when(recipientResolver.resolve(
+                "EK", java.util.Set.of("INVOICE_REVIEWER"), "DXB", "EK", java.util.Set.of()))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> dispatchService.dispatch(
+                invoice, "<Invoice/>".getBytes(), "%PDF".getBytes()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No authorized airline invoice recipients");
+    }
+
+    @Test
+    void testSimulatedDeliveryIsExplicitAndDoesNotUseSmtp() {
+        ReflectionTestUtils.setField(dispatchService, "dispatchEnabled", false);
+        ReflectionTestUtils.setField(dispatchService, "simulateDelivery", true);
+
+        dispatchService.dispatch(buildTestInvoice(), "<Invoice/>".getBytes(), "%PDF".getBytes());
+
+        verifyNoInteractions(mailSender, recipientResolver);
     }
 
     private Invoice buildTestInvoice() {
@@ -83,7 +110,7 @@ class InvoiceDispatchTest {
                 .currency("AED")
                 .issueDate(LocalDate.of(2025, 1, 15))
                 .dueDate(LocalDate.of(2025, 2, 14))
-                .status(InvoiceStatus.SENT)
+                .status(InvoiceStatus.APPROVED)
                 .totalAmount(new BigDecimal("1200.00"))
                 .lineItems(new ArrayList<>())
                 .build();

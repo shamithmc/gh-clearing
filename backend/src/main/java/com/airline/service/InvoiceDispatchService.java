@@ -33,6 +33,9 @@ public class InvoiceDispatchService {
     @Value("${app.mail.dispatch-enabled:true}")
     private boolean dispatchEnabled;
 
+    @Value("${app.mail.simulate-delivery:false}")
+    private boolean simulateDelivery;
+
     public InvoiceDispatchService(
             JavaMailSender mailSender, NotificationRecipientResolver recipientResolver) {
         this.mailSender = mailSender;
@@ -41,46 +44,42 @@ public class InvoiceDispatchService {
 
     /**
      * Sends the invoice email to the airline.
-     * @param invoice  the SENT invoice
+     * @param invoice  the APPROVED invoice being dispatched
      * @param xmlBytes the generated IATA IS-XML file bytes
      * @param pdfBytes the generated PDF file bytes
      */
     public void dispatch(Invoice invoice, byte[] xmlBytes, byte[] pdfBytes) {
-        if (!dispatchEnabled) {
+        if (simulateDelivery) {
+            logger.info("Simulated successful invoice delivery for invoice ID: {}", invoice.getId());
             return;
         }
+        if (!dispatchEnabled) {
+            throw new IllegalStateException("Invoice email dispatch is disabled");
+        }
 
+        List<String> recipients = resolveAirlineEmails(invoice);
+        if (recipients.isEmpty()) {
+            throw new IllegalStateException("No authorized airline invoice recipients were found");
+        }
+        String subject = String.format("Invoice %s from Ground Handler %s",
+                invoice.getInvoiceNumber(), invoice.getSupplierId());
+
+        String body = buildEmailBody(invoice);
+        String xmlFilename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
+        String pdfFilename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
+
+        MimeMessage message = mailSender.createMimeMessage();
         try {
-            List<String> recipients = resolveAirlineEmails(invoice);
-            if (recipients.isEmpty()) {
-                return;
-            }
-            String subject = String.format("Invoice %s from Ground Handler %s",
-                    invoice.getInvoiceNumber(), invoice.getSupplierId());
-
-            String body = buildEmailBody(invoice);
-            String xmlFilename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
-            String pdfFilename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
-
-            for (String recipient : recipients) {
-                try {
-                    MimeMessage message = mailSender.createMimeMessage();
-                    MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                    helper.setFrom(fromAddress);
-                    helper.setTo(recipient);
-                    helper.setSubject(subject);
-                    helper.setText(body, false);
-                    helper.addAttachment(xmlFilename, () -> new java.io.ByteArrayInputStream(xmlBytes), "application/xml");
-                    helper.addAttachment(pdfFilename, () -> new java.io.ByteArrayInputStream(pdfBytes), "application/pdf");
-
-                    mailSender.send(message);
-                } catch (Exception e) {
-                    logger.warn("Invoice email dispatch to {} skipped (SMTP server unavailable at localhost:1025): {}", recipient, e.getMessage());
-                    logger.debug("Full dispatch exception: ", e);
-                }
-            }
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(recipients.toArray(String[]::new));
+            helper.setSubject(subject);
+            helper.setText(body, false);
+            helper.addAttachment(xmlFilename, () -> new java.io.ByteArrayInputStream(xmlBytes), "application/xml");
+            helper.addAttachment(pdfFilename, () -> new java.io.ByteArrayInputStream(pdfBytes), "application/pdf");
+            mailSender.send(message);
         } catch (Exception e) {
-            logger.warn("Failed to resolve recipients or dispatch invoice email: {}", e.getMessage());
+            throw new IllegalStateException("Invoice email dispatch failed", e);
         }
     }
 

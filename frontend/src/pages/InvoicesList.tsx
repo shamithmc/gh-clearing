@@ -64,6 +64,13 @@ interface Invoice {
   lineItems: InvoiceLineItem[];
 }
 
+interface InvoiceDispatchStatus {
+  status: 'QUEUED' | 'GENERATING' | 'FAILED' | 'DELIVERED';
+  lastError?: string;
+}
+
+const wait = (milliseconds: number) => new Promise(resolve => window.setTimeout(resolve, milliseconds));
+
 const InvoicesList: React.FC = () => {
   const usingWorkOs = isWorkOsAuthenticated();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -79,6 +86,7 @@ const InvoicesList: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [modificationComments, setModificationComments] = useState('');
+  const [dispatchingInvoiceIds, setDispatchingInvoiceIds] = useState<Set<string>>(new Set());
 
   // Dispute modal states
   const [isDisputeModalVisible, setIsDisputeModalVisible] = useState(false);
@@ -125,29 +133,67 @@ const InvoicesList: React.FC = () => {
     setSimulatedUserId(userId);
   };
 
-  const handleStatusChange = (id: string, status: string, comments?: string) => {
+  const waitForDispatch = async (id: string): Promise<void> => {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const response = await fetch(`/api/invoices/${id}/dispatch`, {
+        headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
+      });
+      if (!response.ok) {
+        throw new Error((await response.text()) || 'Unable to read dispatch status');
+      }
+
+      const dispatch = await response.json() as InvoiceDispatchStatus;
+      if (dispatch.status === 'DELIVERED') return;
+      if (dispatch.status === 'FAILED') {
+        throw new Error(dispatch.lastError || 'Invoice dispatch failed');
+      }
+      await wait(500);
+    }
+    throw new Error('Invoice dispatch is still processing. Refresh to check its status.');
+  };
+
+  const handleStatusChange = async (id: string, status: string, comments?: string) => {
     let url = `/api/invoices/${id}/status?status=${status}`;
     if (comments) {
       url += `&comments=${encodeURIComponent(comments)}`;
     }
 
-    fetch(url, {
-      method: 'PUT',
-      headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
-    })
-      .then(async res => {
-        if (res.ok) {
-          message.success(`Invoice status updated to ${status}`);
-          fetchInvoices();
-          setIsModalVisible(false);
-          setModificationComments('');
-          setSelectedInvoiceId(null);
-        } else {
-          const errText = await res.text();
-          message.error(errText || 'Failed to update status');
-        }
-      })
-      .catch(() => message.error('Server error occurred'));
+    if (status === 'SENT') {
+      setDispatchingInvoiceIds(current => new Set(current).add(id));
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId)
+      });
+      if (!response.ok) {
+        throw new Error((await response.text()) || 'Failed to update status');
+      }
+
+      if (status === 'SENT') {
+        message.info('Invoice dispatch queued');
+        await waitForDispatch(id);
+      }
+
+      await fetchInvoices();
+      message.success(`Invoice status updated to ${status}`);
+      setIsModalVisible(false);
+      setModificationComments('');
+      setSelectedInvoiceId(null);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Server error occurred';
+      message.error(detail);
+      fetchInvoices();
+    } finally {
+      if (status === 'SENT') {
+        setDispatchingInvoiceIds(current => {
+          const next = new Set(current);
+          next.delete(id);
+          return next;
+        });
+      }
+    }
   };
 
   const handleDisputeSubmit = () => {
@@ -435,6 +481,8 @@ const InvoicesList: React.FC = () => {
             <Button 
               id={`invoice-${record.id}-send-btn`}
               size="small" 
+              loading={dispatchingInvoiceIds.has(record.id)}
+              disabled={dispatchingInvoiceIds.has(record.id)}
               className="!bg-blue-50 hover:!bg-blue-100 !text-blue-700 !border-blue-200 !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7"
               onClick={() => handleStatusChange(record.id, 'SENT')}
             >
