@@ -49,6 +49,9 @@ jobs:
     - name: Validate Gate Definitions
       run: python .github/scripts/validate_gate_config.py
 
+    - name: Validate CODEOWNERS Precedence
+      run: python .github/scripts/validate_codeowners.py
+
     - name: Validate Dependency Allowlist
       run: python .github/scripts/validate_dependencies.py
 
