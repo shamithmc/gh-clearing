@@ -48,9 +48,6 @@ def validate_maven(allowlist):
                 # Note: To be secure, the artifact MUST be allowed and group MUST be allowed.
                 # If they are not in the list, raise a violation.
                 if g_val not in allowed_groups or a_val not in allowed_artifacts:
-                    # Exception: Spring Boot starter test is typically allowed, check if it's there
-                    if a_val == "spring-boot-starter-test" and g_val == "org.springframework.boot":
-                        continue
                     violations.append(f"Maven Dependency Violation: {g_val}:{a_val} is not in the allowlist.")
         
         if violations:

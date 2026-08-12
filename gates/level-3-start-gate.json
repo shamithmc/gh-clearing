@@ -1,0 +1,13 @@
+{
+  "gate_name": "Level 3 Start",
+  "required_proofs": ["INTEGRATION", "CONFORMANCE", "E2E"],
+  "coverage_threshold": 90.0,
+  "test_suites": [
+    "governance-validators",
+    "backend-tests",
+    "invoice-conformance",
+    "frontend-unit",
+    "playwright-e2e",
+    "topology-reconciliation"
+  ]
+}

@@ -42,7 +42,15 @@
       "invariant_id": "INV-03",
       "name": "Contract State Transition Guard",
       "test_path": "backend/src/test/java/com/airline/contracts/ContractLifecycleTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/api/Contract*",
+        "backend/src/main/java/com/airline/domain/Contract*",
+        "backend/src/main/java/com/airline/repository/Contract*",
+        "backend/src/main/java/com/airline/service/Contract*",
+        "backend/src/main/resources/db/migration/*contract*",
+        "backend/src/test/java/com/airline/contracts/**"
+      ]
     },
     {
       "invariant_id": "INV-04",
@@ -58,19 +66,40 @@
       "invariant_id": "INV-05",
       "name": "PF-07 Tail ID Requirement",
       "test_path": "backend/src/test/java/com/airline/pricing/MtowLookupTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/api/Mtow*",
+        "backend/src/main/java/com/airline/domain/*Mtow*",
+        "backend/src/main/java/com/airline/pricing/evaluators/MtowBasedEvaluator.java",
+        "backend/src/main/java/com/airline/repository/*Mtow*",
+        "backend/src/main/resources/db/migration/*mtow*",
+        "backend/src/test/java/com/airline/pricing/MtowLookupTest.java"
+      ]
     },
     {
       "invariant_id": "INV-06",
       "name": "Cross-Currency Exchange Rate Mandate",
       "test_path": "backend/src/test/java/com/airline/invoices/CrossCurrencyValidationTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/api/Invoice*",
+        "backend/src/main/java/com/airline/domain/Invoice*",
+        "backend/src/main/java/com/airline/service/*Invoice*",
+        "backend/src/test/java/com/airline/invoices/CrossCurrencyValidationTest.java"
+      ]
     },
     {
       "invariant_id": "INV-07",
       "name": "Invoice Number Uniqueness",
       "test_path": "backend/src/test/java/com/airline/invoices/InvoiceUniquenessTest.java",
-      "owner": "@ground-handling/developers"
+      "owner": "@ground-handling/developers",
+      "path_patterns": [
+        "backend/src/main/java/com/airline/domain/Invoice*",
+        "backend/src/main/java/com/airline/repository/Invoice*",
+        "backend/src/main/java/com/airline/service/*Invoice*",
+        "backend/src/main/resources/db/migration/*invoice*",
+        "backend/src/test/java/com/airline/invoices/InvoiceUniquenessTest.java"
+      ]
     },
     {
       "invariant_id": "INV-08",
@@ -144,6 +173,7 @@
       "owner": "@ground-handling/developers",
       "path_patterns": [
         ".github/**",
+        ".gitignore",
         "CODEOWNERS",
         "dependency-allowlist.json",
         "docs/development-contract.md",

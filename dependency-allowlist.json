@@ -25,6 +25,7 @@
       "jakarta.xml.bind-api",
       "jaxb-runtime",
       "spring-boot-starter-validation",
+      "spring-boot-starter-test",
       "spring-security-test",
       "openpdf"
     ]
