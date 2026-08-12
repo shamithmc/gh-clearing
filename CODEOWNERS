@@ -1,18 +1,8 @@
 # CODEOWNERS for Airline Ground Handling Cost Management Platform
 
-# Tech Lead owns the canonical contracts and decision boundaries
-docs/architecture-contract.md             @ground-handling/tech-lead
-docs/development-contract.md              @ground-handling/tech-lead
-decisions/architecture-log.json           @ground-handling/tech-lead
-decisions/process-log.json                @ground-handling/tech-lead
-
-# Platform Admin owns the high-level business requirement specifications
-docs/PRD.md                               @ground-handling/platform-admin
-docs/PHASES.md                            @ground-handling/platform-admin
-
-# DB and DevOps Admins own multi-tenant databases and topology definitions
-backend/src/main/resources/db/migration/  @ground-handling/db-admins
-topology.json                             @ground-handling/devops
+# GitHub uses the last matching rule. Keep defaults and broad source ownership
+# first so the protected, narrower ownership rules below take precedence.
+*                                         @ground-handling/developers
 
 # Developers own the application source code and day-to-day task tracking
 backend/                                  @ground-handling/developers
@@ -23,5 +13,17 @@ obligations.json                          @ground-handling/developers
 dependency-allowlist.json                 @ground-handling/developers
 gates/                                    @ground-handling/developers
 
-# Default fallback to developers team
-*                                         @ground-handling/developers
+# DB and DevOps Admins own multi-tenant databases and topology definitions.
+# The migration rule must remain after the broader backend rule.
+backend/src/main/resources/db/migration/  @ground-handling/db-admins
+topology.json                             @ground-handling/devops
+
+# Platform Admin owns the high-level business requirement specifications
+docs/PRD.md                               @ground-handling/platform-admin
+docs/PHASES.md                            @ground-handling/platform-admin
+
+# Tech Lead owns the canonical contracts and decision boundaries
+docs/architecture-contract.md             @ground-handling/tech-lead
+docs/development-contract.md              @ground-handling/tech-lead
+decisions/architecture-log.json           @ground-handling/tech-lead
+decisions/process-log.json                @ground-handling/tech-lead
