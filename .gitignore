@@ -17,6 +17,8 @@ out/
 backend/src/main/resources/static/
 .gradle/
 .bin/
+__pycache__/
+*.pyc
 
 # Temporary files & locks
 *.log

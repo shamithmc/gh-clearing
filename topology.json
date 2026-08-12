@@ -8,15 +8,31 @@
   "environments": {
     "dev": {
       "cors_allowed_origins": ["http://localhost:3000", "http://localhost:5173"],
-      "auth_server_url": "http://localhost:8080/auth"
+      "auth_issuer_url": "https://api.workos.com/",
+      "deployment_manifest": "docker-compose.yml",
+      "database": {
+        "engine": "postgresql",
+        "major_version": "16",
+        "name": "gh_clearing"
+      }
     },
     "staging": {
       "cors_allowed_origins": ["https://staging.groundhandling.net"],
-      "auth_server_url": "https://auth.staging.groundhandling.net"
+      "auth_issuer_url": "https://api.workos.com/",
+      "deployment_manifest": "backend/src/main/resources/deploy/render.yaml",
+      "spring_profile": "staging",
+      "network_isolation": true,
+      "database": {
+        "engine": "postgresql",
+        "major_version": "16",
+        "name": "gh-clearing-staging-db"
+      }
     },
     "production": {
       "cors_allowed_origins": ["https://app.groundhandling.net"],
-      "auth_server_url": "https://auth.groundhandling.net"
+      "auth_issuer_url": "https://api.workos.com/",
+      "deployment_manifest": null,
+      "status": "NOT_CONFIGURED"
     }
   },
   "network_policies": {

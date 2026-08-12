@@ -42,6 +42,9 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Test Governance Validators
+      run: python -m unittest discover .github/scripts/tests
+
     - name: Validate Work Unit & Path Claim Locks
       id: work-unit
       run: python .github/scripts/validate_work_unit.py
@@ -52,6 +55,9 @@ jobs:
     - name: Validate CODEOWNERS Precedence
       run: python .github/scripts/validate_codeowners.py
 
+    - name: Reconcile Deployment Topology
+      run: python .github/scripts/validate_topology.py
+
     - name: Validate Dependency Allowlist
       run: python .github/scripts/validate_dependencies.py
 
@@ -59,6 +65,7 @@ jobs:
       run: python .github/scripts/validate_obligations.py
 
     - name: Validate Official Schema Provenance
+      id: schema-provenance
       run: python .github/scripts/validate_schema_provenance.py
 
     - name: Set up JDK 21
@@ -88,11 +95,12 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'frontend/package-lock.json'
 
-    - name: Install and Build Frontend (npm)
+    - name: Install, Test, and Build Frontend (npm)
       if: hashFiles('frontend/package.json') != ''
       run: |
         cd frontend
         npm ci
+        npm test
         npm run build
 
     - name: Install and Run E2E Tests (Playwright)
@@ -104,7 +112,9 @@ jobs:
         npx playwright test
 
     - name: Execute Conformance Proof
-      if: steps.work-unit.outputs.proof == 'CONFORMANCE'
+      if: >-
+        steps.work-unit.outputs.proof == 'CONFORMANCE' ||
+        steps.schema-provenance.outputs.billing_changed == 'true'
       run: >
         mvn -f backend/pom.xml
         -Dtest=IataXmlComplianceTest,InvoiceXmlGenerationTest test

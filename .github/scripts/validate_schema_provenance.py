@@ -9,9 +9,14 @@ from pathlib import Path
 BILLING_PATTERNS = (
     "backend/src/main/java/com/airline/xml/**",
     "backend/src/main/java/com/airline/invoice/**",
+    "backend/src/main/java/com/airline/domain/CreditNote*",
     "backend/src/main/java/com/airline/domain/Invoice*",
+    "backend/src/main/java/com/airline/service/*CreditNote*",
     "backend/src/main/java/com/airline/service/*Invoice*",
+    "backend/src/main/resources/db/migration/*credit_note*",
+    "backend/src/main/resources/db/migration/*invoice_dispatch*",
     "backend/src/main/resources/schema/**",
+    "backend/src/test/java/com/airline/dispatch/**",
     "backend/src/test/java/com/airline/xml/**",
 )
 PROVENANCE_PATH = Path(
@@ -31,6 +36,13 @@ def fail(message):
     sys.exit(1)
 
 
+def set_output(name, value):
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as output:
+            output.write(f"{name}={value}\n")
+
+
 def main():
     branch = (
         os.environ.get("WORK_UNIT_BRANCH")
@@ -42,6 +54,7 @@ def main():
         except (RuntimeError, IndexError):
             branch = "main"
     if branch == "main":
+        set_output("billing_changed", "false")
         print("Running on main; schema-provenance change gate skipped.")
         return
 
@@ -54,8 +67,10 @@ def main():
         if any(fnmatch(path, pattern) for pattern in BILLING_PATTERNS)
     ]
     if not billing_changes:
+        set_output("billing_changed", "false")
         print("No billing/XML paths changed; schema-provenance gate skipped.")
         return
+    set_output("billing_changed", "true")
     if not PROVENANCE_PATH.is_file():
         fail(
             f"Billing changes {billing_changes} require {PROVENANCE_PATH}. "
