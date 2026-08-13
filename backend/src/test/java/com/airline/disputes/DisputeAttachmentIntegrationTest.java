@@ -80,6 +80,7 @@ class DisputeAttachmentIntegrationTest {
         keys.forEach(fileStorageService::delete);
         jdbcTemplate.update("DELETE FROM dispute_attachments WHERE dispute_id = ?", DISPUTE_ID);
         jdbcTemplate.update("DELETE FROM disputes WHERE id = ?", DISPUTE_ID);
+        jdbcTemplate.update("UPDATE invoices SET status = 'DRAFT' WHERE id = 'attachment-invoice'");
         jdbcTemplate.update("DELETE FROM invoices WHERE id = 'attachment-invoice'");
         jdbcTemplate.update("DELETE FROM users WHERE tenant_id IN (?, ?, ?)",
                 SUPPLIER, AIRLINE, OTHER_AIRLINE);
