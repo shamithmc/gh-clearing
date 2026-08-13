@@ -382,6 +382,14 @@ public class InvoiceService {
                 if (invoice.getIssueDate().isBefore(contract.getStartDate()) || invoice.getIssueDate().isAfter(contract.getEndDate())) {
                     throw new IllegalArgumentException("Invoice issue date must fall within contract validity period");
                 }
+                if (item.getFlightDate() == null) {
+                    throw new IllegalArgumentException("Invoice line item flight date is required");
+                }
+                if (item.getFlightDate().isBefore(contract.getStartDate())
+                        || item.getFlightDate().isAfter(contract.getEndDate())) {
+                    throw new IllegalArgumentException(
+                            "Invoice line item flight date must fall within contract validity period");
+                }
 
                 com.airline.domain.ServiceConfiguration serviceConfig = contract.getServices().stream()
                         .filter(s -> s.getChargeCode().equals(item.getChargeCode()))
