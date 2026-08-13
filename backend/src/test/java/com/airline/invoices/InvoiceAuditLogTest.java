@@ -109,6 +109,7 @@ public class InvoiceAuditLogTest {
     void testAuditLogOnCreate() {
         InvoiceLineItem item = InvoiceLineItem.builder()
                 .contractId("c-100")
+                .flightDate(LocalDate.now())
                 .chargeCode("PAX")
                 .quantityDrivers("{\"passengers\": 100}")
                 .build();

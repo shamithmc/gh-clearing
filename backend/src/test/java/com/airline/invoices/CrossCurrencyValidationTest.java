@@ -96,6 +96,7 @@ public class CrossCurrencyValidationTest {
     void testCrossCurrencyMandateMissingExchangeRate_INV_06() {
         InvoiceLineItem item = InvoiceLineItem.builder()
                 .contractId("c-100")
+                .flightDate(LocalDate.now())
                 .chargeCode("PAX")
                 .quantityDrivers("{\"passengers\": 100}")
                 .build();
@@ -125,6 +126,7 @@ public class CrossCurrencyValidationTest {
     void testCrossCurrencyCalculationSucceeds_INV_06() {
         InvoiceLineItem item = InvoiceLineItem.builder()
                 .contractId("c-100")
+                .flightDate(LocalDate.now())
                 .chargeCode("PAX")
                 .quantityDrivers("{\"passengers\": 100}")
                 .build();
@@ -157,7 +159,8 @@ public class CrossCurrencyValidationTest {
 
     @Test
     void crossCurrencyMissingExchangeRateSourceFails_INV_06() {
-        InvoiceLineItem item = InvoiceLineItem.builder().contractId("c-100").chargeCode("PAX")
+        InvoiceLineItem item = InvoiceLineItem.builder().contractId("c-100")
+                .flightDate(LocalDate.now()).chargeCode("PAX")
                 .quantityDrivers("{\"passengers\": 100}").build();
         Invoice invoice = Invoice.builder().invoiceNumber("INV-101").supplierId("SWISSPORT")
                 .airlineId("EK").airportCode("DXB").issueDate(LocalDate.now())

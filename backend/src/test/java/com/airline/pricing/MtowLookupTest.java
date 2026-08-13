@@ -94,6 +94,7 @@ public class MtowLookupTest {
 
         InvoiceLineItem item = InvoiceLineItem.builder()
                 .contractId("c-100")
+                .flightDate(LocalDate.now())
                 .chargeCode("LDG")
                 .quantityDrivers("{\"weight\": 150.0}") // Missing tailNumber
                 .build();
