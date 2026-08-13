@@ -86,7 +86,7 @@ class MarketIntelligenceTenantBoundaryTest {
                 insert into invoices (
                     id, invoice_number, tenant_id, airline_id, airport_code, currency,
                     issue_date, due_date, status, total_amount
-                ) values (?, ?, ?, ?, 'ZZA', 'USD', current_date, current_date, 'SENT', ?)
+                ) values (?, ?, ?, ?, 'ZZA', 'USD', current_date, current_date, 'DRAFT', ?)
                 """, invoiceId, invoiceId, supplierId, airlineId, new BigDecimal(amount));
         jdbcTemplate.update("""
                 insert into invoice_line_items (
@@ -96,5 +96,6 @@ class MarketIntelligenceTenantBoundaryTest {
                 ) values (?, ?, current_date, 'EK001', 'A6-MKT', 'A380', 'ZZA', 'ZZB',
                           ?, ?, 'PF-01', '{}', ?)
                 """, invoiceId + "-LINE", invoiceId, chargeCode, chargeCode, new BigDecimal(amount));
+        jdbcTemplate.update("update invoices set status = 'SENT' where id = ?", invoiceId);
     }
 }

@@ -61,6 +61,7 @@ class InvoiceDispatchWorkflowIntegrationTest {
     void cleanUp() {
         jdbcTemplate.update("DELETE FROM invoice_dispatch_jobs WHERE tenant_id = ?", SUPPLIER);
         jdbcTemplate.update("DELETE FROM invoice_audit_logs WHERE invoice_id LIKE 'dispatch-%'");
+        jdbcTemplate.update("UPDATE invoices SET status = 'DRAFT' WHERE tenant_id = ?", SUPPLIER);
         jdbcTemplate.update("DELETE FROM invoices WHERE tenant_id = ?", SUPPLIER);
         jdbcTemplate.update("DELETE FROM tenants WHERE id IN (?, ?)", SUPPLIER, AIRLINE);
         reset(xmlGeneratorService, pdfService, fileStorageService, dispatchService);

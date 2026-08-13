@@ -59,6 +59,7 @@ public class Invoice {
     private String comments;
 
     @Column(name = "credit_note_amount", precision = 15, scale = 2)
+    @Builder.Default
     private BigDecimal creditNoteAmount = BigDecimal.ZERO;
 
     @Column(name = "xml_file_key", length = 255)
