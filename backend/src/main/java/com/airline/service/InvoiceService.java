@@ -10,6 +10,7 @@ import com.airline.notification.PaymentMarkedEvent;
 import com.airline.pdf.InvoicePdfService;
 import com.airline.repository.ContractRepository;
 import com.airline.repository.InvoiceRepository;
+import com.airline.repository.OperationalFlightRepository;
 import com.airline.pricing.PricingEngine;
 import com.airline.security.TenantContext;
 import com.airline.security.DimensionalSecurityEvaluator;
@@ -45,6 +46,7 @@ public class InvoiceService {
     private final DocumentGenerationJob documentGenerationJob;
     private final DimensionalSecurityEvaluator dimensionalSecurityEvaluator;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final OperationalFlightRepository operationalFlightRepository;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ContractRepository contractRepository,
@@ -52,9 +54,10 @@ public class InvoiceService {
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
                           com.airline.repository.InvoiceAuditLogRepository invoiceAuditLogRepository,
-                          DocumentGenerationJob documentGenerationJob,
-                          DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
-                          ApplicationEventPublisher applicationEventPublisher) {
+                           DocumentGenerationJob documentGenerationJob,
+                           DimensionalSecurityEvaluator dimensionalSecurityEvaluator,
+                           ApplicationEventPublisher applicationEventPublisher,
+                           OperationalFlightRepository operationalFlightRepository) {
         this.invoiceRepository = invoiceRepository;
         this.contractRepository = contractRepository;
         this.pricingEngine = pricingEngine;
@@ -64,6 +67,7 @@ public class InvoiceService {
         this.documentGenerationJob = documentGenerationJob;
         this.dimensionalSecurityEvaluator = dimensionalSecurityEvaluator;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.operationalFlightRepository = operationalFlightRepository;
     }
 
     @Transactional
@@ -80,6 +84,7 @@ public class InvoiceService {
         }
 
         verifyDimensionalAccess(invoice);
+        validateOperationalFlightLinks(invoice, tenantId);
         calculateAndValidateInvoice(invoice);
 
         invoice.setId(UUID.randomUUID().toString());
@@ -174,6 +179,7 @@ public class InvoiceService {
         }
 
         verifyDimensionalAccess(existing);
+        validateOperationalFlightLinks(existing, tenantContext.getCurrentTenantId());
         calculateAndValidateInvoice(existing);
 
         Invoice saved = invoiceRepository.save(existing);
@@ -441,6 +447,38 @@ public class InvoiceService {
                         .collect(Collectors.toSet());
         dimensionalSecurityEvaluator.verifyAccess(
                 invoice.getAirportCode(), invoice.getAirlineId(), chargeCodes);
+    }
+
+    private void validateOperationalFlightLinks(Invoice invoice, String supplierId) {
+        if (invoice.getLineItems() == null) {
+            return;
+        }
+        invoice.getLineItems().stream()
+                .filter(item -> item.getOperationalFlightId() != null
+                        && !item.getOperationalFlightId().isBlank())
+                .forEach(item -> {
+                    com.airline.domain.OperationalFlight flight = operationalFlightRepository
+                            .findByIdAndSupplierId(item.getOperationalFlightId(), supplierId)
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Operational flight not found: " + item.getOperationalFlightId()));
+                    if (!invoice.getAirlineId().equals(flight.getAirlineId())
+                            || !invoice.getAirportCode().equals(flight.getAirportCode())) {
+                        throw new AccessDeniedException(
+                                "Invoice airline and airport must match the operational flight");
+                    }
+                    item.setFlightDate(flight.getFlightDate());
+                    item.setFlightNumber(flight.getFlightNumber());
+                    item.setAircraftReg(flight.getTailId());
+                    item.setAircraftType(flight.getAircraftType());
+                    item.setOrigin(flight.getDepartureAirport());
+                    item.setDestination(flight.getDestinationAirport());
+                    try {
+                        item.setQuantityDrivers(objectMapper.writeValueAsString(flight.getQuantityDrivers()));
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException(
+                                "Operational flight quantity drivers cannot be serialized", e);
+                    }
+                });
     }
 
     private boolean isDimensionallyPermitted(Invoice invoice) {

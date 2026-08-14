@@ -65,7 +65,8 @@ class InvoiceContractPeriodValidationTest {
                 invoiceAuditLogRepository,
                 documentGenerationJob,
                 dimensionalSecurityEvaluator,
-                applicationEventPublisher);
+                applicationEventPublisher,
+                null);
         contract = Contract.builder()
                 .id("contract-1")
                 .groundHandlerId("supplier-1")

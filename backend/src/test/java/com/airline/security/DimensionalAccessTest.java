@@ -139,7 +139,8 @@ class DimensionalAccessTest {
                 mock(com.airline.repository.InvoiceAuditLogRepository.class),
                 mock(com.airline.service.DocumentGenerationJob.class),
                 dimensionalSecurityEvaluator,
-                mock(org.springframework.context.ApplicationEventPublisher.class));
+                mock(org.springframework.context.ApplicationEventPublisher.class),
+                null);
         Invoice permitted = Invoice.builder().id("i1").airportCode("DXB").airlineId("EK")
                 .lineItems(List.of(InvoiceLineItem.builder().chargeCode("BAGGAGE").build())).build();
         Invoice restricted = Invoice.builder().id("i2").airportCode("DXB").airlineId("EK")
