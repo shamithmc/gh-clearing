@@ -131,12 +131,27 @@ INSERT INTO invoices
      credit_note_amount)
 SELECT id, invoice_number, tenant_id, airline_id, airport_code, currency, 1.0000,
        'STAGING_SEED', CURRENT_DATE + issue_offset, CURRENT_DATE + due_offset,
-       status, amount, CURRENT_TIMESTAMP + (issue_offset || ' days')::interval, comments,
+       CASE WHEN status IN ('SENT', 'PAID', 'DISPUTED') THEN 'APPROVED' ELSE status END,
+       amount, CURRENT_TIMESTAMP + (issue_offset || ' days')::interval, comments,
        CASE WHEN id = 'STG-INV-DSP-ACCEPT' THEN 275.00 ELSE 0.00 END
 FROM seed
 ON CONFLICT (id) DO UPDATE SET
-    issue_date = EXCLUDED.issue_date, due_date = EXCLUDED.due_date,
-    status = EXCLUDED.status, total_amount = EXCLUDED.total_amount,
+    issue_date = CASE
+        WHEN invoices.status IN ('SENT', 'PAID', 'DISPUTED') THEN invoices.issue_date
+        ELSE EXCLUDED.issue_date
+    END,
+    due_date = CASE
+        WHEN invoices.status IN ('SENT', 'PAID', 'DISPUTED') THEN invoices.due_date
+        ELSE EXCLUDED.due_date
+    END,
+    status = CASE
+        WHEN invoices.status IN ('SENT', 'PAID', 'DISPUTED') THEN invoices.status
+        ELSE EXCLUDED.status
+    END,
+    total_amount = CASE
+        WHEN invoices.status IN ('SENT', 'PAID', 'DISPUTED') THEN invoices.total_amount
+        ELSE EXCLUDED.total_amount
+    END,
     comments = EXCLUDED.comments, credit_note_amount = EXCLUDED.credit_note_amount;
 
 INSERT INTO invoice_line_items
@@ -155,11 +170,64 @@ SELECT 'STG-LINE-' || right(i.id, length(i.id) - 8), i.id, i.issue_date - 2,
        CASE WHEN i.status = 'DISPUTED' THEN 'OPERATIONAL_DATA_MISMATCH' ELSE NULL END,
        CASE WHEN i.status = 'DISPUTED' THEN 'Seeded workflow example' ELSE NULL END,
        'A380'
-FROM invoices i WHERE i.id LIKE 'STG-INV-%'
-ON CONFLICT (id) DO UPDATE SET
-    flight_date = EXCLUDED.flight_date, calculated_amount = EXCLUDED.calculated_amount,
-    disputed = EXCLUDED.disputed, dispute_category = EXCLUDED.dispute_category,
-    dispute_comment = EXCLUDED.dispute_comment;
+FROM invoices i
+WHERE i.id LIKE 'STG-INV-%'
+  AND i.status NOT IN ('SENT', 'PAID', 'DISPUTED')
+ON CONFLICT (id) DO NOTHING;
+
+-- Refresh billing fields only while the parent invoice is still mutable. This
+-- includes new terminal-state samples, which remain APPROVED until finalized
+-- below, and excludes every previously dispatched invoice on repeat runs.
+UPDATE invoice_line_items line
+SET flight_date = invoice.issue_date - 2,
+    calculated_amount = invoice.total_amount
+FROM invoices invoice
+WHERE line.id = 'STG-LINE-' || right(invoice.id, length(invoice.id) - 8)
+  AND line.invoice_id = invoice.id
+  AND invoice.id LIKE 'STG-INV-%'
+  AND invoice.status NOT IN ('SENT', 'PAID', 'DISPUTED');
+
+-- New terminal-state samples are inserted as APPROVED so their immutable lines
+-- can be created first. Existing terminal invoices retain their billing content
+-- above; this final step only restores the intended workflow state.
+WITH seed(id, status) AS (
+    VALUES
+      ('STG-INV-DRAFT',      'DRAFT'),
+      ('STG-INV-FINAL',      'FINALIZED'),
+      ('STG-INV-APPROVED',   'APPROVED'),
+      ('STG-INV-MODIFY',     'MODIFICATION_REQUESTED'),
+      ('STG-INV-SENT',       'SENT'),
+      ('STG-INV-PAID',       'PAID'),
+      ('STG-INV-DISPUTED',   'DISPUTED'),
+      ('STG-INV-DNATA',      'SENT'),
+      ('STG-INV-DSP-OPEN',   'DISPUTED'),
+      ('STG-INV-DSP-REVIEW', 'DISPUTED'),
+      ('STG-INV-DSP-RESP',   'DISPUTED'),
+      ('STG-INV-DSP-ACCEPT', 'DISPUTED'),
+      ('STG-INV-DSP-REJECT', 'DISPUTED'),
+      ('STG-INV-DSP-ESC',    'DISPUTED')
+)
+UPDATE invoices invoice
+SET status = seed.status
+FROM seed
+WHERE invoice.id = seed.id
+  AND invoice.status IS DISTINCT FROM seed.status;
+
+-- Dispute flags are workflow metadata rather than immutable billing content.
+UPDATE invoice_line_items line
+SET disputed = (invoice.status = 'DISPUTED'),
+    dispute_category = CASE
+        WHEN invoice.status = 'DISPUTED' THEN 'OPERATIONAL_DATA_MISMATCH'
+        ELSE NULL
+    END,
+    dispute_comment = CASE
+        WHEN invoice.status = 'DISPUTED' THEN 'Seeded workflow example'
+        ELSE NULL
+    END
+FROM invoices invoice
+WHERE line.id = 'STG-LINE-' || right(invoice.id, length(invoice.id) - 8)
+  AND line.invoice_id = invoice.id
+  AND invoice.id LIKE 'STG-INV-%';
 
 INSERT INTO invoice_audit_logs (id, invoice_id, action, user_id, timestamp, comments)
 SELECT 'STG-IAL-' || right(id, length(id) - 8), id, status,
