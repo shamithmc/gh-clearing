@@ -201,7 +201,7 @@ const DisputesList: React.FC = () => {
           <div className="text-2xl font-extrabold text-emerald-600 font-mono mt-2">
             ${totalCreditNoteAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
-          <span className="text-[11px] text-slate-400 block mt-1">IATA IS-XML compliant credits</span>
+          <span className="text-[11px] text-slate-400 block mt-1">Application-contract XML credits</span>
         </Card>
 
         <Card className="!rounded-2xl border-slate-200/80 shadow-xs">

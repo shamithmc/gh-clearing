@@ -12,8 +12,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * JAXB-annotated root element for IATA IS-XML e-invoicing (IS P3 compliant).
- * Namespace: urn:iata:is:invoice:1.0
+ * JAXB model for GHCP's application-owned invoice XML contract.
+ * The legacy namespace is a compatibility identifier, not an official IATA claim.
  */
 @Data
 @Builder

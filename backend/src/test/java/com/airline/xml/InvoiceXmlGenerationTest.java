@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Tests IATA IS-XML generation and schema validation (INV-09).
+ * Tests generation and validation against the application-owned invoice XML contract.
  */
 class InvoiceXmlGenerationTest {
 

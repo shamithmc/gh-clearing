@@ -534,7 +534,7 @@ const InvoicesList: React.FC = () => {
           )}
           {(record.status === 'SENT' || record.status === 'PAID' || record.status === 'DISPUTED') && (
             <div className="flex items-center gap-1 border-l border-slate-200 pl-1.5 ml-0.5">
-              <Tooltip title="Download IATA XML standard data file">
+              <Tooltip title="Download GHCP invoice XML data file">
                 <Button
                   size="small"
                   className="!bg-slate-100 hover:!bg-slate-200 !text-slate-700 !border-slate-300 !font-mono !text-[11px] !font-semibold !inline-flex !items-center !gap-1 !rounded-md !px-2 !h-7"

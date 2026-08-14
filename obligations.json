@@ -118,7 +118,7 @@
     {
       "invariant_id": "INV-09",
       "name": "IATA IS-XML Compliance Guard",
-      "test_path": "backend/src/test/java/com/airline/xml/IataXmlComplianceTest.java",
+      "test_path": "backend/src/test/java/com/airline/xml/InvoiceXmlContractValidationTest.java",
       "owner": "@ground-handling/developers",
       "path_patterns": [
         "backend/src/main/java/com/airline/domain/InvoiceDispatch*",

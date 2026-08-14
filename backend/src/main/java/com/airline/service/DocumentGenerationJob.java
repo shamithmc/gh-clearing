@@ -58,7 +58,7 @@ public class DocumentGenerationJob {
             Invoice invoice = invoiceRepository.findByIdAndTenantId(invoiceId, tenantId)
                     .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
-            // Generate IS-XML and PDF
+            // Generate application-contract XML and PDF
             byte[] xmlBytes = xmlGeneratorService.generate(invoice);
             byte[] pdfBytes = pdfService.generate(invoice);
 

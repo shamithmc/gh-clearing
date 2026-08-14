@@ -5,7 +5,7 @@
   "test_suites": [
     "governance-validators",
     "backend-tests",
-    "invoice-conformance",
+    "invoice-xml-contract",
     "frontend-unit",
     "playwright-e2e",
     "topology-reconciliation"

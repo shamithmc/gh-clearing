@@ -321,7 +321,7 @@ const AirlineInvoices: React.FC = () => {
       key: 'documents',
       render: (_, invoice) => (
         <div className="flex items-center gap-1.5">
-          <Tooltip title="Download IATA XML standard format">
+          <Tooltip title="Download GHCP invoice XML format">
             <Button
               size="small"
               aria-label={`Download XML ${invoice.invoiceNumber}`}
