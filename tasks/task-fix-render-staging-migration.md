@@ -4,8 +4,7 @@ title: "Recover Render staging database migration"
 owner: Shamith
 state: REVIEW
 paths:
-  - "tasks/task-063-official-iata-conformance.md"
-  - "tasks/task-065-render-staging-migration.md"
+  - "tasks/task-fix-render-staging-migration.md"
   - "backend/src/main/resources/db/migration/beforeMigrate__normalize_dispute_message_actions.sql"
   - "backend/src/main/resources/db/staging/R__staging_seed_data.sql"
 proof: INTEGRATION
@@ -19,7 +18,6 @@ invariants:
 2. Preserve the immutable V30 migration checksum for databases where the integrity migration already succeeded.
 3. Make staging seed inserts and conflict updates write only actions accepted by the V30 check constraint.
 4. Keep the recovery idempotent for fresh databases, V29 staging databases, and databases already beyond V30.
-5. Close merged task 063.
 
 ## Root cause
 
