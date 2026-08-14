@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import re
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -96,7 +97,31 @@ def validate_classification(provenance):
     for field in ("schema_owner", "schema_version", "source_reference", "limitations"):
         if not str(provenance[field]).strip():
             raise ValueError(f"Schema provenance field '{field}' cannot be empty.")
+    validate_upstream_reference(provenance.get("official_upstream_reference"))
     return official
+
+
+def validate_upstream_reference(upstream):
+    if upstream is None:
+        return
+    required = {
+        "standard_owner", "schema_version", "source_reference", "sha256",
+        "verified_at", "redistribution_status"
+    }
+    missing = required - set(upstream)
+    if missing:
+        raise ValueError(f"Official upstream reference is missing fields: {sorted(missing)}")
+    if upstream["standard_owner"] != "IATA":
+        raise ValueError("Official upstream reference must identify IATA as standard owner.")
+    if not str(upstream["source_reference"]).startswith("https://www.iata.org/"):
+        raise ValueError("Official upstream reference must use an IATA HTTPS source.")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", str(upstream["sha256"])):
+        raise ValueError("Official upstream reference requires a SHA-256 digest.")
+    if upstream["redistribution_status"] != "not_bundled_permission_required":
+        raise ValueError("Official upstream artifact must remain unbundled until permission is recorded.")
+    for field in ("schema_version", "verified_at"):
+        if not str(upstream[field]).strip():
+            raise ValueError(f"Official upstream field '{field}' cannot be empty.")
 
 
 def main():

@@ -155,8 +155,7 @@ raised separately. The principle is ‘pay-first, dispute later’. Of-course, i
 is too large, IATA may very well kick out the participant from it.
 
 The IATA IS XML standard is available here
-https://www.iata.org/services/finance/financial/Documents/IS-XML_e-invoicing_standard_Groun
-d_Handlers.pdf
+https://www.iata.org/services/finance/financial/Documents/IS-XML_e-invoicing_standard_Ground_Handlers.pdf
 
 
 This is yet to be assessed fully from a technical perspective. So, at this point we are unsure of
