@@ -10,7 +10,10 @@ test.describe('Supplier MIS Dashboard E2E', () => {
 
   test('successfully renders dashboard metrics and SVG charts', async ({ page }) => {
     // Verify Page Title
-    await expect(page.locator('h3')).toContainText('Dashboard Analytics');
+    await expect(page.getByRole('heading', {
+      name: 'Dashboard Analytics',
+      exact: true,
+    })).toBeVisible();
 
     // Verify top-level stats cards are visible
     await expect(page.locator('text=Outstanding Receivables')).toBeVisible();

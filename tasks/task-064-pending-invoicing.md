@@ -28,6 +28,7 @@ paths:
   - "frontend/src/pages/Dashboard.tsx"
   - "frontend/src/pages/SupplierPendingInvoicingPanel.tsx"
   - "e2e/tests/supplier-pending-invoicing.spec.ts"
+  - "e2e/tests/dashboard.spec.ts"
 proof: INTEGRATION
 invariants:
   - INV-01
