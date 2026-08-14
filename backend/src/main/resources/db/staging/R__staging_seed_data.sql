@@ -251,15 +251,24 @@ INSERT INTO dispute_messages
     (id, dispute_id, sender_tenant_id, sender_tenant_type, sender_user_id,
      message, action, created_at)
 SELECT 'STG-DMSG-A-' || right(id, length(id) - 8), id, airline_id, 'AIRLINE',
-       'stg-user-ek', initiator_comment, 'CREATED', created_at
+       'stg-user-ek', initiator_comment, 'OPENED', created_at
 FROM disputes WHERE id LIKE 'STG-DSP-%'
-ON CONFLICT (id) DO UPDATE SET message = EXCLUDED.message, created_at = EXCLUDED.created_at;
+ON CONFLICT (id) DO UPDATE SET
+    message = EXCLUDED.message, action = EXCLUDED.action, created_at = EXCLUDED.created_at;
 
 INSERT INTO dispute_messages
     (id, dispute_id, sender_tenant_id, sender_tenant_type, sender_user_id,
      message, action, created_at)
 SELECT 'STG-DMSG-S-' || right(id, length(id) - 8), id, supplier_id, 'GROUND_HANDLER',
-       'stg-user-swissport', latest_response, status, updated_at
+       'stg-user-swissport', latest_response,
+       CASE status
+           WHEN 'UNDER_REVIEW' THEN 'ACKNOWLEDGE'
+           WHEN 'RESPONDED' THEN 'RESPOND'
+           WHEN 'ACCEPTED' THEN 'ACCEPT'
+           WHEN 'REJECTED' THEN 'REJECT'
+           WHEN 'ESCALATED' THEN 'ESCALATE'
+       END,
+       updated_at
 FROM disputes WHERE id LIKE 'STG-DSP-%' AND latest_response IS NOT NULL
 ON CONFLICT (id) DO UPDATE SET
     message = EXCLUDED.message, action = EXCLUDED.action, created_at = EXCLUDED.created_at;

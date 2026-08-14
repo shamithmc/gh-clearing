@@ -187,6 +187,8 @@
         "backend/src/main/java/com/airline/api/Dispute*",
         "backend/src/main/java/com/airline/domain/Dispute*",
         "backend/src/main/java/com/airline/service/Dispute*",
+        "backend/src/main/resources/db/migration/beforeMigrate__normalize_dispute_message_actions.sql",
+        "backend/src/main/resources/db/staging/R__staging_seed_data.sql",
         "backend/src/test/java/com/airline/vocabularies/**",
         "backend/pom.xml",
         "frontend/package.json",
