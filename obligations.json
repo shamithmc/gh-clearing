@@ -177,6 +177,7 @@
         "CODEOWNERS",
         "dependency-allowlist.json",
         "docs/development-contract.md",
+        "docs/design.md",
         "docs/PHASES.md",
         "docs/workos-authkit-setup.md",
         "docs/phase-1-9-development-audit.md",

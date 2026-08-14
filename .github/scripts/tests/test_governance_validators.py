@@ -181,6 +181,35 @@ class SchemaProvenanceTest(unittest.TestCase):
             )
         )
 
+    def test_verified_upstream_reference_does_not_reclassify_local_schema(self):
+        provenance = self.application_schema()
+        provenance["official_upstream_reference"] = {
+            "standard_owner": "IATA",
+            "schema_version": "4.4.0.0",
+            "source_reference": "https://www.iata.org/schema.xsd",
+            "sha256": "3" * 64,
+            "verified_at": "2026-08-14T00:00:00Z",
+            "redistribution_status": "not_bundled_permission_required",
+        }
+
+        self.assertFalse(
+            validate_schema_provenance.validate_classification(provenance)
+        )
+
+    def test_upstream_reference_cannot_silently_authorize_bundling(self):
+        provenance = self.application_schema()
+        provenance["official_upstream_reference"] = {
+            "standard_owner": "IATA",
+            "schema_version": "4.4.0.0",
+            "source_reference": "https://www.iata.org/schema.xsd",
+            "sha256": "3" * 64,
+            "verified_at": "2026-08-14T00:00:00Z",
+            "redistribution_status": "bundled",
+        }
+
+        with self.assertRaisesRegex(ValueError, "remain unbundled"):
+            validate_schema_provenance.validate_classification(provenance)
+
 
 if __name__ == "__main__":
     unittest.main()

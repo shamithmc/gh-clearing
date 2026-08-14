@@ -6,5 +6,13 @@
   "schema_version": "1.0",
   "sha256": "a899808b6037283fb83ead9aa47f0802dbdd1744f5b3230ac0770e6c26dff677",
   "source_reference": "repository://backend/src/main/resources/schema/is-invoice.xsd",
-  "limitations": "Local invoice interchange contract only; not an official, licensed, or IATA-validated IS-XML artifact."
+  "limitations": "Local invoice interchange contract only; not an official, licensed, or IATA-validated IS-XML artifact.",
+  "official_upstream_reference": {
+    "standard_owner": "IATA",
+    "schema_version": "4.4.0.0",
+    "source_reference": "https://www.iata.org/globalassets/iata/services/financial-services/sis/IATA_IS_XML_Invoice_Standard_V4.4.0.0.xsd",
+    "sha256": "34b86e3ef4c2fd3e1beec7cd6f2587513519c97f8c9db0f47d102b44375ccb45",
+    "verified_at": "2026-08-14T00:00:00Z",
+    "redistribution_status": "not_bundled_permission_required"
+  }
 }
