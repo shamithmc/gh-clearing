@@ -63,7 +63,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- JAXB for IATA IS-XML Invoices -->
+        <!-- JAXB for application-contract invoice XML -->
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>

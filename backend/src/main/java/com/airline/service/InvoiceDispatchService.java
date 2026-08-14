@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * Dispatches approved invoices to role- and dimension-authorized airline users.
- * Attaches both the IATA IS-XML file and the PDF to the outgoing message.
+ * Attaches both the application-contract invoice XML and PDF to the outgoing message.
  */
 @Service
 public class InvoiceDispatchService {
@@ -45,7 +45,7 @@ public class InvoiceDispatchService {
     /**
      * Sends the invoice email to the airline.
      * @param invoice  the APPROVED invoice being dispatched
-     * @param xmlBytes the generated IATA IS-XML file bytes
+     * @param xmlBytes the generated invoice XML file bytes
      * @param pdfBytes the generated PDF file bytes
      */
     public void dispatch(Invoice invoice, byte[] xmlBytes, byte[] pdfBytes) {
@@ -111,7 +111,7 @@ public class InvoiceDispatchService {
                   Total Amount   : %s %s
 
                 Two attachments are included:
-                  1. IATA IS-XML invoice (IS P3 compliant)
+                  1. GHCP invoice XML (validated against the application contract)
                   2. PDF invoice for your records
 
                 Please process payment by the due date indicated.

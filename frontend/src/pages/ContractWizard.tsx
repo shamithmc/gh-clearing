@@ -97,7 +97,7 @@ const ContractWizard: React.FC = () => {
             Create Ground Handling Agreement (SGHA)
           </h1>
           <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
-            Draft IATA-compliant turnaround SLAs, service line formulas, and multi-tiered rate cards
+            Draft structured turnaround SLAs, service line formulas, and multi-tiered rate cards
           </p>
         </div>
       </div>

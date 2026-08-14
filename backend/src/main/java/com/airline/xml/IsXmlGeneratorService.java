@@ -22,15 +22,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Generates IATA IS-XML (IS P3 compliant) invoice documents from Invoice domain objects.
- * Validates the generated XML against the bundled is-invoice.xsd before returning.
- * Satisfies Architecture Contract INV-09 (IATA IS-XML Compliance Guard).
+ * Generates GHCP invoice XML from Invoice domain objects and validates it against
+ * the bundled application-owned contract before returning. This validation does
+ * not establish official IATA IS-XML conformance.
  */
 @Service
 public class IsXmlGeneratorService {
 
     /**
-     * Generates a validated IATA IS-XML byte array from an approved Invoice.
+     * Generates an application-contract-validated XML byte array from an approved Invoice.
      *
      * @param invoice the approved Invoice domain object
      * @return UTF-8 encoded XML bytes
@@ -121,7 +121,7 @@ public class IsXmlGeneratorService {
             marshaller.marshal(xmlInvoice, out);
             return out.toByteArray();
         } catch (JAXBException e) {
-            throw new XmlGenerationException("Failed to marshal invoice to IATA IS-XML: " + e.getMessage(), e);
+            throw new XmlGenerationException("Failed to marshal invoice XML: " + e.getMessage(), e);
         }
     }
 
@@ -135,7 +135,7 @@ public class IsXmlGeneratorService {
                 validator.validate(new StreamSource(new ByteArrayInputStream(xmlBytes)));
             }
         } catch (Exception e) {
-            throw new XmlGenerationException("Generated IS-XML failed schema validation (INV-09): " + e.getMessage(), e);
+            throw new XmlGenerationException("Generated invoice XML failed local contract validation: " + e.getMessage(), e);
         }
     }
 

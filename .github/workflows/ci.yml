@@ -64,7 +64,7 @@ jobs:
     - name: Validate Architectural Invariant Obligations
       run: python .github/scripts/validate_obligations.py
 
-    - name: Validate Official Schema Provenance
+    - name: Validate XML Schema Provenance
       id: schema-provenance
       run: python .github/scripts/validate_schema_provenance.py
 
@@ -111,13 +111,21 @@ jobs:
         npx playwright install --with-deps chromium
         npx playwright test
 
-    - name: Execute Conformance Proof
-      if: >-
-        steps.work-unit.outputs.proof == 'CONFORMANCE' ||
-        steps.schema-provenance.outputs.billing_changed == 'true'
+    - name: Require Official Artifact for Conformance Proof
+      if: steps.work-unit.outputs.proof == 'CONFORMANCE'
+      env:
+        CONFORMANCE_LEVEL: ${{ steps.schema-provenance.outputs.conformance_level }}
+      run: |
+        if [ "$CONFORMANCE_LEVEL" != "official" ]; then
+          echo "CONFORMANCE proof requires an independently trusted official schema artifact."
+          exit 1
+        fi
+
+    - name: Execute XML Contract Proof
+      if: steps.schema-provenance.outputs.billing_changed == 'true'
       run: >
         mvn -f backend/pom.xml
-        -Dtest=IataXmlComplianceTest,InvoiceXmlGenerationTest test
+        -Dtest=InvoiceXmlContractValidationTest,InvoiceXmlGenerationTest test
 
     - name: Confirm Declared Verification Proof
       if: startsWith(github.event_name, 'pull_request')

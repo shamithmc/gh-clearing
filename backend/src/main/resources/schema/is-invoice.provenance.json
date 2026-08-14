@@ -1,11 +1,10 @@
 {
-  "standard_owner": "IATA",
-  "official": true,
+  "schema_owner": "GHCP",
+  "artifact_classification": "application_owned",
+  "official": false,
   "schema_file": "is-invoice.xsd",
-  "schema_version": "4.4.0.0",
+  "schema_version": "1.0",
   "sha256": "a899808b6037283fb83ead9aa47f0802dbdd1744f5b3230ac0770e6c26dff677",
-  "source_reference": "https://www.iata.org/globalassets/iata/services/financial-services/sis/IATA_IS_XML_Invoice_Standard_V4.4.0.0.xsd",
-  "acquired_by": "Shamith",
-  "acquired_at": "2026-07-25T00:00:00Z",
-  "approval_hash": "approved-iata-v4.4.0.0-schema-provenance"
+  "source_reference": "repository://backend/src/main/resources/schema/is-invoice.xsd",
+  "limitations": "Local invoice interchange contract only; not an official, licensed, or IATA-validated IS-XML artifact."
 }

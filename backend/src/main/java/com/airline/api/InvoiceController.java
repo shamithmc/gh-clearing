@@ -70,7 +70,7 @@ public class InvoiceController {
     }
 
     /**
-     * Download the IATA IS-XML file for a dispatched invoice.
+     * Download the application-contract XML file for a dispatched invoice.
      * Available once the invoice has been transitioned to SENT.
      */
     @GetMapping("/{id}/xml")

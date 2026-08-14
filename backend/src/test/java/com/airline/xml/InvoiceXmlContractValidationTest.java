@@ -14,16 +14,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * Conformance gate for IATA IS-XML Compliance Guard (INV-09).
- * Verifies that generated XML validates against the IATA IS-XML schema
- * and contains all mandatory fields before an invoice can be marked SENT.
+ * Validation gate for the application-owned invoice XML contract.
+ * This test does not assert official IATA IS-XML conformance.
  */
-class IataXmlComplianceTest {
+class InvoiceXmlContractValidationTest {
 
     private final IsXmlGeneratorService service = new IsXmlGeneratorService();
 
     @Test
-    void generatedXmlIsValidIataIsXmlSchema() {
+    void generatedXmlIsValidApplicationInvoiceContract() {
         Invoice invoice = buildTestInvoice();
         byte[] xml = service.generate(invoice);
 
@@ -59,7 +58,7 @@ class IataXmlComplianceTest {
     }
 
     @Test
-    void xmlValidationFailurePreventsSentTransition_INV_09() {
+    void localContractValidationFailurePreventsDispatch() {
         com.airline.repository.InvoiceRepository invoiceRepository =
                 mock(com.airline.repository.InvoiceRepository.class);
         IsXmlGeneratorService generator = mock(IsXmlGeneratorService.class);

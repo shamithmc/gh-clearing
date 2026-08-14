@@ -308,7 +308,7 @@ test.describe('Invoice Approval Workflow E2E', () => {
       const xmlBody = (await xmlRes.body()).toString();
       // Verify XML starts with XML declaration or contains IATA namespace
       expect(xmlBody).toContain('<?xml');
-      // Verify IATA IS-XML schema namespace if present
+      // Verify the legacy application-contract namespace if present
       if (xmlBody.includes('urn:iata')) {
         expect(xmlBody).toContain('urn:iata:is:invoice');
       }

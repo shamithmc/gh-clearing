@@ -12,6 +12,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import validate_dependencies
+import validate_schema_provenance
 import validate_topology
 
 
@@ -128,6 +129,57 @@ postgresMajorVersion: "16"
             finally:
                 validate_topology.TOPOLOGY_PATH = old_topology
                 validate_topology.APPLICATION_PATH = old_application
+
+
+class SchemaProvenanceTest(unittest.TestCase):
+    def application_schema(self):
+        return {
+            "schema_owner": "GHCP",
+            "artifact_classification": "application_owned",
+            "official": False,
+            "schema_file": "is-invoice.xsd",
+            "schema_version": "1.0",
+            "sha256": "abc",
+            "source_reference": "repository://schema/is-invoice.xsd",
+            "limitations": "Not an official or licensed IATA artifact.",
+        }
+
+    def test_application_owned_schema_cannot_claim_iata_ownership(self):
+        provenance = self.application_schema()
+        provenance["schema_owner"] = "IATA"
+
+        with self.assertRaisesRegex(ValueError, "cannot identify IATA"):
+            validate_schema_provenance.validate_classification(provenance)
+
+    def test_official_claim_requires_licensed_provenance(self):
+        provenance = self.application_schema()
+        provenance["official"] = True
+
+        with self.assertRaisesRegex(ValueError, "missing fields"):
+            validate_schema_provenance.validate_classification(provenance)
+
+    def test_complete_official_claim_requires_a_trusted_digest(self):
+        provenance = self.application_schema()
+        provenance.update({
+            "schema_owner": "IATA",
+            "artifact_classification": "licensed_official",
+            "official": True,
+            "source_reference": "https://example.test/licensed-schema.xsd",
+            "standard_owner": "IATA",
+            "acquired_by": "authorized-user",
+            "acquired_at": "2026-08-14T00:00:00Z",
+            "approval_hash": "reviewed-change",
+        })
+
+        with self.assertRaisesRegex(ValueError, "reviewed trust set"):
+            validate_schema_provenance.validate_classification(provenance)
+
+    def test_application_owned_schema_is_classified_truthfully(self):
+        self.assertFalse(
+            validate_schema_provenance.validate_classification(
+                self.application_schema()
+            )
+        )
 
 
 if __name__ == "__main__":

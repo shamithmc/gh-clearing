@@ -22,6 +22,9 @@ BILLING_PATTERNS = (
 PROVENANCE_PATH = Path(
     "backend/src/main/resources/schema/is-invoice.provenance.json"
 )
+# Official status is fail-closed. A licensed artifact may be admitted only by a
+# separately reviewed change that adds its independently verified digest here.
+TRUSTED_OFFICIAL_SCHEMA_DIGESTS = frozenset()
 
 
 def run(args):
@@ -41,6 +44,59 @@ def set_output(name, value):
     if github_output:
         with open(github_output, "a", encoding="utf-8") as output:
             output.write(f"{name}={value}\n")
+
+
+def validate_classification(provenance):
+    required = {
+        "schema_owner", "artifact_classification", "official", "schema_file",
+        "schema_version", "sha256", "source_reference", "limitations"
+    }
+    missing = required - set(provenance)
+    if missing:
+        raise ValueError(f"Schema provenance is missing fields: {sorted(missing)}")
+
+    official = provenance["official"]
+    classification = provenance["artifact_classification"]
+    if not isinstance(official, bool):
+        raise ValueError("Schema provenance field 'official' must be boolean.")
+    if official:
+        official_fields = {
+            "standard_owner", "acquired_by", "acquired_at", "approval_hash"
+        }
+        missing_official = official_fields - set(provenance)
+        if missing_official:
+            raise ValueError(
+                f"Official schema provenance is missing fields: {sorted(missing_official)}"
+            )
+        if classification != "licensed_official" or provenance["standard_owner"] != "IATA":
+            raise ValueError(
+                "An official IATA artifact must be classified as licensed_official."
+            )
+        if not str(provenance["source_reference"]).startswith("https://"):
+            raise ValueError(
+                "Official schema provenance requires a verifiable HTTPS source reference."
+            )
+        if str(provenance["sha256"]).lower() not in TRUSTED_OFFICIAL_SCHEMA_DIGESTS:
+            raise ValueError(
+                "Official schema digest is not in the independently reviewed trust set."
+            )
+    else:
+        if classification != "application_owned":
+            raise ValueError(
+                "A non-official schema must be classified as application_owned."
+            )
+        if str(provenance["schema_owner"]).upper() == "IATA":
+            raise ValueError(
+                "An application-owned schema cannot identify IATA as its owner."
+            )
+        if not str(provenance["source_reference"]).startswith("repository://"):
+            raise ValueError(
+                "Application-owned schema provenance requires a repository source reference."
+            )
+    for field in ("schema_owner", "schema_version", "source_reference", "limitations"):
+        if not str(provenance[field]).strip():
+            raise ValueError(f"Schema provenance field '{field}' cannot be empty.")
+    return official
 
 
 def main():
@@ -72,39 +128,25 @@ def main():
         return
     set_output("billing_changed", "true")
     if not PROVENANCE_PATH.is_file():
-        fail(
-            f"Billing changes {billing_changes} require {PROVENANCE_PATH}. "
-            "The bundled schema is not accepted as official without provenance."
-        )
+        fail(f"Billing changes {billing_changes} require {PROVENANCE_PATH}.")
 
     try:
         provenance = json.loads(PROVENANCE_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         fail(f"Invalid schema provenance metadata: {exc}")
-    required = {
-        "standard_owner", "official", "schema_file", "schema_version",
-        "sha256", "source_reference", "acquired_by", "acquired_at",
-        "approval_hash"
-    }
-    missing = required - set(provenance)
-    if missing:
-        fail(f"Schema provenance is missing fields: {sorted(missing)}")
-    if provenance["standard_owner"] != "IATA" or provenance["official"] is not True:
-        fail("Schema provenance must identify an official IATA artifact.")
+    try:
+        official = validate_classification(provenance)
+    except ValueError as exc:
+        fail(str(exc))
     schema_path = PROVENANCE_PATH.parent / provenance["schema_file"]
     if not schema_path.is_file():
         fail(f"Provenance references missing schema file {schema_path}.")
     digest = hashlib.sha256(schema_path.read_bytes()).hexdigest()
     if digest.lower() != str(provenance["sha256"]).lower():
         fail("Schema SHA-256 does not match provenance metadata.")
-    for field in (
-        "schema_version", "source_reference", "acquired_by", "acquired_at",
-        "approval_hash"
-    ):
-        if not str(provenance[field]).strip():
-            fail(f"Schema provenance field '{field}' cannot be empty.")
-
-    print("Official IATA schema provenance validation PASSED.")
+    conformance = "official" if official else "application-contract-only"
+    set_output("conformance_level", conformance)
+    print(f"XML schema provenance validation PASSED ({conformance}).")
 
 
 if __name__ == "__main__":
