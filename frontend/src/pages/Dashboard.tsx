@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getSimulatedUserId, scopedUserId, setSimulatedUserId, simulatedAuthHeaders, unrestrictedUserId } from '../utils/simulatedAuth';
 import { isWorkOsAuthenticated } from '../auth/workosAuth';
 import SupplierOperationalFootprintPanel from './SupplierOperationalFootprintPanel';
+import SupplierPendingInvoicingPanel from './SupplierPendingInvoicingPanel';
 import { 
   DollarSign, 
   FileText, 
@@ -691,6 +692,12 @@ const Dashboard: React.FC = () => {
           </div>
         </>
       )}
+      <SupplierPendingInvoicingPanel
+        airlineId={selectedAirline}
+        airportCode={selectedAirport}
+        startDate={startDate}
+        endDate={endDate}
+      />
       <SupplierOperationalFootprintPanel />
     </div>
   );

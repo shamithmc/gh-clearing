@@ -60,6 +60,9 @@ public class InvoiceLineItem {
     @Column(name = "contract_id", length = 50)
     private String contractId;
 
+    @Column(name = "operational_flight_id", length = 50)
+    private String operationalFlightId;
+
     @Column(name = "disputed")
     private Boolean disputed = false;
 

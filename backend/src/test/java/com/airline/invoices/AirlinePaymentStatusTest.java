@@ -56,7 +56,7 @@ class AirlinePaymentStatusTest {
     void setUp() {
         invoiceService = new InvoiceService(invoiceRepository, contractRepository, pricingEngine,
                 tenantContext, new ObjectMapper(), invoiceAuditLogRepository, documentGenerationJob,
-                dimensionalSecurityEvaluator, applicationEventPublisher);
+                dimensionalSecurityEvaluator, applicationEventPublisher, null);
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("payment-user", "n/a", "PAYMENT_UPDATER"));
         when(tenantContext.getCurrentTenantType()).thenReturn("AIRLINE");

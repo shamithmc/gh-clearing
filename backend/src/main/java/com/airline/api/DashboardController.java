@@ -10,15 +10,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.airline.api.dto.PendingInvoicingResponse;
+import com.airline.service.PendingInvoicingService;
 
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final PendingInvoicingService pendingInvoicingService;
 
-    public DashboardController(DashboardService dashboardService) {
+    public DashboardController(DashboardService dashboardService,
+                               PendingInvoicingService pendingInvoicingService) {
         this.dashboardService = dashboardService;
+        this.pendingInvoicingService = pendingInvoicingService;
     }
 
     @GetMapping("/receivables")
@@ -53,5 +58,17 @@ public class DashboardController {
             @RequestParam(required = false) String airlineId,
             @RequestParam(required = false) String airportCode) {
         return dashboardService.getExpiringContracts(airlineId, airportCode);
+    }
+
+    @GetMapping("/pending-invoicing")
+    public PendingInvoicingResponse getPendingInvoicing(
+            @RequestParam(required = false) String airlineId,
+            @RequestParam(required = false) String airportCode,
+            @RequestParam(required = false) String serviceType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOfDate) {
+        return pendingInvoicingService.getPending(
+                airlineId, airportCode, serviceType, startDate, endDate, asOfDate);
     }
 }

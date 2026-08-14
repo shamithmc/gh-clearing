@@ -55,7 +55,8 @@ class TenantIsolationTest {
                 invoiceAuditLogRepository,
                 documentGenerationJob,
                 dimensionalSecurityEvaluator,
-                applicationEventPublisher);
+                applicationEventPublisher,
+                null);
     }
 
     @Test
