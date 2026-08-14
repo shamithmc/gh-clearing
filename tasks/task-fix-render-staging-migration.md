@@ -5,6 +5,7 @@ owner: Shamith
 state: REVIEW
 paths:
   - "tasks/task-fix-render-staging-migration.md"
+  - "obligations.json"
   - "backend/src/main/resources/db/migration/beforeMigrate__normalize_dispute_message_actions.sql"
   - "backend/src/main/resources/db/staging/R__staging_seed_data.sql"
 proof: INTEGRATION
