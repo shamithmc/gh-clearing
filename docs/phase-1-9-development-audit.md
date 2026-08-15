@@ -35,6 +35,9 @@ recovery, immutable seed reruns, and canonical formula-type persistence.
 
 ### Remaining work
 
+These items are now explicit mandatory carryover criteria under Phase 10.0 in
+`docs/PHASES.md`; recording them in the roadmap does not itself complete them.
+
 1. **External authority blocker — official IATA IS-XML.** The repository cannot
    claim or execute official conformance until written authority and the complete
    imported official schema set are supplied with reviewable provenance. Local
