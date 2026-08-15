@@ -259,21 +259,62 @@ Each phase delivers a **working, deployable product** that builds on the previou
 
 | # | Feature | Details |
 |---|---|---|
+| 10.0 | **Completion Carryover** | Close inherited Phase 1-9 product-completeness, durability, reporting, and verification gaps before Level 3 can be declared complete. The acceptance checklist below is mandatory and cannot be replaced by a generic hardening assertion |
 | 10.1 | **GDS Integration** | Connect to GDS provider. On invoice entry, entering date range + airline auto-populates flight details (flight #, aircraft reg, dep, dest). User can override |
 | 10.2 | **Exchange Rate Feed** | Bloomberg/Reuters feed integration. Auto-populate exchange rates for cross-currency invoices. Manual override available |
 | 10.3 | **MTOW Auto-Update** | Automated feed for tail number registry with reference industry weights and actual MTOW values |
 | 10.4 | **Payment Terms Logic** | Auto-calculate invoice due dates based on configurable payment terms per airline-supplier pair |
-| 10.5 | **Advanced Notifications** | In-app notification center + email digests. Contract expiry reminders, dispute escalation alerts, RFP deadlines |
-| 10.6 | **Platform Hardening** | Performance optimization for large data volumes, report caching (Redis), database query tuning, load testing |
-| 10.7 | **ICH Readiness** | Assess and prepare for IATA Clearing House submission pathway. May require additional XML formats and submission protocols |
+| 10.5 | **Advanced Notifications** | In-app notification center + email digests. Contract expiry reminders, dispute escalation alerts, and RFP deadlines. Delivery attempts, retry state, terminal failure reason, and user-visible status must be durable and idempotent |
+| 10.6 | **Platform Hardening** | Performance optimization for large data volumes, report caching (Redis), database query tuning, route-level frontend splitting, an enforced bundle/performance budget, self-provisioning integration tests, full-journey E2E coverage, and load testing |
+| 10.7 | **IATA/ICH Readiness Gate** | Acquire reviewable authority and the complete official schema dependency set; validate invoice and credit-note outputs before any official conformance claim; assess ICH submission formats and protocols. An unavailable licensed artifact keeps the gate externally blocked rather than waived |
+
+### Phase 10.0 Completion Carryover Acceptance
+
+All of the following are required before Phase 10 or Level 3 can be marked
+complete:
+
+- **Administration and configuration:** replace the `/configuration`
+  placeholder with secured supplier configuration, tenant, user, role, and
+  dimensional-scope administration workflows for the authorized platform,
+  ground-handler, and airline personas.
+- **Formula authoring:** render and validate formula-specific structured editors
+  for PF-01 through PF-07, including tiers, slabs, time bands, day rates,
+  quantity drivers, units of measure, and review output that round-trips without
+  losing configuration.
+- **Reporting completeness:** provide the full supplier dashboard dimension
+  filter matrix and dedicated tenant/dimension-secured SDR1 and ADR1 report APIs
+  and views with the specified chart and table drill-downs.
+- **Production durability:** use tenant-namespaced production object storage for
+  generated documents and attachments, with encryption/access-policy and
+  retention behavior verified; persist notification delivery, retry, and
+  terminal failure state.
+- **Verification depth:** expand frontend component coverage across role
+  visibility, filters, loading, error, and mutation states; make persistence
+  integration tests provision their declared PostgreSQL dependency; and retain
+  a non-stubbed browser journey from authenticated contract entry through
+  invoice dispatch and dispute resolution.
+- **Performance controls:** split major frontend routes, define and enforce
+  bundle and runtime budgets, and prove report/query behavior at representative
+  data volume through repeatable load tests.
+- **External conformance:** satisfy the 10.7 authority and official-artifact
+  gate. Application-owned XML validation must remain clearly labeled and cannot
+  satisfy official IATA IS-XML or ICH readiness.
+
+Completion evidence must be represented by merged task records, passing CI
+proofs, and the applicable Level 3 gate checks. Deferred, unavailable, or
+externally blocked criteria remain open; they are not implicitly accepted by
+completing another Phase 10 deliverable.
 
 ### What You Can Do After Phase 10
 
-**Full platform at Level 3:**
+**Full platform at Level 3, only after 10.0 and all inherited gates pass:**
 - Flight data auto-populated from GDS — minimal manual entry
 - Exchange rates automated
 - Payment terms auto-calculated
-- Platform is production-hardened for scale
+- Administration, formula authoring, reporting, storage, notifications, and
+  verification meet the completion-carryover acceptance criteria
+- Platform is production-hardened for scale with enforced performance budgets
+- Official IATA/ICH readiness is proven, or Level 3 remains explicitly blocked
 
 ---
 

@@ -5,6 +5,74 @@
 **Basis:** `docs/architecture-contract.md`, `docs/development-contract.md`, and `docs/PHASES.md`
 **Method:** Static inspection with line-level evidence, manifest/path validation, and local execution of backend, frontend, build, and E2E suites.
 
+## Remediation reconciliation (2026-08-15)
+
+This section supersedes the remediation status statements in the original
+2026-07-31 audit. The original evidence and findings are retained below as the
+point-in-time audit record; they must not be read as the current repository
+state. Reconciliation is based on merged `main` through PR #87 and successful
+main-branch CI for that commit.
+
+### Prioritized backlog disposition
+
+| Original finding | Current disposition | Remediation evidence |
+|---|---|---|
+| Unsupported IATA conformance claim | **Truthful but externally blocked** | PRs #82 and #83 classify the bundled contracts as application-owned and record the verified official v4.4.0.0 upstream URL and digest. Official conformance still requires IATA usage/redistribution authority and the imported Base Datatypes and Main Dictionary schema set. |
+| Structural tenant isolation and unsafe market scans | **Resolved** | PR #71 introduced mandatory tenant-scoped repositories and an explicit anonymized market-intelligence aggregation boundary. The SQL boundary retains the minimum-two-supplier threshold and does not return supplier identities or raw observations. |
+| Unsafe dispute actions and transitions | **Resolved** | PR #68 added party/role authorization, dimensional checks, and guarded state transitions. |
+| Numeric-only credit notes | **Resolved at the application-contract level** | PR #73 added durable credit-note records, generation, storage, dispatch, and tests. Official IATA conformance remains part of the shared external blocker above. |
+| Premature invoice `SENT` state | **Resolved** | PR #76 added durable dispatch jobs, actionable failure state, idempotent retry, and delivery-gated invoice state. |
+| Unsafe/missing dispute attachments | **Resolved** | PR #77 added tenant/object authorization, content controls, scan boundary, tenant-namespaced storage, retention metadata, and negative tests. |
+| Invoice contract-period validation | **Resolved** | PR #80 validates every linked flight date against the approved contract period. |
+| Missing database integrity controls | **Resolved** | PR #81 added identity/FK/vocabulary/value constraints and dispatched-content protection. |
+| E2E isolation and reliability | **Resolved for the reported failures** | PR #66 repaired the audit-reproduced failures; subsequent remediation PRs have passed the full CI Playwright gate. |
+| Incomplete governance mechanics | **Resolved** | PRs #78 and #79 corrected CODEOWNERS precedence and completed work-unit, obligation, topology, gate, dependency, frontend-test, and billing-path controls. |
+| Missing SFR4 pending invoicing | **Resolved** | PR #84 added tenant-scoped operational-flight ingestion, due uninvoiced service calculation, currency-safe summaries, dashboard drill-down, and lifecycle tests. |
+| PF-07 aircraft-type fallback ambiguity | **Closed by re-audit** | The architecture requires an operational tail ID; an unknown registered tail falls back to the aircraft-type default and fails closed when neither reference exists. No authority amendment was required. |
+
+PRs #85-#87 are post-remediation stability corrections for staging migration
+recovery, immutable seed reruns, and canonical formula-type persistence.
+
+### Remaining work
+
+These items are now explicit mandatory carryover criteria under Phase 10.0 in
+`docs/PHASES.md`; recording them in the roadmap does not itself complete them.
+
+1. **External authority blocker — official IATA IS-XML.** The repository cannot
+   claim or execute official conformance until written authority and the complete
+   imported official schema set are supplied with reviewable provenance. Local
+   invoice and credit-note contract validation remains useful but is not IATA
+   certification or clearing-house compatibility.
+2. **Administration and configuration UI.** `/configuration` is still a
+   placeholder, and supplier/airline tenant, user, role, and dimensional-scope
+   administration has secured APIs but no complete frontend workflow.
+3. **Contract formula authoring UI.** The contract wizard selects all seven
+   formulas but does not provide complete structured editors for tiers, slabs,
+   time bands, and day rates.
+4. **Production platform hardening.** File storage remains local-disk based;
+   general notification delivery lacks a durable retry/status record outside
+   the invoice/credit-note dispatch workflows.
+5. **Reporting completeness.** The supplier dashboard does not expose the full
+   specified dimension-filter matrix, and SDR1/ADR1 remain client-derived cards
+   rather than dedicated secured report endpoints.
+6. **Test and performance depth.** Frontend unit coverage remains sparse;
+   integration tests require an externally provisioned PostgreSQL service; no
+   single browser test proves login through the entire contract-to-dispute
+   journey; and the frontend still needs route-level splitting and a bundle
+   performance budget.
+
+### Current gate interpretation
+
+- **Level 1 Core/Complete:** application workflows are materially remediated,
+  but official IATA conformance and production storage readiness still prevent
+  an unconditional production-ready declaration.
+- **Level 2 Complete:** the audit's market-confidentiality and SFR4 blockers are
+  resolved, subject to inherited lower-level blockers and remaining filter/UI
+  completeness.
+- **Level 3 Start:** dispute authorization, attachments, credit-note workflow,
+  database integrity, and dispatch truthfulness are remediated; official XML
+  conformance remains inherited and reporting depth remains incomplete.
+
 ## 1. Executive Summary
 
 ### Overall assessment
