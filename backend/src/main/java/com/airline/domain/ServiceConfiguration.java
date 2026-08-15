@@ -35,7 +35,7 @@ public class ServiceConfiguration {
     @Column(name = "service_name", nullable = false, length = 100)
     private String serviceName;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = FormulaTypeConverter.class)
     @Column(name = "formula_type", nullable = false, length = 10)
     private FormulaType formulaType;
 
