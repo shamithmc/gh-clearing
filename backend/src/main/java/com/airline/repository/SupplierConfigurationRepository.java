@@ -1,6 +1,7 @@
 package com.airline.repository;
 
 import com.airline.domain.SupplierConfiguration;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface SupplierConfigurationRepository extends TenantScopedRepository<SupplierConfiguration, String> {
 
+    @EntityGraph(attributePaths = {"enabledAirlines", "enabledAirports"})
     Optional<SupplierConfiguration> findByTenantId(String tenantId);
 
     @Query("""
