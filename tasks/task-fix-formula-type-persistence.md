@@ -10,6 +10,7 @@ paths:
   - "backend/src/test/java/com/airline/domain/FormulaTypeConverterTest.java"
 proof: UNIT
 invariants:
+  - INV-01
   - INV-12
 ---
 
