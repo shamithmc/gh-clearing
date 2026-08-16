@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
 
+const supplierHeaders = {
+  'Content-Type': 'application/json',
+  'X-Mock-Tenant-Id': 'SWISSPORT',
+  'X-Mock-Tenant-Type': 'GROUND_HANDLER',
+  'X-Mock-User-Id': 'dev-SWISSPORT',
+};
+
 test('ground-handler administrator edits and reloads supplier configuration', async ({ page }) => {
+  const reset = await page.request.put('/api/tenants/SWISSPORT/configuration', {
+    headers: supplierHeaders,
+    data: {
+      emailIds: null,
+      invoiceBackdatingDays: 30,
+      regionalClassification: null,
+      enabledAirlines: [],
+      enabledAirports: [],
+    },
+  });
+  expect(reset.ok()).toBeTruthy();
+
   await page.addInitScript(() => {
     localStorage.setItem('simTenantId', 'SWISSPORT');
     localStorage.setItem('simTenantType', 'GROUND_HANDLER');
