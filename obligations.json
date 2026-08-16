@@ -181,6 +181,7 @@
         "docs/PHASES.md",
         "docs/workos-authkit-setup.md",
         "docs/phase-1-9-development-audit.md",
+        "docs/product-guide/**",
         "gates/**",
         "obligations.json",
         "tasks/**",
