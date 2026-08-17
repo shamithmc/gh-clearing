@@ -18,6 +18,7 @@ import ServiceOfferings from './pages/ServiceOfferings';
 import AirlineReviewRequests from './pages/AirlineReviewRequests';
 import AirportCostIndex from './pages/AirportCostIndex';
 import DisputesList from './pages/DisputesList';
+import SupplierConfiguration from './pages/SupplierConfiguration';
 
 const TenantHome: React.FC = () => (
   localStorage.getItem('simTenantType') === 'AIRLINE' ? <AirlineDashboard /> : <Dashboard />
@@ -43,7 +44,7 @@ const App: React.FC = () => {
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceWizard />} />
         <Route path="disputes" element={<DisputesList />} />
-        <Route path="configuration" element={<div>Configuration Placeholder</div>} />
+        <Route path="configuration" element={<SupplierConfiguration />} />
       </Route>
     </Routes>
   );

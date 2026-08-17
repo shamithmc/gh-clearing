@@ -7,10 +7,14 @@ import com.airline.repository.SupplierConfigurationRepository;
 import com.airline.repository.TenantRepository;
 import com.airline.service.SupplierConfigurationService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -29,8 +33,16 @@ class SupplierConfigurationSecurityTest {
     @Mock
     private TenantRepository tenantRepository;
 
+    @Mock
+    private TenantContext tenantContext;
+
     @InjectMocks
     private SupplierConfigurationService supplierConfigurationService;
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void getConfiguration_forAirlineTenant_throwsBadRequest() {
@@ -47,6 +59,7 @@ class SupplierConfigurationSecurityTest {
 
     @Test
     void getConfiguration_forGroundHandlerTenant_returnsConfig() {
+        authenticate("ADMIN");
         Tenant gh = new Tenant();
         gh.setId("gh-1");
         gh.setType(Tenant.TenantType.GROUND_HANDLER);
@@ -55,9 +68,46 @@ class SupplierConfigurationSecurityTest {
         config.setTenantId("gh-1");
 
         when(tenantRepository.findById("gh-1")).thenReturn(Optional.of(gh));
+        when(tenantContext.getCurrentTenantId()).thenReturn("gh-1");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
         when(supplierConfigurationRepository.findByTenantId("gh-1")).thenReturn(Optional.of(config));
 
         SupplierConfiguration result = supplierConfigurationService.getConfiguration("gh-1");
         assertThat(result.getTenantId()).isEqualTo("gh-1");
+    }
+
+    @Test
+    void updateConfiguration_forAnotherGroundHandlerTenant_isDenied() {
+        authenticate("GROUND_HANDLER_ADMIN");
+        when(tenantRepository.findById("gh-2"))
+                .thenReturn(Optional.of(tenant("gh-2", Tenant.TenantType.GROUND_HANDLER)));
+        when(tenantContext.getCurrentTenantId()).thenReturn("gh-1");
+
+        assertThatThrownBy(() -> supplierConfigurationService.updateConfiguration(
+                "gh-2", new SupplierConfigurationRequest()))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("only their own tenant");
+        verify(supplierConfigurationRepository, never()).save(any());
+    }
+
+    @Test
+    void platformAdminCanReadGroundHandlerConfiguration() {
+        authenticate("PLATFORM_ADMIN");
+        SupplierConfiguration config = SupplierConfiguration.builder().tenantId("gh-2").build();
+        when(tenantRepository.findById("gh-2"))
+                .thenReturn(Optional.of(tenant("gh-2", Tenant.TenantType.GROUND_HANDLER)));
+        when(tenantContext.getCurrentTenantType()).thenReturn("PLATFORM_ADMIN");
+        when(supplierConfigurationRepository.findByTenantId("gh-2")).thenReturn(Optional.of(config));
+
+        assertThat(supplierConfigurationService.getConfiguration("gh-2").getTenantId()).isEqualTo("gh-2");
+    }
+
+    private void authenticate(String... authorities) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken("user", "password", authorities));
+    }
+
+    private Tenant tenant(String id, Tenant.TenantType type) {
+        return Tenant.builder().id(id).name(id).type(type).status(Tenant.TenantStatus.ACTIVE).build();
     }
 }

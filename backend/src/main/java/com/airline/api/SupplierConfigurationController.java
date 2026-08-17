@@ -17,13 +17,13 @@ public class SupplierConfigurationController {
     private final SupplierConfigurationService supplierConfigurationService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'GROUND_HANDLER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN')")
     public ResponseEntity<SupplierConfigurationResponse> getConfiguration(@PathVariable String tenantId) {
         return ResponseEntity.ok(SupplierConfigurationResponse.from(supplierConfigurationService.getConfiguration(tenantId)));
     }
 
     @PutMapping
-    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'GROUND_HANDLER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN')")
     public ResponseEntity<SupplierConfigurationResponse> updateConfiguration(
             @PathVariable String tenantId,
             @Valid @RequestBody SupplierConfigurationRequest request) {

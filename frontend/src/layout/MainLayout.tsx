@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { getAuthenticatedUser, isWorkOsAuthenticated, logout } from '../auth/workosAuth';
+import { canManageSupplierConfiguration } from '../utils/supplierConfigurationAccess';
 
 const { Header, Sider, Content } = Layout;
 
@@ -75,11 +76,11 @@ const MainLayout: React.FC = () => {
       icon: <ShoppingBag className="w-4 h-4" />,
       label: 'Service Offerings',
     },
-    {
+    ...(canManageSupplierConfiguration(authenticatedUser, storedTenantType) ? [{
       key: '/configuration',
       icon: <Sliders className="w-4 h-4" />,
       label: 'Configuration',
-    }
+    }] : [])
   ];
 
   const airlineMenuItems = [
