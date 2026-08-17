@@ -4,16 +4,19 @@ title: "Complete Administration & Configuration Workflows (Phase 10.0 Carryover)
 owner: Shamith
 state: REVIEW
 paths:
-  - "backend/src/main/java/com/airline/api/TenantController.java"
   - "backend/src/main/java/com/airline/api/UserController.java"
   - "backend/src/main/java/com/airline/api/dto/UserUpdateRequest.java"
+  - "backend/src/main/java/com/airline/config/SecurityConfig.java"
+  - "backend/src/main/java/com/airline/config/SpaWebMvcConfig.java"
   - "backend/src/main/java/com/airline/repository/TenantRepository.java"
+  - "backend/src/main/java/com/airline/security/DevAuthFilter.java"
   - "backend/src/main/java/com/airline/service/TenantService.java"
   - "backend/src/main/java/com/airline/service/UserService.java"
   - "backend/src/test/java/com/airline/api/TenantControllerTest.java"
   - "backend/src/test/java/com/airline/api/UserControllerTest.java"
   - "backend/src/test/java/com/airline/service/TenantServiceTest.java"
   - "backend/src/test/java/com/airline/service/UserServiceTest.java"
+  - "e2e/tests/administration.spec.ts"
   - "frontend/src/App.tsx"
   - "frontend/src/layout/MainLayout.tsx"
   - "frontend/src/pages/TenantManagement.tsx"
@@ -21,7 +24,6 @@ paths:
   - "frontend/src/pages/__tests__/TenantManagement.test.tsx"
   - "frontend/src/pages/__tests__/UserManagement.test.tsx"
   - "frontend/src/utils/adminAccess.ts"
-  - "e2e/tests/administration.spec.ts"
   - "tasks/task-070-administration-and-configuration.md"
 proof: E2E
 invariants:
