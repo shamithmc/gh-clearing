@@ -19,6 +19,7 @@ paths:
   - "tasks/task-071-contract-formula-authoring.md"
 proof: E2E
 invariants:
+  - INV-01
   - INV-02
   - INV-05
 ---
