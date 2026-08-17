@@ -49,7 +49,7 @@ public class DevAuthFilter extends OncePerRequestFilter {
             } else if ("PLATFORM_ADMIN".equals(mockTenantType)) {
                 roles = List.of("PLATFORM_ADMIN");
             } else {
-                roles = List.of("INVOICE_REVIEWER", "INVOICE_DISPUTER", "CONTRACT_VIEWER",
+                roles = List.of("ADMIN", "AIRLINE_ADMIN", "INVOICE_REVIEWER", "INVOICE_DISPUTER", "CONTRACT_VIEWER",
                         "CONTRACT_REVIEWER", "RFP_RAISER", "MIS_VIEWER", "PAYMENT_UPDATER");
             }
 

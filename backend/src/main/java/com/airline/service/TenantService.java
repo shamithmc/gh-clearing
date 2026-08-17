@@ -21,6 +21,10 @@ public class TenantService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Tenant with id '" + request.getId() + "' already exists");
         }
+        if (tenantRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Tenant with name '" + request.getName() + "' already exists");
+        }
         Tenant tenant = Tenant.builder()
                 .id(request.getId())
                 .name(request.getName())

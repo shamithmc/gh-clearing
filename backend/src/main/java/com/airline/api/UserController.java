@@ -2,6 +2,7 @@ package com.airline.api;
 
 import com.airline.api.dto.UserRequest;
 import com.airline.api.dto.UserResponse;
+import com.airline.api.dto.UserUpdateRequest;
 import com.airline.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,15 @@ public class UserController {
             @Valid @RequestBody UserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserResponse.from(userService.createUser(tenantId, request)));
+    }
+
+    @PutMapping("/{userId}")
+    @PreAuthorize("hasAnyAuthority('PLATFORM_ADMIN', 'ADMIN', 'GROUND_HANDLER_ADMIN', 'AIRLINE_ADMIN')")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable String tenantId,
+            @PathVariable String userId,
+            @Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(UserResponse.from(userService.updateUser(tenantId, userId, request)));
     }
 
     @GetMapping
