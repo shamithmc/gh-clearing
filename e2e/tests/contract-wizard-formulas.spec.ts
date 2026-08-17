@@ -1,16 +1,13 @@
 import { test, expect, Page } from '@playwright/test';
 
 async function selectAntdOption(page: Page, inputId: string, optionText: string, searchTerm?: string) {
-  const container = page.locator(`.ant-select:has(#${inputId})`);
-  await container.scrollIntoViewIfNeeded();
-  await container.click({ force: true });
+  await page.click(`#${inputId}`);
   if (searchTerm) {
-    const input = page.locator(`#${inputId}`);
-    await input.fill(searchTerm);
+    await page.fill(`#${inputId}`, searchTerm);
   }
-  const option = page.locator(`.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-content:has-text("${optionText}")`).first();
-  await option.waitFor({ state: 'visible' });
-  await option.click({ force: true });
+  const option = page.locator(`.ant-select-item-option-content:has-text("${optionText}")`).first();
+  await option.waitFor({ state: 'visible', timeout: 10000 });
+  await option.click();
 }
 
 test.describe('Contract Wizard Dynamic Formula Authoring (PF-01 through PF-07)', () => {

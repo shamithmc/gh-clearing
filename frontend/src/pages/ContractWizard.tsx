@@ -70,19 +70,26 @@ const FALLBACK_CHARGE_CODES: ReferenceChargeCode[] = [
   { code: 'UTILITIES', name: 'Airport Utilities' },
 ];
 
+let cachedAirlines: ReferenceAirline[] = FALLBACK_AIRLINES;
+let cachedAirports: ReferenceAirport[] = FALLBACK_AIRPORTS;
+let cachedChargeCodes: ReferenceChargeCode[] = FALLBACK_CHARGE_CODES;
+let refDataLoaded = false;
+
 const ContractWizard: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
   // Dynamic Reference Data States
-  const [airlines, setAirlines] = useState<ReferenceAirline[]>(FALLBACK_AIRLINES);
-  const [airports, setAirports] = useState<ReferenceAirport[]>(FALLBACK_AIRPORTS);
-  const [chargeCodes, setChargeCodes] = useState<ReferenceChargeCode[]>(FALLBACK_CHARGE_CODES);
+  const [airlines, setAirlines] = useState<ReferenceAirline[]>(cachedAirlines);
+  const [airports, setAirports] = useState<ReferenceAirport[]>(cachedAirports);
+  const [chargeCodes, setChargeCodes] = useState<ReferenceChargeCode[]>(cachedChargeCodes);
   const [loadingRefData, setLoadingRefData] = useState(false);
 
   useEffect(() => {
-    fetchReferenceData();
+    if (!refDataLoaded) {
+      fetchReferenceData();
+    }
   }, []);
 
   const fetchReferenceData = async () => {
@@ -99,9 +106,11 @@ const ContractWizard: React.FC = () => {
       ]);
 
       if (airlinesRes.status === 'fulfilled' && Array.isArray(airlinesRes.value) && airlinesRes.value.length > 0) {
+        cachedAirlines = airlinesRes.value;
         setAirlines(airlinesRes.value);
       }
       if (airportsRes.status === 'fulfilled' && Array.isArray(airportsRes.value) && airportsRes.value.length > 0) {
+        cachedAirports = airportsRes.value;
         setAirports(airportsRes.value);
       }
       if (
@@ -109,8 +118,10 @@ const ContractWizard: React.FC = () => {
         Array.isArray(chargeCodesRes.value) &&
         chargeCodesRes.value.length > 0
       ) {
+        cachedChargeCodes = chargeCodesRes.value;
         setChargeCodes(chargeCodesRes.value);
       }
+      refDataLoaded = true;
     } catch {
       // Fallbacks already initialized
     } finally {
@@ -145,7 +156,12 @@ const ContractWizard: React.FC = () => {
 
       case 'PF-03':
       case 'PF-04': {
-        const rawTiers = Array.isArray(service.tiers) ? service.tiers : [];
+        const rawTiers =
+          Array.isArray(service.tiers) && service.tiers.length > 0
+            ? service.tiers
+            : service.rate !== undefined && service.rate !== null && service.rate !== ''
+            ? [{ upto: null, rate: Number(service.rate), isTerminal: true }]
+            : [];
         const tiers = rawTiers.map((t: any) => ({
           upto: t.isTerminal || t.upto === null || t.upto === '' || t.upto === undefined ? null : Number(t.upto),
           rate: Number(t.rate),
@@ -154,7 +170,12 @@ const ContractWizard: React.FC = () => {
       }
 
       case 'PF-05': {
-        const rawBands = Array.isArray(service.timeBands) ? service.timeBands : [];
+        const rawBands =
+          Array.isArray(service.timeBands) && service.timeBands.length > 0
+            ? service.timeBands
+            : service.rate !== undefined && service.rate !== null && service.rate !== ''
+            ? [{ start: '00:00', end: '24:00', rate: Number(service.rate) }]
+            : [];
         const timeBands = rawBands.map((tb: any) => ({
           start: tb.start,
           end: tb.end,
@@ -493,8 +514,8 @@ const ContractWizard: React.FC = () => {
                               className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
                             >
                               {chargeCodes.map((cc) => (
-                                <Option key={cc.code} value={cc.code} label={cc.code}>
-                                  {cc.code} {cc.name ? `(${cc.name})` : ''}
+                                <Option key={cc.code} value={cc.code} label={`${cc.code} ${cc.name ? `(${cc.name})` : ''}`}>
+                                  {cc.code}
                                 </Option>
                               ))}
                             </Select>
@@ -530,11 +551,11 @@ const ContractWizard: React.FC = () => {
                             >
                               <Option value="PF-01" label="PF-01 (Unit Rate)">PF-01 (Unit Rate)</Option>
                               <Option value="PF-02" label="PF-02 (Compound Unit Rate)">PF-02 (Compound Unit Rate)</Option>
-                              <Option value="PF-03" label="PF-03 (Tiered Volume / Incremental)">PF-03 (Tiered Volume / Incremental)</Option>
-                              <Option value="PF-04" label="PF-04 (Slab Rate / All-Units)">PF-04 (Slab Rate / All-Units)</Option>
+                              <Option value="PF-03" label="PF-03 (Tiered Volume)">PF-03 (Tiered Volume)</Option>
+                              <Option value="PF-04" label="PF-04 (Slab Rate)">PF-04 (Slab Rate)</Option>
                               <Option value="PF-05" label="PF-05 (Time Band Rate)">PF-05 (Time Band Rate)</Option>
-                              <Option value="PF-06" label="PF-06 (Day-of-Week Rate)">PF-06 (Day-of-Week Rate)</Option>
-                              <Option value="PF-07" label="PF-07 (Custom Formula / MTOW Weight)">PF-07 (Custom Formula / MTOW Weight)</Option>
+                              <Option value="PF-06" label="PF-06 (Day Rate)">PF-06 (Day Rate)</Option>
+                              <Option value="PF-07" label="PF-07 (Custom Formula)">PF-07 (Custom Formula)</Option>
                             </Select>
                           </Form.Item>
                         </div>
@@ -550,7 +571,6 @@ const ContractWizard: React.FC = () => {
                             <Input
                               id={`services_${name}_quantityDriver`}
                               placeholder="e.g. passengers"
-                              disabled={selectedFormula === 'PF-02' || selectedFormula === 'PF-07'}
                               className="!text-xs !rounded-lg"
                             />
                           </Form.Item>
@@ -564,7 +584,6 @@ const ContractWizard: React.FC = () => {
                             <Input
                               id={`services_${name}_uom`}
                               placeholder="e.g. PAX"
-                              disabled={selectedFormula === 'PF-07'}
                               className="!text-xs !rounded-lg"
                             />
                           </Form.Item>
@@ -637,21 +656,45 @@ const ContractWizard: React.FC = () => {
                           )}
 
                           {(selectedFormula === 'PF-03' || selectedFormula === 'PF-04') && (
-                            <>
-                              <TiersEditor fieldIndex={name} form={form} formulaType={selectedFormula} />
-                              <Form.Item {...restField} name={[name, 'rate']} className="!hidden">
-                                <Input id={`services_${name}_rate`} type="hidden" />
+                            <div className="space-y-3">
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'rate']}
+                                label={<span className="text-xs font-medium text-slate-700">Base / Fallback Unit Rate</span>}
+                                className="!mb-0 max-w-sm"
+                              >
+                                <Input
+                                  id={`services_${name}_rate`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="e.g. 15.00"
+                                  className="!text-xs !rounded-lg !font-mono"
+                                />
                               </Form.Item>
-                            </>
+                              <TiersEditor fieldIndex={name} form={form} formulaType={selectedFormula} />
+                            </div>
                           )}
 
                           {selectedFormula === 'PF-05' && (
-                            <>
-                              <TimeBandsEditor fieldIndex={name} form={form} />
-                              <Form.Item {...restField} name={[name, 'rate']} className="!hidden">
-                                <Input id={`services_${name}_rate`} type="hidden" />
+                            <div className="space-y-3">
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'rate']}
+                                label={<span className="text-xs font-medium text-slate-700">Standard Base Rate</span>}
+                                className="!mb-0 max-w-sm"
+                              >
+                                <Input
+                                  id={`services_${name}_rate`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="e.g. 100.00"
+                                  className="!text-xs !rounded-lg !font-mono"
+                                />
                               </Form.Item>
-                            </>
+                              <TimeBandsEditor fieldIndex={name} form={form} />
+                            </div>
                           )}
 
                           {selectedFormula === 'PF-06' && (
