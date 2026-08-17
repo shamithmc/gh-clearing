@@ -17,10 +17,13 @@ import {
   Sliders,
   Scale,
   Menu as MenuIcon,
-  X
+  X,
+  Users,
+  Building
 } from 'lucide-react';
 import { getAuthenticatedUser, isWorkOsAuthenticated, logout } from '../auth/workosAuth';
 import { canManageSupplierConfiguration } from '../utils/supplierConfigurationAccess';
+import { canManageUsers, isPlatformAdmin } from '../utils/adminAccess';
 
 const { Header, Sider, Content } = Layout;
 
@@ -39,11 +42,30 @@ const MainLayout: React.FC = () => {
 
   const authenticatedUser = getAuthenticatedUser();
   const storedTenantType = authenticatedUser?.tenantType ?? localStorage.getItem('simTenantType');
-  const isAirline = authenticatedUser
+  const isPlatform = isPlatformAdmin(authenticatedUser, storedTenantType);
+  const isAirline = !isPlatform && (authenticatedUser
     ? authenticatedUser.tenantType === 'AIRLINE'
-    : storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline');
+    : storedTenantType === 'AIRLINE' || location.pathname.startsWith('/airline'));
   const tenantId = authenticatedUser?.tenantId
-    ?? (isAirline ? localStorage.getItem('simTenantId') || 'EK' : localStorage.getItem('simTenantId') || 'SWISSPORT');
+    ?? (isPlatform ? 'PLATFORM' : (isAirline ? localStorage.getItem('simTenantId') || 'EK' : localStorage.getItem('simTenantId') || 'SWISSPORT'));
+
+  const platformAdminMenuItems = [
+    {
+      key: '/',
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      label: 'Dashboard',
+    },
+    {
+      key: '/admin/tenants',
+      icon: <Building className="w-4 h-4" />,
+      label: 'Tenants',
+    },
+    {
+      key: '/admin/users',
+      icon: <Users className="w-4 h-4" />,
+      label: 'User Management',
+    },
+  ];
 
   const groundHandlerMenuItems = [
     {
@@ -80,7 +102,12 @@ const MainLayout: React.FC = () => {
       key: '/configuration',
       icon: <Sliders className="w-4 h-4" />,
       label: 'Configuration',
-    }] : [])
+    }] : []),
+    ...(canManageUsers(authenticatedUser, storedTenantType) ? [{
+      key: '/admin/users',
+      icon: <Users className="w-4 h-4" />,
+      label: 'User Management',
+    }] : []),
   ];
 
   const airlineMenuItems = [
@@ -92,9 +119,14 @@ const MainLayout: React.FC = () => {
     { key: '/airline/marketplace', icon: <ShoppingBag className="w-4 h-4" />, label: 'Marketplace' },
     { key: '/airline/cost-index', icon: <TrendingUp className="w-4 h-4" />, label: 'Cost Index' },
     { key: '/disputes', icon: <Scale className="w-4 h-4" />, label: 'Disputes' },
+    ...(canManageUsers(authenticatedUser, storedTenantType) ? [{
+      key: '/admin/users',
+      icon: <Users className="w-4 h-4" />,
+      label: 'User Management',
+    }] : []),
   ];
 
-  const menuItems = isAirline ? airlineMenuItems : groundHandlerMenuItems;
+  const menuItems = isPlatform ? platformAdminMenuItems : (isAirline ? airlineMenuItems : groundHandlerMenuItems);
 
   // Selected key calculation
   const getSelectedKey = () => {
@@ -107,6 +139,8 @@ const MainLayout: React.FC = () => {
     if (path.startsWith('/contracts')) return '/contracts';
     if (path.startsWith('/review-requests')) return '/review-requests';
     if (path.startsWith('/rfps')) return '/rfps';
+    if (path.startsWith('/admin/tenants')) return '/admin/tenants';
+    if (path.startsWith('/admin/users')) return '/admin/users';
     return path;
   };
 
@@ -139,11 +173,11 @@ const MainLayout: React.FC = () => {
         <div className="p-4 flex items-center justify-between border-b border-slate-800/80">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
-              {isAirline ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+              {isPlatform ? <ShieldCheck className="w-5 h-5" /> : (isAirline ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />)}
             </div>
             <div>
               <h2 className="text-sm font-extrabold text-white tracking-tight m-0">
-                {isAirline ? 'AIRLINE CLEARING' : 'GH CLEARING'}
+                {isPlatform ? 'PLATFORM CLEARING' : (isAirline ? 'AIRLINE CLEARING' : 'GH CLEARING')}
               </h2>
               <span className="text-[10px] font-mono text-slate-400 block tracking-wider uppercase">
                 Aviation Fintech Platform
@@ -200,7 +234,7 @@ const MainLayout: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="hidden sm:inline text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Scope:</span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 font-mono">
-                {tenantId} ({isAirline ? 'AIRLINE' : 'HANDLER'})
+                {tenantId} ({isPlatform ? 'PLATFORM ADMIN' : (isAirline ? 'AIRLINE' : 'HANDLER')})
               </span>
             </div>
           </div>
@@ -210,7 +244,7 @@ const MainLayout: React.FC = () => {
               <User className="w-4 h-4 text-slate-500" />
               <span className="font-semibold text-slate-800">{authenticatedUser?.username ?? tenantId}</span>
               <span className="text-slate-400">|</span>
-              <span className="text-slate-500 font-medium">{isAirline ? 'Airline Operations' : 'Handler Station'}</span>
+              <span className="text-slate-500 font-medium">{isPlatform ? 'Platform Admin' : (isAirline ? 'Airline Operations' : 'Handler Station')}</span>
             </div>
 
             <button 

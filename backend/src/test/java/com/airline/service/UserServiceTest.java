@@ -139,6 +139,97 @@ class UserServiceTest {
                 .hasMessageContaining("implicitly restricted");
     }
 
+    @Test
+    void airlineAdminCanUpdateUserWithinOwnTenant() {
+        authenticate("AIRLINE_ADMIN");
+        airlineContext("EK");
+        when(tenantRepository.findById("EK")).thenReturn(Optional.of(activeTenant("EK", Tenant.TenantType.AIRLINE)));
+
+        User existing = User.builder()
+                .id("u1")
+                .tenantId("EK")
+                .username("Old Name")
+                .email("u1@ek.test")
+                .build();
+        existing.setRoles(Set.of("INVOICE_REVIEWER"));
+
+        when(userRepository.findByIdAndTenantId("u1", "EK")).thenReturn(Optional.of(existing));
+
+        com.airline.api.dto.UserUpdateRequest updateRequest = new com.airline.api.dto.UserUpdateRequest();
+        updateRequest.setUsername("New Name");
+        updateRequest.setEmail("u1_updated@ek.test");
+        updateRequest.setRoles(Set.of("INVOICE_REVIEWER", "INVOICE_DISPUTER"));
+        updateRequest.setAirportRestrictions(Set.of("DXB", "LHR"));
+        updateRequest.setChargeCodeRestrictions(Set.of("BAGGAGE"));
+
+        User updated = userService.updateUser("EK", "u1", updateRequest);
+
+        assertThat(updated.getUsername()).isEqualTo("New Name");
+        assertThat(updated.getEmail()).isEqualTo("u1_updated@ek.test");
+        assertThat(updated.getRoles()).containsExactlyInAnyOrder("INVOICE_REVIEWER", "INVOICE_DISPUTER");
+        assertThat(updated.getAirportRestrictions()).containsExactlyInAnyOrder("DXB", "LHR");
+        assertThat(updated.getChargeCodeRestrictions()).containsExactlyInAnyOrder("BAGGAGE");
+    }
+
+    @Test
+    void groundHandlerAdminCannotUpdateOtherTenantUser() {
+        authenticate("GROUND_HANDLER_ADMIN");
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantRepository.findById("MENZIES")).thenReturn(Optional.of(activeTenant("MENZIES", Tenant.TenantType.GROUND_HANDLER)));
+
+        com.airline.api.dto.UserUpdateRequest updateRequest = new com.airline.api.dto.UserUpdateRequest();
+        updateRequest.setUsername("New Name");
+        updateRequest.setEmail("u@menzies.test");
+        updateRequest.setRoles(Set.of("CONTRACT_ENTRY"));
+
+        assertThatThrownBy(() -> userService.updateUser("MENZIES", "u1", updateRequest))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void updateUserEmailConflictFails() {
+        authenticate("AIRLINE_ADMIN");
+        airlineContext("EK");
+        when(tenantRepository.findById("EK")).thenReturn(Optional.of(activeTenant("EK", Tenant.TenantType.AIRLINE)));
+
+        User existing = User.builder()
+                .id("u1")
+                .tenantId("EK")
+                .username("User 1")
+                .email("u1@ek.test")
+                .build();
+        existing.setRoles(Set.of("INVOICE_REVIEWER"));
+
+        when(userRepository.findByIdAndTenantId("u1", "EK")).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmailAndTenantId("taken@ek.test", "EK")).thenReturn(true);
+
+        com.airline.api.dto.UserUpdateRequest updateRequest = new com.airline.api.dto.UserUpdateRequest();
+        updateRequest.setUsername("User 1");
+        updateRequest.setEmail("taken@ek.test");
+        updateRequest.setRoles(Set.of("INVOICE_REVIEWER"));
+
+        assertThatThrownBy(() -> userService.updateUser("EK", "u1", updateRequest))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("already exists");
+    }
+
+    @Test
+    void updateUserNotFoundThrows404() {
+        authenticate("AIRLINE_ADMIN");
+        airlineContext("EK");
+        when(tenantRepository.findById("EK")).thenReturn(Optional.of(activeTenant("EK", Tenant.TenantType.AIRLINE)));
+        when(userRepository.findByIdAndTenantId("unknown", "EK")).thenReturn(Optional.empty());
+
+        com.airline.api.dto.UserUpdateRequest updateRequest = new com.airline.api.dto.UserUpdateRequest();
+        updateRequest.setUsername("User");
+        updateRequest.setEmail("u@ek.test");
+        updateRequest.setRoles(Set.of("INVOICE_REVIEWER"));
+
+        assertThatThrownBy(() -> userService.updateUser("EK", "unknown", updateRequest))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("User not found");
+    }
+
     private void authenticate(String... authorities) {
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("user", "password", authorities));

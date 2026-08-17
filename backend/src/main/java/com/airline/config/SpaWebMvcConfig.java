@@ -30,7 +30,9 @@ public class SpaWebMvcConfig {
             "/disputes",
             "/disputes/**",
             "/configuration",
-            "/configuration/**"
+            "/configuration/**",
+            "/admin",
+            "/admin/**"
     })
     public String forwardToIndex(HttpServletRequest request) {
         return "forward:/index.html";

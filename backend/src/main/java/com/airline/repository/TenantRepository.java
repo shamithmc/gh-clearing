@@ -9,4 +9,5 @@ import java.util.List;
 public interface TenantRepository extends JpaRepository<Tenant, String> {
     List<Tenant> findAllByStatus(Tenant.TenantStatus status);
     List<Tenant> findAllByType(Tenant.TenantType type);
+    boolean existsByNameIgnoreCase(String name);
 }

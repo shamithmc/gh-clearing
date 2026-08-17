@@ -1,6 +1,7 @@
 package com.airline.service;
 
 import com.airline.api.dto.UserRequest;
+import com.airline.api.dto.UserUpdateRequest;
 import com.airline.domain.Tenant;
 import com.airline.domain.User;
 import com.airline.repository.TenantRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -58,11 +60,41 @@ public class UserService {
                 .tenantId(tenantId)
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .airportRestrictions(request.getAirportRestrictions() != null ? request.getAirportRestrictions() : java.util.Set.of())
-                .airlineRestrictions(request.getAirlineRestrictions() != null ? request.getAirlineRestrictions() : java.util.Set.of())
-                .chargeCodeRestrictions(request.getChargeCodeRestrictions() != null ? request.getChargeCodeRestrictions() : java.util.Set.of())
+                .airportRestrictions(request.getAirportRestrictions() != null ? new HashSet<>(request.getAirportRestrictions()) : new HashSet<>())
+                .airlineRestrictions(request.getAirlineRestrictions() != null ? new HashSet<>(request.getAirlineRestrictions()) : new HashSet<>())
+                .chargeCodeRestrictions(request.getChargeCodeRestrictions() != null ? new HashSet<>(request.getChargeCodeRestrictions()) : new HashSet<>())
                 .build();
         user.setRoles(request.getRoles());
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateUser(String tenantId, String userId, UserUpdateRequest request) {
+        Tenant tenant = authorizeTenantManagement(tenantId);
+        validateRoles(tenant, request.getRoles());
+        if (tenant.getType() == Tenant.TenantType.AIRLINE
+                && request.getAirlineRestrictions() != null
+                && !request.getAirlineRestrictions().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Airline users are implicitly restricted to their tenant airline");
+        }
+        User user = userRepository.findByIdAndTenantId(userId, tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User not found: " + userId));
+
+        if (!user.getEmail().equalsIgnoreCase(request.getEmail())
+                && userRepository.existsByEmailAndTenantId(request.getEmail(), tenantId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "User with email '" + request.getEmail() + "' already exists in this tenant");
+        }
+
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setRoles(request.getRoles());
+        user.setAirportRestrictions(request.getAirportRestrictions() != null ? new HashSet<>(request.getAirportRestrictions()) : new HashSet<>());
+        user.setAirlineRestrictions(request.getAirlineRestrictions() != null ? new HashSet<>(request.getAirlineRestrictions()) : new HashSet<>());
+        user.setChargeCodeRestrictions(request.getChargeCodeRestrictions() != null ? new HashSet<>(request.getChargeCodeRestrictions()) : new HashSet<>());
+
         return userRepository.save(user);
     }
 
