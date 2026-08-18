@@ -16,7 +16,8 @@ import {
   Clock, 
   AlertTriangle, 
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Pencil
 } from 'lucide-react';
 
 const { Option } = Select;
@@ -227,15 +228,26 @@ const ContractsList: React.FC = () => {
         if (simTenantType === 'GROUND_HANDLER') {
           if (record.status === 'DRAFT' || record.status === 'REVIEW_REQUESTED') {
             return (
-              <Button 
-                data-testid="submit-approval-btn"
-                type="primary" 
-                size="small"
-                className="!bg-slate-900 hover:!bg-slate-800 !border-slate-900 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7"
-                onClick={() => handleStatusTransition(record.id, 'PENDING_APPROVAL')}
-              >
-                Submit for Approval
-              </Button>
+              <div className="flex items-center justify-end gap-1.5">
+                <Button 
+                  data-testid="edit-contract-btn"
+                  size="small"
+                  className="!bg-slate-100 hover:!bg-slate-200 !border-slate-300 !text-slate-800 !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7"
+                  onClick={() => navigate(`/contracts/${record.id}/edit`)}
+                >
+                  <Pencil className="w-3 h-3 text-slate-600" />
+                  Edit
+                </Button>
+                <Button 
+                  data-testid="submit-approval-btn"
+                  type="primary" 
+                  size="small"
+                  className="!bg-slate-900 hover:!bg-slate-800 !border-slate-900 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7"
+                  onClick={() => handleStatusTransition(record.id, 'PENDING_APPROVAL')}
+                >
+                  Submit for Approval
+                </Button>
+              </div>
             );
           }
           if (record.status === 'PENDING_APPROVAL') {

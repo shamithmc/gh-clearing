@@ -43,8 +43,10 @@ const App: React.FC = () => {
         <Route path="offerings" element={<ServiceOfferings />} />
         <Route path="contracts" element={<ContractsList />} />
         <Route path="contracts/new" element={<ContractWizard />} />
+        <Route path="contracts/:id/edit" element={<ContractWizard />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceWizard />} />
+        <Route path="invoices/:id/edit" element={<InvoiceWizard />} />
         <Route path="disputes" element={<DisputesList />} />
         <Route path="configuration" element={<SupplierConfiguration />} />
         <Route path="admin/tenants" element={<TenantManagement />} />

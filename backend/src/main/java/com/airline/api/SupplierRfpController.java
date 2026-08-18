@@ -37,4 +37,12 @@ public class SupplierRfpController {
             @Valid @RequestBody RfpProposalCreateRequest request) {
         return supplierRfpService.submitProposal(rfpId, request);
     }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{rfpId}/proposals/{proposalId}")
+    public SupplierRfpResponse updateProposal(
+            @PathVariable String rfpId,
+            @PathVariable String proposalId,
+            @Valid @RequestBody RfpProposalCreateRequest request) {
+        return supplierRfpService.updateProposal(rfpId, proposalId, request);
+    }
 }

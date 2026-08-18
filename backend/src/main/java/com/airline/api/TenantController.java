@@ -41,4 +41,10 @@ public class TenantController {
     public ResponseEntity<TenantResponse> getTenant(@PathVariable String id) {
         return ResponseEntity.ok(TenantResponse.from(tenantService.getTenant(id)));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
+    public ResponseEntity<TenantResponse> updateTenant(@PathVariable String id, @Valid @RequestBody TenantRequest request) {
+        return ResponseEntity.ok(TenantResponse.from(tenantService.updateTenant(id, request)));
+    }
 }

@@ -58,6 +58,13 @@ const TenantManagement: React.FC = () => {
   const [modalError, setModalError] = useState<string>();
   const [form] = Form.useForm<NewTenantFormValues>();
 
+  // Edit Modal State
+  const [editingTenant, setEditingTenant] = useState<TenantItem | null>(null);
+  const [editForm] = Form.useForm();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [editModalError, setEditModalError] = useState<string>();
+
   const headers = useMemo(
     () => simulatedAuthHeaders('PLATFORM', 'PLATFORM_ADMIN'),
     [],
@@ -106,13 +113,54 @@ const TenantManagement: React.FC = () => {
 
       const created = (await response.json()) as TenantItem;
       setTenants(prev => [...prev.filter(t => t.id !== created.id), created]);
-      setSuccess(`Tenant "${created.name}" (${created.id}) created successfully.`);
       setIsCreateModalOpen(false);
       form.resetFields();
+      setSuccess(`Tenant "${created.name}" (${created.id}) created successfully.`);
     } catch (cause) {
       setModalError(cause instanceof Error ? cause.message : 'Failed to create tenant');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEditModal = (tenant: TenantItem) => {
+    setEditingTenant(tenant);
+    setEditModalError(undefined);
+    editForm.setFieldsValue({
+      name: tenant.name,
+      status: tenant.status,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateTenant = async (values: any) => {
+    if (!editingTenant) return;
+    setUpdating(true);
+    setEditModalError(undefined);
+    try {
+      const response = await fetch(`/api/tenants/${editingTenant.id}`, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingTenant.id,
+          name: values.name.trim(),
+          type: editingTenant.type,
+          status: values.status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await responseMessage(response));
+      }
+
+      setIsEditModalOpen(false);
+      setEditingTenant(null);
+      setSuccess(`Tenant '${editingTenant.id}' updated successfully`);
+      await loadTenants();
+    } catch (cause) {
+      setEditModalError(cause instanceof Error ? cause.message : 'Failed to update tenant');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -185,6 +233,20 @@ const TenantManagement: React.FC = () => {
         <span className="text-xs text-slate-500 font-mono">
           {date ? new Date(date).toLocaleDateString() : 'System Seed'}
         </span>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right' as const,
+      render: (_, record: TenantItem) => (
+        <Button
+          data-testid={`edit-tenant-${record.id}`}
+          size="small"
+          onClick={() => openEditModal(record)}
+        >
+          Edit
+        </Button>
       ),
     },
   ];
@@ -382,6 +444,84 @@ const TenantManagement: React.FC = () => {
               className="bg-blue-600 hover:bg-blue-700"
             >
               Create Tenant
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Edit Tenant Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-slate-900 font-bold">
+            <ShieldCheck className="w-5 h-5 text-blue-600" />
+            <span>Edit Tenant Organization {editingTenant?.id}</span>
+          </div>
+        }
+        open={isEditModalOpen}
+        onCancel={() => {
+          setIsEditModalOpen(false);
+          setEditingTenant(null);
+        }}
+        footer={null}
+        destroyOnClose
+      >
+        {editModalError && (
+          <Alert
+            type="error"
+            showIcon
+            message="Update failed"
+            description={editModalError}
+            className="mb-4"
+          />
+        )}
+
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={values => void handleUpdateTenant(values)}
+          className="mt-4"
+        >
+          <Form.Item
+            name="name"
+            label="Organization Name"
+            rules={[
+              { required: true, message: 'Please enter the tenant organization name' },
+              { max: 100, message: 'Name cannot exceed 100 characters' },
+            ]}
+          >
+            <Input
+              placeholder="e.g. Lufthansa"
+              data-testid="edit-tenant-name-input"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="Status"
+            rules={[{ required: true, message: 'Please select tenant status' }]}
+          >
+            <Select
+              data-testid="edit-tenant-status-select"
+              options={[
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'INACTIVE', label: 'Inactive' },
+              ]}
+            />
+          </Form.Item>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button onClick={() => {
+              setIsEditModalOpen(false);
+              setEditingTenant(null);
+            }}>Cancel</Button>
+            <Button
+              type="primary"
+              onClick={() => editForm.submit()}
+              loading={updating}
+              data-testid="submit-edit-tenant-button"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Save Changes
             </Button>
           </div>
         </Form>

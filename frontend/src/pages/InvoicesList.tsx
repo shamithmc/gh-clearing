@@ -25,7 +25,8 @@ import {
   FileCheck,
   RefreshCw,
   UserCheck,
-  Globe
+  Globe,
+  Pencil
 } from 'lucide-react';
 
 const { Option } = Select;
@@ -442,16 +443,29 @@ const InvoicesList: React.FC = () => {
       render: (_: any, record: Invoice) => (
         <div className="flex items-center justify-end gap-1.5 flex-wrap">
           {simTenantType === 'GROUND_HANDLER' && (record.status === 'DRAFT' || record.status === 'MODIFICATION_REQUESTED') && (
-            <Button 
-              id={`invoice-${record.id}-finalize-btn`}
-              size="small" 
-              type="primary"
-              className="!bg-slate-900 hover:!bg-slate-800 !border-slate-900 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7 focus:ring-2 focus:ring-slate-900/30"
-              onClick={() => handleStatusChange(record.id, 'FINALIZED')}
-            >
-              <FileCheck className="w-3.5 h-3.5" />
-              Finalize
-            </Button>
+            <>
+              <Button 
+                id={`invoice-${record.id}-edit-btn`}
+                data-testid="edit-invoice-btn"
+                size="small"
+                className="!bg-slate-100 hover:!bg-slate-200 !border-slate-300 !text-slate-800 !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7"
+                onClick={() => navigate(`/invoices/${record.id}/edit`)}
+              >
+                <Pencil className="w-3 h-3 text-slate-600" />
+                Edit
+              </Button>
+              <Button 
+                id={`invoice-${record.id}-finalize-btn`}
+                data-testid="finalize-invoice-btn"
+                size="small" 
+                type="primary"
+                className="!bg-slate-900 hover:!bg-slate-800 !border-slate-900 !text-white !font-medium !text-xs !inline-flex !items-center !gap-1 !rounded-md !px-2.5 !h-7 focus:ring-2 focus:ring-slate-900/30"
+                onClick={() => handleStatusChange(record.id, 'FINALIZED')}
+              >
+                <FileCheck className="w-3.5 h-3.5" />
+                Finalize
+              </Button>
+            </>
           )}
           {simTenantType === 'GROUND_HANDLER' && record.status === 'FINALIZED' && (
             <>

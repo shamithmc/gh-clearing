@@ -134,4 +134,53 @@ describe('ContractWizard Dynamic Formula Authoring', () => {
 
     expect(screen.getByText('Contract Agreement Review')).toBeInTheDocument();
   });
+
+  it('renders edit mode header and pre-fills contract data when id param is present', async () => {
+    const { Routes, Route } = await import('react-router-dom');
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/contracts/CTR-001')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 'CTR-001',
+              airlineId: 'EK',
+              airportCode: 'DXB',
+              startDate: '2026-01-01',
+              endDate: '2026-12-31',
+              currency: 'USD',
+              status: 'DRAFT',
+              services: [
+                {
+                  chargeCode: 'PASSENGER_HANDLING',
+                  serviceName: 'Turnaround Passenger Handling',
+                  formulaType: 'PF-01',
+                  quantityDriver: 'passengers',
+                  uom: 'PAX',
+                  taxCode: 'VAT-0',
+                  rateDetails: { rate: 15.0 },
+                },
+              ],
+            }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/contracts/CTR-001/edit']}>
+        <Routes>
+          <Route path="/contracts/:id/edit" element={<ContractWizard />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Ground Handling Agreement (SGHA)')).toBeInTheDocument();
+    });
+  });
 });

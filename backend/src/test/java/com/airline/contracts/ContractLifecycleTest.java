@@ -215,4 +215,72 @@ public class ContractLifecycleTest {
                 .hasMessageContaining("Contract not found");
         verify(contractRepository, never()).save(any());
     }
+
+    @Test
+    void ghCanEditDraftContract() {
+        Contract contract = Contract.builder()
+                .id("c-001")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(ContractStatus.DRAFT)
+                .currency("USD")
+                .services(new java.util.ArrayList<>())
+                .build();
+
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(contract));
+
+        com.airline.api.dto.ContractCreateRequest request = new com.airline.api.dto.ContractCreateRequest();
+        request.setAirlineId("EK");
+        request.setAirportCode("DXB");
+        request.setStartDate(java.time.LocalDate.now());
+        request.setEndDate(java.time.LocalDate.now().plusYears(1));
+        request.setCurrency("EUR");
+        com.airline.api.dto.ServiceConfigurationDTO svcDto = new com.airline.api.dto.ServiceConfigurationDTO();
+        svcDto.setChargeCode("PASSENGER_HANDLING");
+        svcDto.setServiceName("Passenger Check-in");
+        svcDto.setFormulaType("PF-01");
+        svcDto.setQuantityDriver("passengers");
+        svcDto.setUom("PAX");
+        svcDto.setTaxCode("VAT-0");
+        svcDto.setRateDetails(java.util.Map.of("rate", 20.0));
+        request.setServices(java.util.List.of(svcDto));
+
+        com.airline.api.dto.ContractResponse response = contractService.updateContract("c-001", request);
+
+        assertThat(response.getCurrency()).isEqualTo("EUR");
+        assertThat(contract.getCurrency()).isEqualTo("EUR");
+        assertThat(contract.getServices()).hasSize(1);
+        verify(contractRepository).save(contract);
+        verify(contractAuditLogRepository).save(any(com.airline.domain.ContractAuditLog.class));
+    }
+
+    @Test
+    void cannotEditApprovedOrPendingContracts() {
+        Contract approvedContract = Contract.builder()
+                .id("c-001")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .status(ContractStatus.APPROVED)
+                .build();
+
+        when(tenantContext.getCurrentTenantId()).thenReturn("SWISSPORT");
+        when(tenantContext.getCurrentTenantType()).thenReturn("GROUND_HANDLER");
+        when(contractRepository.findByIdAndTenantId("c-001", "SWISSPORT")).thenReturn(Optional.of(approvedContract));
+
+        com.airline.api.dto.ContractCreateRequest request = new com.airline.api.dto.ContractCreateRequest();
+        request.setAirlineId("EK");
+        request.setAirportCode("DXB");
+        request.setStartDate(java.time.LocalDate.now());
+        request.setEndDate(java.time.LocalDate.now().plusYears(1));
+        request.setCurrency("USD");
+        request.setServices(java.util.List.of());
+
+        assertThatThrownBy(() -> contractService.updateContract("c-001", request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only DRAFT or REVIEW_REQUESTED contracts can be edited");
+    }
 }

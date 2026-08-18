@@ -39,6 +39,13 @@ public class ServiceMarketplaceController {
         return serviceMarketplaceService.createOffering(request);
     }
 
+    @org.springframework.web.bind.annotation.PutMapping("/supplier/offerings/{offeringId}")
+    public ServiceOfferingResponse updateOffering(
+            @PathVariable String offeringId,
+            @Valid @RequestBody ServiceOfferingCreateRequest request) {
+        return serviceMarketplaceService.updateOffering(offeringId, request);
+    }
+
     @DeleteMapping("/supplier/offerings/{offeringId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteOffering(@PathVariable String offeringId) {

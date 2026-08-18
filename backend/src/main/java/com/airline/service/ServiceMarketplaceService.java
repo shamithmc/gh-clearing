@@ -90,6 +90,39 @@ public class ServiceMarketplaceService {
     }
 
     @Transactional
+    public ServiceOfferingResponse updateOffering(String offeringId, ServiceOfferingCreateRequest request) {
+        String supplierId = requireRole("GROUND_HANDLER", "RFP_MONITOR");
+        ServiceOffering offering = offeringRepository.findByIdAndTenantId(offeringId, supplierId)
+                .orElseThrow(() -> new NoSuchElementException("Service offering not found: " + offeringId));
+
+        String airportCode = request.getAirportCode().trim().toUpperCase(Locale.ROOT);
+        String serviceType = request.getServiceType().trim().toUpperCase(Locale.ROOT);
+
+        Airport airport = airportRepository.findById(airportCode)
+                .orElseThrow(() -> new NoSuchElementException("Airport not found: " + airportCode));
+        ChargeCode chargeCode = chargeCodeRepository.findById(serviceType)
+                .orElseThrow(() -> new NoSuchElementException("Service type not found: " + serviceType));
+        verifyOfferingDimensions(airportCode, serviceType);
+
+        SupplierConfiguration configuration = supplierConfigurationRepository.findByTenantId(supplierId)
+                .orElseThrow(() -> new IllegalStateException("Supplier configuration is required"));
+        if (!configuration.getEnabledAirports().contains(airportCode)) {
+            throw new AccessDeniedException("Supplier is not configured to operate at airport: " + airportCode);
+        }
+
+        if ((!airportCode.equalsIgnoreCase(offering.getAirportCode()) || !serviceType.equalsIgnoreCase(offering.getServiceType()))
+                && offeringRepository.existsByTenantIdAndAirportCodeAndServiceType(supplierId, airportCode, serviceType)) {
+            throw new IllegalStateException("This service is already listed for the airport");
+        }
+
+        offering.setAirportCode(airport.getIataCode());
+        offering.setServiceType(chargeCode.getCode());
+        offering.setDescription(request.getDescription().trim());
+
+        return toResponse(offeringRepository.save(offering));
+    }
+
+    @Transactional
     public void deleteOffering(String offeringId) {
         String supplierId = requireRole("GROUND_HANDLER", "RFP_MONITOR");
         ServiceOffering offering = offeringRepository.findByIdAndTenantId(offeringId, supplierId)

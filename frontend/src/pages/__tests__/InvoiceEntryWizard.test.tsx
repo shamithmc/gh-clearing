@@ -142,4 +142,53 @@ describe('InvoiceWizard', () => {
 
     expect(screen.queryByText('Submit Draft Invoice')).not.toBeInTheDocument();
   });
+
+  it('renders edit mode heading and loads invoice data when id param is present', async () => {
+    const { Routes, Route } = await import('react-router-dom');
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/invoices/INV-001')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 'INV-001',
+            invoiceNumber: 'INV-2026-9999',
+            airlineId: 'EK',
+            airportCode: 'DXB',
+            currency: 'USD',
+            issueDate: '2026-03-01',
+            dueDate: '2026-03-31',
+            status: 'DRAFT',
+            lineItems: [
+              {
+                id: 'LI-001',
+                flightDate: '2026-03-05',
+                flightNumber: 'EK101',
+                aircraftReg: 'A6-EAA',
+                origin: 'DXB',
+                destination: 'LHR',
+                chargeCode: 'PASSENGER_HANDLING',
+                quantityDrivers: '{"passengers":250}',
+                calculatedAmount: 3750,
+              },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/invoices/INV-001/edit']}>
+        <Routes>
+          <Route path="/invoices/:id/edit" element={<InvoiceWizard />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Edit Ground Handling Invoice')).toBeInTheDocument();
+  });
 });

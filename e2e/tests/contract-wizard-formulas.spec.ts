@@ -5,9 +5,9 @@ async function selectAntdOption(page: Page, inputId: string, optionText: string,
   if (searchTerm) {
     await page.fill(`#${inputId}`, searchTerm);
   }
-  const option = page.locator(`.ant-select-item-option-content:has-text("${optionText}")`).first();
+  const option = page.locator(`.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-content:has-text("${optionText}"), .ant-select-item-option-content:has-text("${optionText}")`).first();
   await option.waitFor({ state: 'visible', timeout: 10000 });
-  await option.click();
+  await option.click({ force: true });
 }
 
 test.describe('Contract Wizard Dynamic Formula Authoring (PF-01 through PF-07)', () => {
