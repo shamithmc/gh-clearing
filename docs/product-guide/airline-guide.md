@@ -1,100 +1,67 @@
 # Airline Guide
 
-## Use the Airline Workspace
+## Monitor Performance & Operations on Airline Home
 
-The **Airline Clearing** workspace provides airline procurement, flight operations, and financial auditing teams with comprehensive visibility into ground handling contracts, dispatched invoices, market intelligence, RFPs, and dispute settlements.
+Open **Airline Home** for executive analytics, financial exposure, contract lifecycle, and footprint overviews:
 
-All information and actions are automatically restricted to your airline tenant and assigned airport and service-type dimensions.
+### Financial & Operational Analytics (AFR1, AFR2, AOR1, AOR2)
 
-## View Contracts & Request Reviews
+- **Billed Amounts (AFR1)**: Current and historical invoiced handling costs across suppliers and stations.
+- **Expected Billing Projections (AFR2)**: Projections based on active contracts and planned flight schedules.
+- **Contract Expiry Timeline (AOR1)**: Interactive timeline and table of contracts expiring in 30, 60, and 90 days.
+- **Current Geographic Footprint (AOR2)**: Station map and metrics showing active airports, handling suppliers, and service lines.
 
-### View Contracts
+## Contract Review & Review Requests (AOR3)
 
-1. Open **Contracts** from the navigation menu.
-2. Filter by **Airport** or **Service Type**.
-3. Inspect rate schedules, pricing formulas (PF-01 to PF-07), validity dates, and service specifications.
-4. The contract view is read-only and displays only non-draft contracts active for your airline.
+1. Open **Contracts** to browse all active approved ground-handling contracts scoped to your airline.
+2. Filter contracts by supplier, airport station, currency, and date ranges.
+3. **Submit Review Requests**: If contract terms, SLA performance, or volume commitments need renegotiation:
+   - Click **Request Review** on the active contract.
+   - Enter detailed comments specifying proposed changes.
+   - The contract transitions to `REVIEW_REQUESTED`, alerting the ground handler to launch the edit wizard and resubmit revised terms.
+4. Track all submitted review requests in **Review Requests**.
 
-### Request a Contract Review
+## Audit & Settle Invoices
 
-If contracted rates or SLA terms require renegotiation:
-
-1. Locate the approved contract under **Contracts**.
-2. Click **Request Review**.
-3. Enter a mandatory review comment specifying the clause, service type, or rate requiring revision.
-4. Click **Submit Request**. The request is routed to the ground handler's review queue.
-
-To monitor your submitted requests, open **Review Requests** to view supplier response statuses and current contract states.
-
-## View Dispatched Invoices & Download Documents
-
-1. Open **Invoices**.
-2. Filter by **Airport**, **Service Type**, or **Status** (`SENT`, `PAID`, `DISPUTED`).
-3. Expand invoice line items to review flight dates, flight numbers, aircraft registrations, origins, destinations, contracted services, operational quantities, and calculated amounts.
-4. **Download Documents**: Click **Download XML** to retrieve the IATA IS-XML e-invoice or **Download PDF** for the printable invoice statement.
-
-## Mark Invoices as Paid
-
-When treasury or financial settlement is complete outside the platform:
-
-1. Locate the invoice with status `SENT` or `DISPUTED`.
-2. Click **Mark Paid**.
-3. Confirm the settlement dialog. The status changes to `PAID`, logged in the audit trail and visible to the supplier.
+1. Open **Invoices** to view all dispatched invoices from ground handlers (`SENT`, `DISPUTED`, `PAID`).
+2. **Inspect Turnaround Flight Lines**: Review flight numbers, dates, aircraft registration, origin/destination, and auto-calculated service lines.
+3. **Download Files**: Download official **IATA IS-XML** (`is-invoice.xsd`) and **PDF** formats for clearing-house archiving and local ERP ingestion.
+4. **Mark Paid**: When payment settlement is cleared, click **Mark Paid** to update the invoice status to `PAID`.
 
 ## Raise Line-Item Disputes
 
-If flight operational logs, aircraft turnaround charges, or calculated rates do not match your operational records:
+When an invoice contains billing discrepancies (e.g. incorrect flight counts, rate mismatches, unrendered services):
 
-1. Open **Invoices** and locate the dispatched invoice (`SENT` or `DISPUTED`).
-2. Click **Raise Dispute** on the invoice actions menu.
-3. In the dispute dialog:
-   - Select the **Dispute Category**:
-     - `OPERATIONAL_DATA_MISMATCH`: Flight turnaround, times, or passenger/cargo counts differ from operational logs.
-     - `RATE_DISCREPANCY`: Applied rate does not match the approved contract schedule.
-     - `UNAUTHORIZED_SERVICE`: Uncontracted or unapproved services were billed.
-     - `DUPLICATE_BILLING`: Flight or service already billed under another invoice.
-     - `CALCULATION_ERROR`: Mathematical or currency conversion error.
-   - Enter a detailed **Dispute Comment** with flight dates, numbers, and discrepancies.
-4. Click **Submit Dispute**.
-5. The invoice status updates to `DISPUTED`, and a new dispute record is opened in the **Disputes** workspace.
+1. Locate the invoice in **Invoices** and click **Raise Dispute** on the specific flight line item.
+2. Select the dispute category (e.g., `RATE_MISMATCH`, `UNRENDERED_SERVICE`, `VOLUME_DISCREPANCY`, `SLA_BREACH`, `MISCELLANEOUS`).
+3. Enter explanatory comments and the disputed monetary amount.
+4. The invoice automatically transitions to `DISPUTED`.
+5. Track dispute collaboration, exchange evidence attachments, and monitor credit-note issuance in **Disputes (ADR1)**.
 
-## Collaborate on Disputes & Track Credit Notes
+For full dispute procedures, see [Disputes and Credit Notes](disputes-and-credit-notes.md).
 
-Open **Disputes** from the sidebar to access the airline dispute workspace (ADR1):
+## Procurement, Marketplace & RFP Management
 
-1. **KPI Summary Cards**: Review total disputed exposure, credit notes issued to date, active dispute count, and resolved items.
-2. **Dispute Queue**: Search by invoice or dispute number, filter by supplier, airport station, or tab (`ALL`, `OPEN`, `RESPONDED`, `RESOLVED`).
-3. **Dispute Thread**: Click **View Thread & Act** to open the interactive resolution modal:
-   - Review ground-handler responses, flight audit logs, and explanations.
-   - **Upload Attachments**: Upload supporting evidence (PDF, PNG, JPEG, CSV, XML up to 10MB). Files are scanned for malware with ClamAV.
-   - **Respond**: Submit counter-arguments and clarification.
-   - **Escalate**: Escalate the dispute to commercial management if unresolved.
-4. **Credit Note Settlement**: When the ground handler accepts the dispute, an application-contract **IATA IS-XML Credit Note** is auto-generated to offset the disputed amount.
+### Discover Ground Handlers in the Marketplace
 
-For full dispute workflow instructions, see [Disputes and Credit Notes](disputes-and-credit-notes.md).
+1. Open **Marketplace**.
+2. Filter by region, airport, or service type.
+3. Browse supplier capability descriptions, operating hours, and equipment strengths.
+4. Click **Initiate RFP** from any listing to pre-fill airport and service parameters.
 
-## Market Intelligence & Benchmarking
+### Author, Publish & Edit RFPs
 
-Open **Cost Index** to access aviation ground handling market analytics:
+1. Open **RFPs**.
+2. Under **Create RFP**:
+   - Select the target airport station and service type.
+   - Select the desired contract period.
+   - Describe operational volumes, required SLAs, peak schedule requirements, and equipment standards.
+3. Click **Publish RFP**. The platform automatically routes the RFP to all configured, eligible ground handlers.
+4. **Edit Published RFPs**: While an RFP remains open, airlines can click **Edit** on any published RFP to update service requirements, duration, or specifications.
 
-- **Airport Cost Index**: View aggregated average handling costs across airports, regions, aircraft categories, and operation types (International vs Domestic).
-  - *Confidentiality Guarantee*: Metrics are displayed only when at least 2 distinct ground handling suppliers operate at the station, protecting commercial confidentiality.
-- **Pricing Benchmark**: Compare your contracted rates against market quartiles (Top 25% Premium, Mid 50% Standard, Bottom 25% Competitive) to identify procurement cost-saving opportunities.
+### Evaluate Proposals & Award Contracts
 
-For more details, see [Market Intelligence and Analytics](market-intelligence-and-analytics.md).
-
-## Airline Executive MIS Panels
-
-Open **Airline Home** to view operational and financial dashboards:
-
-- **Billed Amounts (AFR1)**: Supplier billing volume trends, station-wise spend, and service-type cost distributions.
-- **Expected Billing (AFR2)**: Future projected handling expenditures based on active contract billing frequencies.
-- **Contract Expiry (AOR1)**: Timeline of upcoming contract renewals and expirations.
-- **Current Footprint (AOR2)**: Interactive geographical map of your active airport stations and contracted suppliers.
-
-## Marketplace & Procurement RFPs
-
-- **Marketplace**: Browse published ground handler station capabilities and service offerings. Click **Initiate RFP** to start a pre-populated procurement request.
-- **RFPs**: Create and publish procurement RFPs with custom turnaround requirements, evaluate supplier rate proposals, and award contracts with automatic draft contract generation.
-
-For complete procurement procedures, see [Marketplace and RFPs](marketplace-and-rfps.md).
+1. In **RFPs**, locate the published RFP and click **Review Proposals**.
+2. Compare submitted ground-handler proposals: proposed rates, currency, validity, and commercial SLA terms (including revised bids).
+3. **Reject**: Reject individual non-competitive proposals.
+4. **Award**: Select **Award Contract** on the winning proposal. The system automatically creates a traceable draft contract for the supplier and rejects remaining proposals.
