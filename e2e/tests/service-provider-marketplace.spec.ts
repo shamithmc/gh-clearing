@@ -101,7 +101,7 @@ test('supplier publishes an offering and airline discovers it and starts an RFP'
 
   await expect(page.getByText('SWISSPORT').first()).toBeVisible();
   await expect(page.getByText(description)).toBeVisible();
-  await expect(page.getByText('DXB - Dubai International Airport, United Arab Emirates')).toBeVisible();
+  await expect(page.getByText('DXB - Dubai International Airport, United Arab Emirates').first()).toBeVisible();
 
   await page.getByTestId(`initiate-rfp-${offering.id}`).click();
   await expect(page).toHaveURL(/\/airline\/rfps\?airportCode=DXB&serviceType=BAGGAGE$/);
