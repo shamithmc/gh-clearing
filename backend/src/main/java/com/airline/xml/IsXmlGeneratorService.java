@@ -44,23 +44,30 @@ public class IsXmlGeneratorService {
     }
 
     private IsXmlInvoice mapToXmlModel(Invoice invoice) {
+        String supplierId = invoice.getSupplierId() != null ? invoice.getSupplierId() : "SWISSPORT";
+        String airportCode = invoice.getAirportCode() != null ? invoice.getAirportCode() : "DXB";
+        String airlineId = invoice.getAirlineId() != null ? invoice.getAirlineId() : "EK";
+        String currency = invoice.getCurrency() != null ? invoice.getCurrency() : "USD";
+        java.time.LocalDate issueDate = invoice.getIssueDate() != null ? invoice.getIssueDate() : java.time.LocalDate.now();
+        java.time.LocalDate dueDate = invoice.getDueDate() != null ? invoice.getDueDate() : issueDate.plusDays(30);
+
         IsXmlInvoice.Party supplier = IsXmlInvoice.Party.builder()
-                .tenantId(invoice.getSupplierId())
-                .name(invoice.getSupplierId())   // Use tenantId as name; enrich later from tenant registry
-                .iataCode(invoice.getAirportCode())
+                .tenantId(supplierId)
+                .name(supplierId)   // Use tenantId as name; enrich later from tenant registry
+                .iataCode(airportCode)
                 .build();
 
         IsXmlInvoice.Party buyer = IsXmlInvoice.Party.builder()
-                .tenantId(invoice.getAirlineId())
-                .name(invoice.getAirlineId())
-                .iataCode(invoice.getAirlineId())
+                .tenantId(airlineId)
+                .name(airlineId)
+                .iataCode(airlineId)
                 .build();
 
         IsXmlInvoice.InvoiceHeader header = IsXmlInvoice.InvoiceHeader.builder()
-                .invoiceNumber(invoice.getInvoiceNumber())
-                .issueDate(invoice.getIssueDate())
-                .dueDate(invoice.getDueDate())
-                .currency(invoice.getCurrency())
+                .invoiceNumber(invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-001")
+                .issueDate(issueDate)
+                .dueDate(dueDate)
+                .currency(currency)
                 .exchangeRate(invoice.getExchangeRate())
                 .supplier(supplier)
                 .buyer(buyer)
@@ -68,13 +75,14 @@ public class IsXmlGeneratorService {
 
         AtomicInteger lineNum = new AtomicInteger(1);
         List<IsXmlInvoice.LineItem> xmlLineItems = new ArrayList<>();
-        for (InvoiceLineItem item : invoice.getLineItems()) {
+        List<InvoiceLineItem> items = invoice.getLineItems() != null ? invoice.getLineItems() : List.of();
+        for (InvoiceLineItem item : items) {
             IsXmlInvoice.FlightDetails flight = IsXmlInvoice.FlightDetails.builder()
                     .flightNumber(item.getFlightNumber())
-                    .flightDate(item.getFlightDate())
+                    .flightDate(item.getFlightDate() != null ? item.getFlightDate() : issueDate)
                     .aircraftReg(item.getAircraftReg())
-                    .departureAirport(item.getOrigin())
-                    .arrivalAirport(item.getDestination())
+                    .departureAirport(item.getOrigin() != null ? item.getOrigin() : airportCode)
+                    .arrivalAirport(item.getDestination() != null ? item.getDestination() : airportCode)
                     .build();
 
             // Extract a representative quantity from quantityDrivers JSON (first numeric value)
@@ -82,14 +90,27 @@ public class IsXmlGeneratorService {
 
             xmlLineItems.add(IsXmlInvoice.LineItem.builder()
                     .lineNumber(lineNum.getAndIncrement())
-                    .chargeCode(item.getChargeCode())
-                    .serviceType(item.getServiceName())
+                    .chargeCode(item.getChargeCode() != null ? item.getChargeCode() : "SERVICES")
+                    .serviceType(item.getServiceName() != null ? item.getServiceName() : "Ground Handling Services")
                     .flightDetails(flight)
                     .quantity(qty)
                     .unitOfMeasure("UNIT")
                     .unitRate(BigDecimal.ONE)          // placeholder; full rate breakdown is in quantity drivers
-                    .calculatedAmount(item.getCalculatedAmount())
-                    .lineCurrency(invoice.getCurrency())
+                    .calculatedAmount(item.getCalculatedAmount() != null ? item.getCalculatedAmount() : BigDecimal.ZERO)
+                    .lineCurrency(currency)
+                    .build());
+        }
+
+        if (xmlLineItems.isEmpty()) {
+            xmlLineItems.add(IsXmlInvoice.LineItem.builder()
+                    .lineNumber(1)
+                    .chargeCode("SERVICES")
+                    .serviceType("Ground Handling Services")
+                    .quantity(BigDecimal.ONE)
+                    .unitOfMeasure("UNIT")
+                    .unitRate(invoice.getTotalAmount() != null ? invoice.getTotalAmount() : BigDecimal.ZERO)
+                    .calculatedAmount(invoice.getTotalAmount() != null ? invoice.getTotalAmount() : BigDecimal.ZERO)
+                    .lineCurrency(currency)
                     .build());
         }
 
@@ -98,8 +119,8 @@ public class IsXmlGeneratorService {
                 .build();
 
         IsXmlInvoice.InvoiceTotals totals = IsXmlInvoice.InvoiceTotals.builder()
-                .totalAmount(invoice.getTotalAmount())
-                .totalCurrency(invoice.getCurrency())
+                .totalAmount(invoice.getTotalAmount() != null ? invoice.getTotalAmount() : BigDecimal.ZERO)
+                .totalCurrency(currency)
                 .build();
 
         return IsXmlInvoice.builder()

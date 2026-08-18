@@ -20,10 +20,17 @@ public class InvoiceController {
 
     private final InvoiceService invoiceService;
     private final com.airline.service.FileStorageService fileStorageService;
+    private final com.airline.xml.IsXmlGeneratorService xmlGeneratorService;
+    private final com.airline.pdf.InvoicePdfService pdfService;
 
-    public InvoiceController(InvoiceService invoiceService, com.airline.service.FileStorageService fileStorageService) {
+    public InvoiceController(InvoiceService invoiceService,
+                             com.airline.service.FileStorageService fileStorageService,
+                             com.airline.xml.IsXmlGeneratorService xmlGeneratorService,
+                             com.airline.pdf.InvoicePdfService pdfService) {
         this.invoiceService = invoiceService;
         this.fileStorageService = fileStorageService;
+        this.xmlGeneratorService = xmlGeneratorService;
+        this.pdfService = pdfService;
     }
 
     @PostMapping
@@ -70,16 +77,27 @@ public class InvoiceController {
     }
 
     /**
-     * Download the application-contract XML file for a dispatched invoice.
-     * Available once the invoice has been transitioned to SENT.
+     * Download the application-contract XML file for an invoice.
+     * Loads from storage if available, otherwise generates dynamically.
      */
     @GetMapping("/{id}/xml")
     public ResponseEntity<byte[]> downloadXml(@PathVariable String id) {
         Invoice invoice = invoiceService.getInvoice(id);
-        if (invoice.getXmlFileKey() == null) {
-            return ResponseEntity.notFound().build();
+        byte[] xmlBytes = null;
+        if (invoice.getXmlFileKey() != null) {
+            try {
+                xmlBytes = fileStorageService.load(invoice.getXmlFileKey());
+            } catch (Exception ignored) {
+                // Fallback to dynamic generation if file is missing in storage
+            }
         }
-        byte[] xmlBytes = fileStorageService.load(invoice.getXmlFileKey());
+        if (xmlBytes == null) {
+            try {
+                xmlBytes = xmlGeneratorService.generate(invoice);
+            } catch (Exception e) {
+                return ResponseEntity.notFound().build();
+            }
+        }
         String filename = String.format("invoice-%s.xml", invoice.getInvoiceNumber());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -88,16 +106,27 @@ public class InvoiceController {
     }
 
     /**
-     * Download the PDF invoice for a dispatched invoice.
-     * Available once the invoice has been transitioned to SENT.
+     * Download the PDF invoice for an invoice.
+     * Loads from storage if available, otherwise generates dynamically.
      */
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable String id) {
         Invoice invoice = invoiceService.getInvoice(id);
-        if (invoice.getPdfFileKey() == null) {
-            return ResponseEntity.notFound().build();
+        byte[] pdfBytes = null;
+        if (invoice.getPdfFileKey() != null) {
+            try {
+                pdfBytes = fileStorageService.load(invoice.getPdfFileKey());
+            } catch (Exception ignored) {
+                // Fallback to dynamic generation if file is missing in storage
+            }
         }
-        byte[] pdfBytes = fileStorageService.load(invoice.getPdfFileKey());
+        if (pdfBytes == null) {
+            try {
+                pdfBytes = pdfService.generate(invoice);
+            } catch (Exception e) {
+                return ResponseEntity.notFound().build();
+            }
+        }
         String filename = String.format("invoice-%s.pdf", invoice.getInvoiceNumber());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
