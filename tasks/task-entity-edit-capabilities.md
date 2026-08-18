@@ -24,6 +24,7 @@ paths:
   - "e2e/tests/contract-wizard-formulas.spec.ts"
   - "e2e/tests/entity-edit-capabilities.spec.ts"
   - "e2e/tests/invoice-edit-cycles.spec.ts"
+  - "e2e/tests/service-provider-marketplace.spec.ts"
   - "frontend/src/App.tsx"
   - "frontend/src/pages/AirlineRfps.tsx"
   - "frontend/src/pages/ContractWizard.tsx"

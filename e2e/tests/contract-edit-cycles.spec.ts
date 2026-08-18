@@ -112,11 +112,11 @@ test.describe('Contract Edit Cycles and Revision Workflow E2E', () => {
         'X-Mock-User-Id': 'dev-SWISSPORT',
       },
       data: {
-        airlineId: 'LH',
-        airportCode: 'FRA',
+        airlineId: 'EK',
+        airportCode: 'DXB',
         startDate: '2026-02-01',
         endDate: '2026-11-30',
-        currency: 'EUR',
+        currency: 'USD',
         services: [
           {
             chargeCode: 'BAGGAGE',

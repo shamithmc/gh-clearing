@@ -99,7 +99,7 @@ test('supplier publishes an offering and airline discovers it and starts an RFP'
     .click();
   await marketplaceResponse;
 
-  await expect(page.getByText('SWISSPORT')).toBeVisible();
+  await expect(page.getByText('SWISSPORT').first()).toBeVisible();
   await expect(page.getByText(description)).toBeVisible();
   await expect(page.getByText('DXB - Dubai International Airport, United Arab Emirates')).toBeVisible();
 
