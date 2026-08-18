@@ -183,4 +183,61 @@ describe('ContractWizard Dynamic Formula Authoring', () => {
       expect(screen.getByText('Edit Ground Handling Agreement (SGHA)')).toBeInTheDocument();
     });
   });
+
+  it('allows clicking Next on Step 1 when editing a contract with PF-05 timeBands service', async () => {
+    const { Routes, Route } = await import('react-router-dom');
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/contracts/CTR-002')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 'CTR-002',
+              airlineId: 'EK',
+              airportCode: 'SIN',
+              startDate: '2026-06-15',
+              endDate: '2027-06-15',
+              currency: 'SGD',
+              status: 'DRAFT',
+              services: [
+                {
+                  chargeCode: 'CARGO_HANDLING',
+                  serviceName: 'Cargo warehouse handling',
+                  formulaType: 'PF-05',
+                  quantityDriver: 'cargoWeight',
+                  uom: 'KG',
+                  rateDetails: { expectedAmount: 2400 },
+                },
+              ],
+            }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/contracts/CTR-002/edit']}>
+        <Routes>
+          <Route path="/contracts/:id/edit" element={<ContractWizard />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Ground Handling Agreement (SGHA)')).toBeInTheDocument();
+    });
+
+    const nextBtn = screen.getByRole('button', { name: /next/i });
+    expect(nextBtn).toBeInTheDocument();
+    fireEvent.click(nextBtn);
+
+    await waitFor(() => {
+      // Step 2 should be reached and Previous button becomes visible
+      expect(screen.getByText('Previous Step')).toBeInTheDocument();
+    });
+  });
 });

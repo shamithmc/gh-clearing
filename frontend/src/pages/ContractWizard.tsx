@@ -115,6 +115,31 @@ const ContractWizard: React.FC = () => {
               compoundDrivers = s.quantityDriver ? s.quantityDriver.split(',') : ['passengers', 'bags'];
             }
 
+            let timeBands = rd.timeBands;
+            if (formula === 'PF-05' && (!timeBands || timeBands.length === 0)) {
+              if (rd.rate !== undefined && rd.rate !== null && rd.rate !== '') {
+                timeBands = [{ start: '00:00', end: '24:00', rate: Number(rd.rate) }];
+              } else {
+                timeBands = [
+                  { start: '06:00', end: '22:00', rate: 100.0 },
+                  { start: '22:00', end: '06:00', rate: 150.0 },
+                ];
+              }
+            }
+
+            let tiers = rd.tiers;
+            if ((formula === 'PF-03' || formula === 'PF-04') && (!tiers || tiers.length === 0)) {
+              if (rd.rate !== undefined && rd.rate !== null && rd.rate !== '') {
+                tiers = [{ upto: null, rate: Number(rd.rate), isTerminal: true }];
+              } else {
+                tiers = [
+                  { upto: 100, rate: 15.0, isTerminal: false },
+                  { upto: 500, rate: 12.0, isTerminal: false },
+                  { upto: null, rate: 8.5, isTerminal: true },
+                ];
+              }
+            }
+
             return {
               chargeCode: s.chargeCode,
               serviceName: s.serviceName,
@@ -125,8 +150,8 @@ const ContractWizard: React.FC = () => {
               billingFrequency: s.billingFrequency,
               expectedAmount: rd.expectedAmount,
               rate: rd.rate !== undefined ? String(rd.rate) : undefined,
-              tiers: rd.tiers,
-              timeBands: rd.timeBands,
+              tiers,
+              timeBands,
               dayRates: rd.dayRates,
               compoundDrivers,
             };
@@ -183,15 +208,19 @@ const ContractWizard: React.FC = () => {
     }
   };
 
-  const next = () => {
-    form
-      .validateFields()
-      .then(() => {
-        setCurrent(current + 1);
-      })
-      .catch((err) => {
-        console.log('ContractWizard Step Validation Errors:', JSON.stringify(err));
-      });
+  const next = async () => {
+    try {
+      if (current === 0) {
+        await form.validateFields(['airlineId', 'airportCode', 'dateRange', 'currency']);
+      } else if (current === 1) {
+        await form.validateFields(['services']);
+      } else {
+        await form.validateFields();
+      }
+      setCurrent(current + 1);
+    } catch (err: any) {
+      console.log('ContractWizard Step Validation Errors:', JSON.stringify(err));
+    }
   };
 
   const prev = () => setCurrent(current - 1);
