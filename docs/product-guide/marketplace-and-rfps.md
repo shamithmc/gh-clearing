@@ -1,12 +1,12 @@
 # Marketplace and RFPs
 
-Phase 7 provides a structured procurement workflow between airlines and ground
+The platform provides a structured procurement and RFP lifecycle between airlines and ground
 handlers. Every listing, RFP, proposal, and decision is tenant-scoped and
-filtered by the user's role and assigned dimensions.
+filtered by the user's role and assigned dimensional boundaries.
 
-## Ground-handler workflows
+## Ground-Handler Workflows
 
-### Publish a service offering
+### Publish & Edit Service Offerings
 
 Users with the RFP monitor role can publish services at configured operating
 airports:
@@ -18,22 +18,25 @@ airports:
    hours, equipment, or service strengths.
 5. Select **Publish Offering**.
 
-The airport must be configured for the ground handler, and the airport and
-service must be within the user's access scope. Published offerings become
-discoverable to eligible airlines.
+#### Edit an Existing Offering
+To revise published capabilities or station descriptions:
+1. Locate the offering in **Service Offerings**.
+2. Click **Edit** (`data-testid="edit-offering-${id}"`).
+3. Update the description or details in the modal and click **Save Changes**.
+4. Updated information is immediately refreshed across airline marketplace searches.
 
+#### Remove an Offering
 To withdraw a listing, locate it in **Service Offerings** and select **Remove**.
-Removing an offering removes it from marketplace discovery; it does not cancel
-an existing RFP or proposal.
+Removing an offering withdraws it from marketplace discovery; it does not cancel
+an existing active RFP or proposal.
 
-### Review the RFP summary
+### Review the RFP Summary
 
 Open **RFP Summary** to see every RFP targeted to the ground handler and within
 the user's airline, airport, and service scope. The summary retains eligible
 RFPs after award or closure.
 
 The summary cards show:
-
 - **Received**
 - **Responded**
 - **Pending Decision**
@@ -46,7 +49,7 @@ Response values include `NOT_SUBMITTED`, `SUBMITTED`, `ACCEPTED`, and
 `REJECTED`. Outcome values include `OPEN`, `PENDING_DECISION`, `WON`,
 `NOT_SELECTED`, and `CLOSED`.
 
-### Submit a proposal
+### Submit & Revise Proposals (Bids)
 
 A ground handler can submit one proposal while an eligible RFP is
 `PUBLISHED`:
@@ -60,13 +63,18 @@ A ground handler can submit one proposal while an eligible RFP is
    payment terms, service levels, and exclusions as applicable.
 7. Select **Submit Proposal**.
 
-After submission, the row shows the proposed rate and no longer offers another
-proposal action. Monitor **Response** and **Outcome** for the airline's
-decision.
+#### Revise Submitted Bid
+If market conditions change or competitive terms need adjustment while the RFP is open:
+1. Locate the submitted RFP in **RFP Summary**.
+2. Click **Edit Bid** (`data-testid="edit-proposal-${id}"`).
+3. Update the proposed rate, currency, or commercial SLA terms in the modal.
+4. Click **Save Changes**. The airline's proposal review view immediately reflects the revised bid.
 
-## Airline workflows
+---
 
-### Discover suppliers in the marketplace
+## Airline Workflows
+
+### Discover Suppliers in the Marketplace
 
 1. Open **Marketplace**.
 2. Filter by region, airport, or service.
@@ -78,9 +86,9 @@ service. Complete the contract period and requirements before publishing.
 Marketplace results include only eligible offerings within the airline user's
 access scope.
 
-### Publish an RFP
+### Publish & Edit an RFP
 
-Users with the RFP raiser role can publish an RFP:
+Users with the RFP raiser role can publish and edit RFPs:
 
 1. Open **RFPs**.
 2. Under **Create RFP**, select the airport and service type.
@@ -89,45 +97,21 @@ Users with the RFP raiser role can publish an RFP:
    requirements.
 5. Select **Publish RFP**.
 
-The RFP is sent only to ground handlers configured for both the airline and
-selected airport. The confirmation reports the number of eligible ground
-handlers. A published RFP appears under **My Published RFPs**.
+#### Edit Published RFP
+If service volumes, turnaround schedules, or contract periods change while the RFP is published:
+1. Locate the RFP under **My Published RFPs**.
+2. Click **Edit** (`data-testid="edit-rfp-${id}"`).
+3. The form pre-fills all RFP parameters. Adjust requirements, dates, or specifications.
+4. Click **Save Changes**.
 
-### Compare and decide proposals
+### Compare and Decide Proposals
 
 1. Under **My Published RFPs**, select **Review Proposals**.
-2. Compare supplier, proposed rate, currency, commercial terms, and status.
+2. Compare supplier, proposed rate, currency, commercial terms (including revised bids), and status.
 3. Select **Reject** to reject an individual submitted proposal, or select
-   **Accept & Create Draft** for the preferred proposal.
-
-Accepting a proposal:
-
-- changes the proposal to `ACCEPTED`;
-- changes the RFP to `AWARDED`;
-- rejects remaining submitted proposals; and
-- creates one traceable draft contract owned by the selected ground handler.
-
-The new contract is a draft. It must follow the normal contract review and
-approval workflow before it can be used for invoicing.
-
-## Track contract-review requests
-
-Airline users with the contract-review role can open **Review Requests** to
-track sent requests. Summary cards cover request, supplier, airport, and
-service counts. Filters are available for supplier, airport, service, and
-contract status.
-
-The table shows when the request was sent, the supplier, airport, services,
-contract reference, current contract status, requester, and comment. The
-status reflects the related contract's current status.
-
-## Access and visibility notes
-
-- Airline RFP users are restricted by airline tenant, airport, and service.
-- Ground-handler RFP users are restricted by supplier tenant, airline,
-  airport, and service.
-- A supplier sees only RFPs explicitly targeted to it.
-- An airline evaluates only proposals submitted to its own RFP.
-- A marketplace listing does not guarantee that a proposal will be accepted.
-- If expected data is missing, clear filters and verify role and dimensional
-  assignments with an administrator.
+   **Award Contract** on the winning proposal.
+4. Awarding an RFP automatically:
+   - Sets the RFP to `AWARDED`
+   - Sets the winning proposal to `ACCEPTED`
+   - Sets all competing proposals to `REJECTED`
+   - Generates a traceable **Draft Contract** for the winning supplier covering the agreed airport, service type, period, and rate basis.

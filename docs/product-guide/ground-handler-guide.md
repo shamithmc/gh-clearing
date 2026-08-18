@@ -17,49 +17,56 @@ Open **Dashboard** to access executive analytics, receivables tracking, contract
 - **Operational Footprint (SOR2)**: Interactive airport station view showing your enabled stations, contracted airlines, active service lines, and station volume.
 - **Pending Invoicing (SFR4)**: Real-time calculation of flight operational turnarounds that have occurred and are due for billing based on contract frequency, but have not yet been linked to a draft or finalized invoice. Displays pending unbilled revenue grouped by currency, airline, and station.
 
-## Create & Manage Contracts
+## Author & Edit Contracts
 
-1. Navigate to **Contracts** and click **New Contract**.
-2. **Basic Details**: Select the target airline, airport hub, contract start/end dates, and billing currency.
-3. **Services & Pricing**: Add one or more service lines. For each service:
+The Contract Wizard supports dynamic formula authoring for all 7 standard pricing formulas with dedicated sub-editors and visual review cards.
+
+1. Navigate to **Contracts** and click **New Contract** (or click **Edit** on any `DRAFT` or `REVIEW_REQUESTED` contract).
+2. **Step 1: Agreement Details**: Select the target airline, airport hub, contract start/end dates, and billing currency.
+3. **Step 2: Services & Dynamic Pricing Formulas**:
    - Select the **IATA Charge Code** (e.g. `01.01 Ramp Handling`, `02.01 Passenger Check-in`).
-   - Assign the **Pricing Formula**:
-     - `PF-01`: Flat rate per flight / turnaround.
-     - `PF-02`: Variable charge per passenger.
-     - `PF-03`: Weight-based rate per ton of cargo / mail.
-     - `PF-04`: Tiered / slab volume pricing based on monthly turnaround count.
-     - `PF-05`: Time-banded pricing (e.g. night operations, peak vs off-peak).
-     - `PF-06`: Daily / period rate.
-     - `PF-07`: Aircraft MTOW weight-based formula with automatic tail registry lookup and aircraft-type fallback.
-   - Enter rates, quantity drivers, units of measure (UoM), and applicable tax codes.
-4. **Review & Submit**: Verify summary terms and click **Submit Contract**.
+   - Choose from the 7 dedicated pricing formula sub-editors:
+     - **`PF-01` Flat / Unit Rate**: Enter unit rate, quantity driver (e.g., `turnarounds`, `flights`), and unit of measure (UoM).
+     - **`PF-02` Compound Drivers**: Define multiple driver variables (e.g., `passengers`, `bags`, `pallets`) with custom tag weights. Requires at least 2 distinct driver tags.
+     - **`PF-03` Incremental Tiers**: Configure progressive volume tiers with tier limits and rates. Includes monotonicity validation and quick-fill presets.
+     - **`PF-04` All-Units Slabs**: Set volume thresholds where exceeding a slab applies a retroactively uniform rate across all volume.
+     - **`PF-05` Time-Bands**: Set 24-hour time schedule windows (e.g., Day vs. Night, Peak vs. Off-Peak) with overnight span support.
+     - **`PF-06` 7-Day Grid**: Configure day-of-week rate matrices with weekday/weekend uniform rate presets.
+     - **`PF-07` MTOW Weight-Based**: Set rate per metric ton of Maximum Takeoff Weight (MTOW) with aircraft-type registry fallback and Tail ID resolution.
+   - Enter applicable tax codes (e.g. `VAT-0`, `VAT-5`, `EXEMPT`).
+4. **Step 3: Review & Submit**:
+   - Inspect the **Formula Review Cards** displaying structured visual parameter breakdowns for each configured service.
+   - Click **Submit Contract** (or **Save Changes** when in edit mode).
 
-### Contract Approval Workflow
+### Contract Editing & Revision Cycles
 
-- **Drafts**: Click **Submit for Approval** to transition to `SUBMITTED`.
-- **Pending Approval**: Authorized contract approvers can select **Approve** or **Request Review** (with required feedback comments).
-- **Approved**: The contract becomes active for flight billing.
-- **Audit Trail**: Every creation, submission, approval, and review request is recorded with timestamps and user identifiers.
-
-## Process Airline Contract-Review Requests
-
-1. Open **Review Requests** from the sidebar.
-2. View pending requests submitted by airline procurement teams.
-3. Review the airline's specific commentary regarding rates, SLA terms, or volume commitments.
-4. Modify the contract if agreed and resubmit for approval.
+- **Edit Drafts**: Open **Contracts**, locate any contract in `DRAFT` status, and click **Edit** (`/contracts/:id/edit`). Preloads all formula parameters, service lines, and header details.
+- **Handle Review Requests**: When a contract is in `REVIEW_REQUESTED` status:
+  1. Open **Review Requests** (or **Contracts**).
+  2. Inspect reviewer commentary regarding requested rate or SLA adjustments.
+  3. Click **Edit Contract** to launch the wizard, modify the rates or formulas, and resubmit for approval.
+- **Audit Logging**: All edits and state changes generate timestamped audit trail records (`CREATED`, `UPDATED`, `SUBMITTED`, `APPROVED`).
 
 ## Create & Calculate Flight Invoices
 
-Invoices can only be created against active, `APPROVED` contracts covering the flight date and service types.
+Invoices are generated against active `APPROVED` contracts covering the flight date and service types.
 
-1. Navigate to **Invoices** and click **New Invoice**.
-2. **Header Information**: Select the airline, airport station, invoice number, issue date, payment due date, and currency. If the invoice currency differs from the contract currency, enter the foreign exchange rate and rate source.
+1. Navigate to **Invoices** and click **New Invoice** (or click **Edit** on a `DRAFT` or `MODIFICATION_REQUESTED` invoice).
+2. **Header Information**: Select the airline, airport station, invoice number, issue date, payment due date, and currency. For cross-currency invoicing, enter the foreign exchange rate and rate source.
 3. **Flight Line Items**: Add flight turnaround records:
-   - Flight date (validated strictly against the contract validity window).
-   - Flight number, aircraft registration (tail ID), aircraft type, origin, and destination.
+   - Flight date (strictly validated against the contract validity window).
+   - Flight number, aircraft tail ID (registration), aircraft type, origin, and destination.
    - Select contracted service and enter operational quantities (e.g. passenger count, cargo weight, turnaround duration).
-4. **Auto-Calculation**: The pricing engine applies the contract formula (PF-01 through PF-07) and calculates the exact line amount in real-time.
-5. **Review & Submit**: Verify line items, currency conversion, and total header sum. Click **Submit Draft Invoice**.
+4. **Auto-Calculation**: The pricing engine automatically executes the contract formula (PF-01 to PF-07) and calculates the exact line amount.
+5. **Review & Save**: Verify calculations, exchange rates, and totals. Click **Submit Draft Invoice** (or **Save Changes** in edit mode).
+
+### Invoice Editing & Modification Workflow
+
+- **Edit Draft Invoices**: Invoices in `DRAFT` status can be edited at any time via the **Edit** action button in the Invoices list.
+- **Supervisor Modification Requests**:
+  1. If an invoice approver selects **Request Modification** and enters feedback, the invoice transitions to `MODIFICATION_REQUESTED`.
+  2. The ground handler clicks **Edit** on the invoice to adjust flight lines, quantity drivers, or details.
+  3. The updated invoice is saved and transitioned back to `FINALIZED` for final approval.
 
 ## Finalize, Approve & Dispatch Invoices
 
@@ -69,7 +76,7 @@ From the **Invoices** list:
 2. **Approve**: An authorized invoice approver reviews line items and selects **Approve** (or **Request Modification** with comments).
 3. **Send (Dispatch)**:
    - Dispatches the invoice asynchronously.
-   - Generates the standard **IATA IS-XML** file and **PDF Invoice**.
+   - Generates the standard **IATA IS-XML** file (`is-invoice.xsd`) and **PDF Invoice**.
    - Sends email dispatch notifications to configured airline billing contacts.
    - Locks the invoice against further edits (`SENT`).
    - Download the generated XML and PDF files directly from the invoice actions menu.
@@ -97,7 +104,5 @@ For full dispute procedures, see [Disputes and Credit Notes](disputes-and-credit
 
 ## Publish Service Offerings & Respond to RFPs
 
-- **Service Offerings**: Publish airport station capabilities so airlines can discover your ground handling services in the marketplace.
-- **RFP Summary (SOR3)**: Review incoming procurement RFPs, submit structured commercial proposals with rates and terms, and monitor contract awards.
-
-For procurement details, see [Marketplace and RFPs](marketplace-and-rfps.md).
+- **Service Offerings**: Publish airport station capabilities so airlines can discover your ground handling services in the marketplace. Click **Edit** on existing offerings to update service descriptions and capabilities.
+- **RFP Proposals**: View eligible RFPs, submit commercial rate proposals, and click **Edit Bid** to revise proposed rates and terms while the RFP remains open.
