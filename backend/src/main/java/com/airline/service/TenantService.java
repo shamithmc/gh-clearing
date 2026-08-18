@@ -43,4 +43,19 @@ public class TenantService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Tenant not found: " + id));
     }
+
+    public Tenant updateTenant(String id, TenantRequest request) {
+        Tenant tenant = getTenant(id);
+
+        if (!tenant.getName().equalsIgnoreCase(request.getName()) && tenantRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Tenant with name '" + request.getName() + "' already exists");
+        }
+
+        tenant.setName(request.getName());
+        if (request.getStatus() != null) {
+            tenant.setStatus(request.getStatus());
+        }
+        return tenantRepository.save(tenant);
+    }
 }

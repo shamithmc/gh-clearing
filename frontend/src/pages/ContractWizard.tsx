@@ -13,7 +13,8 @@ import {
   Calendar,
   DollarSign,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { simulatedAuthHeaders } from '../utils/simulatedAuth';
 import { TiersEditor } from '../components/pricing/TiersEditor';
 import { TimeBandsEditor } from '../components/pricing/TimeBandsEditor';
@@ -76,6 +77,8 @@ let cachedChargeCodes: ReferenceChargeCode[] = FALLBACK_CHARGE_CODES;
 let refDataLoaded = false;
 
 const ContractWizard: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -91,6 +94,57 @@ const ContractWizard: React.FC = () => {
       fetchReferenceData();
     }
   }, []);
+
+  useEffect(() => {
+    if (id) {
+      const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
+      const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+      const headers = simulatedAuthHeaders(simTenantId, simTenantType);
+
+      fetch(`/api/contracts/${id}`, { headers })
+        .then((res) => {
+          if (!res.ok) throw new Error('Contract not found');
+          return res.json();
+        })
+        .then((contract) => {
+          const mappedServices = (contract.services || []).map((s: any) => {
+            const rd = s.rateDetails || {};
+            const formula = s.formulaType || 'PF-01';
+            let compoundDrivers: string[] | undefined;
+            if (formula === 'PF-02') {
+              compoundDrivers = s.quantityDriver ? s.quantityDriver.split(',') : ['passengers', 'bags'];
+            }
+
+            return {
+              chargeCode: s.chargeCode,
+              serviceName: s.serviceName,
+              formulaType: formula,
+              quantityDriver: s.quantityDriver,
+              uom: s.uom,
+              taxCode: s.taxCode,
+              billingFrequency: s.billingFrequency,
+              expectedAmount: rd.expectedAmount,
+              rate: rd.rate !== undefined ? String(rd.rate) : undefined,
+              tiers: rd.tiers,
+              timeBands: rd.timeBands,
+              dayRates: rd.dayRates,
+              compoundDrivers,
+            };
+          });
+
+          form.setFieldsValue({
+            airlineId: contract.airlineId,
+            airportCode: contract.airportCode,
+            dateRange: contract.startDate && contract.endDate ? [dayjs(contract.startDate), dayjs(contract.endDate)] : undefined,
+            currency: contract.currency,
+            services: mappedServices,
+          });
+        })
+        .catch(() => {
+          message.error('Failed to load contract details for editing.');
+        });
+    }
+  }, [id, form]);
 
   const fetchReferenceData = async () => {
     setLoadingRefData(true);
@@ -319,9 +373,11 @@ const ContractWizard: React.FC = () => {
 
     const simTenantId = localStorage.getItem('simTenantId') || 'SWISSPORT';
     const simTenantType = localStorage.getItem('simTenantType') || 'GROUND_HANDLER';
+    const url = isEditMode ? `/api/contracts/${id}` : '/api/contracts';
+    const method = isEditMode ? 'PUT' : 'POST';
 
-    fetch('/api/contracts', {
-      method: 'POST',
+    fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         ...simulatedAuthHeaders(simTenantId, simTenantType),
@@ -329,13 +385,13 @@ const ContractWizard: React.FC = () => {
       body: JSON.stringify(payload),
     }).then((res) => {
       if (res.ok) {
-        message.success('Contract drafted successfully!');
+        message.success(isEditMode ? 'Contract updated successfully!' : 'Contract drafted successfully!');
         navigate('/contracts');
       } else {
         res
           .json()
-          .then((data) => message.error(data.message || 'Failed to create contract.'))
-          .catch(() => message.error('Failed to create contract.'));
+          .then((data) => message.error(data.message || (isEditMode ? 'Failed to update contract.' : 'Failed to create contract.')))
+          .catch(() => message.error(isEditMode ? 'Failed to update contract.' : 'Failed to create contract.'));
       }
     });
   };
@@ -354,10 +410,12 @@ const ContractWizard: React.FC = () => {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
-            Create Ground Handling Agreement (SGHA)
+            {isEditMode ? 'Edit Ground Handling Agreement (SGHA)' : 'Create Ground Handling Agreement (SGHA)'}
           </h1>
           <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
-            Draft structured turnaround SLAs, service line formulas (PF-01 through PF-07), and multi-tiered rate cards
+            {isEditMode
+              ? 'Update structured turnaround SLAs, service line formulas (PF-01 through PF-07), and multi-tiered rate cards'
+              : 'Draft structured turnaround SLAs, service line formulas (PF-01 through PF-07), and multi-tiered rate cards'}
           </p>
         </div>
       </div>
@@ -843,7 +901,7 @@ const ContractWizard: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  Submit Contract
+                  {isEditMode ? 'Save Changes' : 'Submit Contract'}
                 </button>
               )}
             </div>

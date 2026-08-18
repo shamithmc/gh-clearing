@@ -134,6 +134,91 @@ public class ContractService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public ContractResponse getContractById(String id) {
+        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantType = tenantContext.getCurrentTenantType();
+
+        Contract contract = contractRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Contract not found"));
+
+        if ("AIRLINE".equals(tenantType)) {
+            requireAnyRole(java.util.Set.of("CONTRACT_VIEWER", "CONTRACT_REVIEWER"));
+            if (contract.getStatus() == ContractStatus.DRAFT) {
+                throw new java.util.NoSuchElementException("Contract not found");
+            }
+        } else if ("GROUND_HANDLER".equals(tenantType)) {
+            requireAnyRole(java.util.Set.of("CONTRACT_ENTRY", "CONTRACT_APPROVER"));
+        } else {
+            throw new org.springframework.security.access.AccessDeniedException("Invalid tenant type");
+        }
+
+        java.util.Set<String> contractChargeCodes = contract.getServices() != null ?
+                contract.getServices().stream().map(ServiceConfiguration::getChargeCode).collect(Collectors.toSet()) :
+                java.util.Set.of();
+        dimensionalSecurityEvaluator.verifyAccess(contract.getAirportCode(), contract.getAirlineId(), contractChargeCodes);
+
+        return mapToResponse(contract);
+    }
+
+    @Transactional
+    public ContractResponse updateContract(String id, ContractCreateRequest request) {
+        if (!"GROUND_HANDLER".equals(tenantContext.getCurrentTenantType())) {
+            throw new org.springframework.security.access.AccessDeniedException("Only ground handlers can edit contracts");
+        }
+        requireRole("CONTRACT_ENTRY");
+
+        String tenantId = tenantContext.getCurrentTenantId();
+        Contract contract = contractRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Contract not found"));
+
+        if (contract.getStatus() != ContractStatus.DRAFT && contract.getStatus() != ContractStatus.REVIEW_REQUESTED) {
+            throw new IllegalStateException("Only DRAFT or REVIEW_REQUESTED contracts can be edited. Current status: " + contract.getStatus());
+        }
+
+        java.util.Set<String> requestChargeCodes = request.getServices() != null ?
+                request.getServices().stream().map(ServiceConfigurationDTO::getChargeCode).collect(Collectors.toSet()) :
+                java.util.Set.of();
+        dimensionalSecurityEvaluator.verifyAccess(request.getAirportCode(), request.getAirlineId(), requestChargeCodes);
+
+        contract.setAirlineId(request.getAirlineId());
+        contract.setAirportCode(request.getAirportCode());
+        contract.setStartDate(request.getStartDate());
+        contract.setEndDate(request.getEndDate());
+        contract.setCurrency(request.getCurrency());
+
+        contract.getServices().clear();
+        for (ServiceConfigurationDTO svcDto : request.getServices()) {
+            ServiceConfiguration svc = ServiceConfiguration.builder()
+                    .id(UUID.randomUUID().toString())
+                    .chargeCode(svcDto.getChargeCode())
+                    .serviceName(svcDto.getServiceName())
+                    .formulaType(FormulaType.fromValue(svcDto.getFormulaType()))
+                    .rateDetails(svcDto.getRateDetails())
+                    .quantityDriver(svcDto.getQuantityDriver())
+                    .uom(svcDto.getUom())
+                    .taxCode(svcDto.getTaxCode())
+                    .billingFrequency(parseBillingFrequency(svcDto))
+                    .build();
+            contract.addService(svc);
+        }
+
+        contractRepository.save(contract);
+
+        String currentUserId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ?
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
+        com.airline.domain.ContractAuditLog auditLog = com.airline.domain.ContractAuditLog.builder()
+                .id(UUID.randomUUID().toString())
+                .contractId(contract.getId())
+                .action("UPDATED")
+                .userId(currentUserId)
+                .timestamp(java.time.OffsetDateTime.now())
+                .build();
+        contractAuditLogRepository.save(auditLog);
+
+        return mapToResponse(contract);
+    }
+
     @Transactional
     public ContractResponse updateContractStatus(String id, ContractStatus targetStatus) {
         if (targetStatus == null) {

@@ -19,9 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -163,5 +165,79 @@ public class ContractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("test-contract-id"))
                 .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
+    }
+
+    @Test
+    void shouldGetContractByIdSuccessfully() throws Exception {
+        ContractResponse response = ContractResponse.builder()
+                .id("test-contract-id")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusYears(1))
+                .status(ContractStatus.DRAFT)
+                .currency("USD")
+                .services(List.of())
+                .build();
+
+        when(contractService.getContractById("test-contract-id")).thenReturn(response);
+
+        mockMvc.perform(get("/api/contracts/test-contract-id")
+                        .with(jwt().jwt(builder -> builder
+                                .claim("tenant_id", "SWISSPORT")
+                                .claim("tenant_type", "GROUND_HANDLER")
+                                .claim("roles", List.of("CONTRACT_ENTRY")))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("test-contract-id"))
+                .andExpect(jsonPath("$.airlineId").value("EK"));
+
+        verify(contractService).getContractById("test-contract-id");
+    }
+
+    @Test
+    void shouldUpdateContractSuccessfully() throws Exception {
+        ContractCreateRequest request = new ContractCreateRequest();
+        request.setAirlineId("EK");
+        request.setAirportCode("DXB");
+        request.setStartDate(LocalDate.now());
+        request.setEndDate(LocalDate.now().plusYears(1));
+        request.setCurrency("USD");
+        ServiceConfigurationDTO svc = new ServiceConfigurationDTO();
+        svc.setChargeCode("PASSENGER_HANDLING");
+        svc.setServiceName("Passenger Handling");
+        svc.setFormulaType("PF-01");
+        svc.setQuantityDriver("passengers");
+        svc.setUom("PAX");
+        svc.setTaxCode("VAT-0");
+        svc.setRateDetails(Map.of("rate", 15.0));
+        request.setServices(List.of(svc));
+
+        ContractResponse response = ContractResponse.builder()
+                .id("test-contract-id")
+                .groundHandlerId("SWISSPORT")
+                .airlineId("EK")
+                .airportCode("DXB")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusYears(1))
+                .status(ContractStatus.DRAFT)
+                .currency("USD")
+                .services(request.getServices())
+                .build();
+
+        when(contractService.updateContract(eq("test-contract-id"), any(ContractCreateRequest.class))).thenReturn(response);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/contracts/test-contract-id")
+                        .with(jwt().jwt(builder -> builder
+                                .claim("tenant_id", "SWISSPORT")
+                                .claim("tenant_type", "GROUND_HANDLER")
+                                .claim("roles", List.of("CONTRACT_ENTRY"))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("test-contract-id"))
+                .andExpect(jsonPath("$.services[0].chargeCode").value("PASSENGER_HANDLING"));
+
+        verify(contractService).updateContract(eq("test-contract-id"), any(ContractCreateRequest.class));
     }
 }

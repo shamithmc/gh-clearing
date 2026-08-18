@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Steps, Form, Input, Select, DatePicker, message, Table } from 'antd';
 import { Plus, Trash2, CreditCard, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 
@@ -27,6 +27,8 @@ interface Contract {
 }
 
 const InvoiceWizard: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -62,6 +64,73 @@ const InvoiceWizard: React.FC = () => {
       .then(data => setAirports(data))
       .catch(() => setAirports([{ iataCode: 'DXB', name: 'Dubai International Airport' }, { iataCode: 'FRA', name: 'Frankfurt Airport' }]));
   }, [simTenantId, simTenantType, simUserId]);
+
+  // Fetch invoice details when in edit mode
+  useEffect(() => {
+    if (id) {
+      fetch(`/api/invoices/${id}`, {
+        headers: simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Invoice not found');
+          return res.json();
+        })
+        .then((invoice: any) => {
+          setSelectedAirline(invoice.airlineId);
+          setSelectedAirport(invoice.airportCode);
+
+          const mappedLineItems = (invoice.lineItems || []).map((item: any) => {
+            let driverKey = 'passengers';
+            let driverVal = '';
+            if (item.quantityDrivers) {
+              try {
+                const parsed =
+                  typeof item.quantityDrivers === 'string'
+                    ? JSON.parse(item.quantityDrivers)
+                    : item.quantityDrivers;
+                const keys = Object.keys(parsed);
+                if (keys.length > 0) {
+                  driverKey = keys[0];
+                  driverVal = parsed[driverKey] !== undefined ? String(parsed[driverKey]) : '';
+                }
+              } catch (_) {
+                driverVal = '';
+              }
+            }
+
+            return {
+              contractId: item.contractId,
+              flightDate: item.flightDate ? dayjs(item.flightDate) : dayjs(),
+              flightNumber: item.flightNumber,
+              aircraftReg: item.aircraftReg,
+              origin: item.origin,
+              destination: item.destination,
+              chargeCode: item.chargeCode,
+              driverKey,
+              driverValue: driverVal,
+              serviceName: item.serviceName,
+              formulaType: item.formulaType,
+              calculatedAmount: item.calculatedAmount,
+            };
+          });
+
+          form.setFieldsValue({
+            invoiceNumber: invoice.invoiceNumber,
+            airlineId: invoice.airlineId,
+            airportCode: invoice.airportCode,
+            currency: invoice.currency || 'USD',
+            exchangeRate: invoice.exchangeRate,
+            exchangeRateSource: invoice.exchangeRateSource,
+            issueDate: invoice.issueDate ? dayjs(invoice.issueDate) : dayjs(),
+            dueDate: invoice.dueDate ? dayjs(invoice.dueDate) : dayjs().add(30, 'day'),
+            lineItems: mappedLineItems,
+          });
+        })
+        .catch(() => {
+          message.error('Failed to load invoice details for editing.');
+        });
+    }
+  }, [id, form, simTenantId, simTenantType, simUserId]);
 
   // Fetch approved contracts when airline or airport changes
   useEffect(() => {
@@ -155,11 +224,11 @@ const InvoiceWizard: React.FC = () => {
         ? item.flightDate.format('YYYY-MM-DD') 
         : (item.flightDate ? String(item.flightDate) : dayjs().format('YYYY-MM-DD'));
 
-      const cId = (contractSvc as any)?.contractId || (approvedContracts[0]?.id);
+      const cId = item.contractId || (contractSvc as any)?.contractId || (approvedContracts[0]?.id);
 
       // quantityDrivers must be a JSON map string: {"<quantityDriver>": <numericValue>}
       // as expected by InvoiceService.parseQuantityDrivers()
-      const driverKey = contractSvc?.quantityDriver || 'quantity';
+      const driverKey = contractSvc?.quantityDriver || item.driverKey || 'passengers';
       const driverVal = parseFloat(item.driverValue) || 0;
       const quantityDriversJson = JSON.stringify({ [driverKey]: driverVal });
 
@@ -171,8 +240,8 @@ const InvoiceWizard: React.FC = () => {
         origin: item.origin,
         destination: item.destination,
         chargeCode: item.chargeCode,
-        serviceName: contractSvc?.serviceName || 'Service',
-        formulaType: contractSvc?.formulaType || 'PF-01',
+        serviceName: contractSvc?.serviceName || item.serviceName || 'Service',
+        formulaType: contractSvc?.formulaType || item.formulaType || 'PF-01',
         quantityDrivers: quantityDriversJson,
         calculatedAmount: calcAmount
       };
@@ -199,8 +268,11 @@ const InvoiceWizard: React.FC = () => {
       lineItems: lineItemsPayload
     };
 
-    fetch('/api/invoices', {
-      method: 'POST',
+    const url = isEditMode ? `/api/invoices/${id}` : '/api/invoices';
+    const method = isEditMode ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         ...simulatedAuthHeaders(simTenantId, simTenantType, simUserId),
@@ -208,12 +280,12 @@ const InvoiceWizard: React.FC = () => {
       body: JSON.stringify(payload)
     }).then(async res => {
       const textData = await res.text();
-      console.log('[InvoiceWizard] POST /api/invoices status:', res.status, 'body:', textData);
+      console.log('[InvoiceWizard] ' + method + ' /api/invoices status:', res.status, 'body:', textData);
       if (res.ok) {
-        message.success('Invoice drafted successfully!');
+        message.success(isEditMode ? 'Invoice updated successfully!' : 'Invoice drafted successfully!');
         navigate('/invoices');
       } else {
-        let errorMsg = 'Failed to create invoice.';
+        let errorMsg = isEditMode ? 'Failed to update invoice.' : 'Failed to create invoice.';
         try {
           const json = JSON.parse(textData);
           errorMsg = json.message || json.error || textData;
@@ -225,7 +297,7 @@ const InvoiceWizard: React.FC = () => {
       }
     }).catch(err => {
       console.error('[InvoiceWizard] fetch catch:', err);
-      message.error('Failed to create invoice.');
+      message.error(isEditMode ? 'Failed to update invoice.' : 'Failed to create invoice.');
     });
   };
 
@@ -249,10 +321,12 @@ const InvoiceWizard: React.FC = () => {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
-            Create Ground Handling Invoice
+            {isEditMode ? 'Edit Ground Handling Invoice' : 'Create Ground Handling Invoice'}
           </h1>
           <p className="text-xs text-slate-500 font-normal mt-0.5 m-0">
-            Multi-flight turnaround billing generator linked to approved contract SLAs
+            {isEditMode
+              ? 'Update multi-flight turnaround billing records and contract-linked calculations'
+              : 'Multi-flight turnaround billing generator linked to approved contract SLAs'}
           </p>
         </div>
       </div>
@@ -494,7 +568,7 @@ const InvoiceWizard: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  Submit Draft Invoice
+                  {isEditMode ? 'Save Changes' : 'Submit Draft Invoice'}
                 </button>
               )}
             </div>

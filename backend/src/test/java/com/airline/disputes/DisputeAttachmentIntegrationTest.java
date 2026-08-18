@@ -143,6 +143,7 @@ class DisputeAttachmentIntegrationTest {
         jdbcTemplate.update("""
                 INSERT INTO tenants (id, name, type, status)
                 VALUES (?, ?, ?, 'ACTIVE')
+                ON CONFLICT (id) DO NOTHING
                 """, id, id, type);
     }
 
@@ -150,6 +151,7 @@ class DisputeAttachmentIntegrationTest {
         jdbcTemplate.update("""
                 INSERT INTO users (id, tenant_id, username, email, roles)
                 VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO NOTHING
                 """, id, tenantId, id, id + "@local.invalid", role);
     }
 }

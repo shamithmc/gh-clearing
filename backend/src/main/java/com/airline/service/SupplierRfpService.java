@@ -78,6 +78,33 @@ public class SupplierRfpService {
         return toResponse(rfp, proposalRepository.save(proposal));
     }
 
+    @Transactional
+    public SupplierRfpResponse updateProposal(String rfpId, String proposalId, RfpProposalCreateRequest request) {
+        String groundHandlerId = requireSupplierRfpMonitor();
+        Rfp rfp = rfpRepository.findPublishedByIdForEligibleGroundHandler(rfpId, groundHandlerId)
+                .orElseThrow(() -> new NoSuchElementException("RFP not found: " + rfpId));
+        verifyDimensionalAccess(rfp);
+
+        if (rfp.getStatus() == RfpStatus.AWARDED || rfp.getStatus() == RfpStatus.CLOSED) {
+            throw new IllegalStateException("Cannot modify proposals for awarded or closed RFPs");
+        }
+
+        RfpProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, groundHandlerId)
+                .filter(p -> p.getRfpId().equals(rfpId))
+                .orElseThrow(() -> new NoSuchElementException("Proposal not found: " + proposalId));
+
+        if (proposal.getStatus() != RfpProposalStatus.SUBMITTED) {
+            throw new IllegalStateException("Only submitted/pending proposals can be modified");
+        }
+
+        proposal.setProposedRate(request.getProposedRate());
+        proposal.setCurrency(request.getCurrency().trim().toUpperCase(Locale.ROOT));
+        proposal.setTerms(request.getTerms().trim());
+        proposal.setSubmittedAt(OffsetDateTime.now());
+
+        return toResponse(rfp, proposalRepository.save(proposal));
+    }
+
     private String requireSupplierRfpMonitor() {
         if (!"GROUND_HANDLER".equals(tenantContext.getCurrentTenantType())) {
             throw new AccessDeniedException("Only ground handlers can access supplier RFP opportunities");

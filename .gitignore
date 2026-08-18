@@ -31,6 +31,8 @@ Thumbs.db
 # E2E test reports
 e2e/playwright-report/
 e2e/test-results/
+test-results/
+playwright-report/
 
 # Local uploads storage
 uploads/

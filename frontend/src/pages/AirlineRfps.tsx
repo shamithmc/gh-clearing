@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, DatePicker, Form, Input, message, Modal, Select, Spin, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
 import { getSimulatedUserId, simulatedAuthHeaders } from '../utils/simulatedAuth';
 import {
@@ -10,7 +11,8 @@ import {
   RefreshCw,
   Eye,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Pencil
 } from 'lucide-react';
 
 const { RangePicker } = DatePicker;
@@ -83,6 +85,7 @@ const AirlineRfps: React.FC = () => {
   const [rfps, setRfps] = useState<Rfp[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [editingRfp, setEditingRfp] = useState<Rfp | null>(null);
   const [error, setError] = useState<string>();
   const [evaluationRfp, setEvaluationRfp] = useState<Rfp>();
   const [proposals, setProposals] = useState<RfpProposal[]>([]);
@@ -137,8 +140,11 @@ const AirlineRfps: React.FC = () => {
   const publishRfp = async (values: RfpFormValues) => {
     setPublishing(true);
     try {
-      const response = await fetch('/api/rfps', {
-        method: 'POST',
+      const url = editingRfp ? `/api/rfps/${editingRfp.id}` : '/api/rfps';
+      const method = editingRfp ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           airportCode: values.airportCode,
@@ -152,14 +158,15 @@ const AirlineRfps: React.FC = () => {
         const payload = await response.json().catch(() => ({}));
         throw new Error(response.status === 403
           ? 'Your role or access scope does not permit this RFP.'
-          : payload.message || 'The RFP could not be published.');
+          : payload.message || (editingRfp ? 'The RFP could not be updated.' : 'The RFP could not be published.'));
       }
-      const created: Rfp = await response.json();
-      message.success(`RFP published to ${created.eligibleGroundHandlerIds.length} eligible ground handler(s)`);
+      const saved: Rfp = await response.json();
+      message.success(editingRfp ? 'RFP updated successfully' : `RFP published to ${saved.eligibleGroundHandlerIds.length} eligible ground handler(s)`);
       form.resetFields();
+      setEditingRfp(null);
       await loadRfps();
     } catch (requestError) {
-      message.error(requestError instanceof Error ? requestError.message : 'The RFP could not be published.');
+      message.error(requestError instanceof Error ? requestError.message : 'Failed to save RFP.');
     } finally {
       setPublishing(false);
     }
@@ -304,14 +311,35 @@ const AirlineRfps: React.FC = () => {
       key: 'actions',
       align: 'right' as const,
       render: (_, rfp) => (
-        <button
-          data-testid={`review-proposals-${rfp.id}`}
-          onClick={() => openEvaluation(rfp)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
-        >
-          <Eye className="w-3.5 h-3.5 text-slate-500" />
-          Review Proposals
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          {rfp.status === 'PUBLISHED' && (
+            <button
+              data-testid={`edit-rfp-${rfp.id}`}
+              onClick={() => {
+                setEditingRfp(rfp);
+                form.setFieldsValue({
+                  airportCode: rfp.airportCode,
+                  serviceType: rfp.serviceType,
+                  requirements: rfp.requirements,
+                  contractPeriod: [dayjs(rfp.desiredStartDate), dayjs(rfp.desiredEndDate)],
+                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          )}
+          <button
+            data-testid={`review-proposals-${rfp.id}`}
+            onClick={() => openEvaluation(rfp)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5 text-slate-500" />
+            Review Proposals
+          </button>
+        </div>
       ),
     },
   ];
@@ -348,11 +376,26 @@ const AirlineRfps: React.FC = () => {
 
       {error && <Alert type="error" showIcon message={error} className="rounded-xl border-rose-200 bg-rose-50" />}
 
-      {/* Create RFP Card */}
+      {/* Create / Edit RFP Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200/80">
-          <Send className="w-4 h-4 text-slate-500" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Create RFP</span>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80">
+          <div className="flex items-center gap-2">
+            <Send className="w-4 h-4 text-slate-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              {editingRfp ? 'Edit RFP' : 'Create RFP'}
+            </span>
+          </div>
+          {editingRfp && (
+            <button
+              onClick={() => {
+                setEditingRfp(null);
+                form.resetFields();
+              }}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
+            >
+              Cancel Edit
+            </button>
+          )}
         </div>
         <div className="p-6">
           <Form<RfpFormValues> form={form} layout="vertical" onFinish={publishRfp}>
@@ -413,15 +456,30 @@ const AirlineRfps: React.FC = () => {
               />
             </Form.Item>
 
-            <button
-              data-testid="publish-rfp"
-              type="submit"
-              disabled={publishing}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 py-2 h-9 shadow-xs focus:ring-2 focus:ring-blue-500/30 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              {publishing ? 'Publishing...' : 'Publish RFP'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                data-testid="publish-rfp"
+                type="button"
+                onClick={() => form.submit()}
+                disabled={publishing}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 py-2 h-9 shadow-xs focus:ring-2 focus:ring-blue-500/30 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                {publishing ? 'Saving...' : (editingRfp ? 'Save Changes' : 'Publish RFP')}
+              </button>
+              {editingRfp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRfp(null);
+                    form.resetFields();
+                  }}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </Form>
         </div>
       </div>

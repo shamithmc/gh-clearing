@@ -37,6 +37,11 @@ public class RfpController {
         return rfpService.create(request);
     }
 
+    @org.springframework.web.bind.annotation.PutMapping("/{rfpId}")
+    public RfpResponse update(@PathVariable String rfpId, @Valid @RequestBody RfpCreateRequest request) {
+        return rfpService.update(rfpId, request);
+    }
+
     @GetMapping
     public List<RfpResponse> listOwn() {
         return rfpService.listOwn();

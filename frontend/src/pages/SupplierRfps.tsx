@@ -10,7 +10,8 @@ import {
   Trophy,
   Clock,
   Inbox,
-  MessageSquareReply
+  MessageSquareReply,
+  Pencil
 } from 'lucide-react';
 
 interface SupplierRfp {
@@ -65,16 +66,17 @@ const SupplierRfps: React.FC = () => {
     () => simulatedAuthHeaders(tenantId, 'GROUND_HANDLER', userId),
     [tenantId, userId],
   );
+  const [form] = Form.useForm<ProposalValues>();
   const [rfps, setRfps] = useState<SupplierRfp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>();
-  const [selectedRfp, setSelectedRfp] = useState<SupplierRfp>();
   const [submitting, setSubmitting] = useState(false);
+  const [selectedRfp, setSelectedRfp] = useState<SupplierRfp>();
+  const [isEditingProposal, setIsEditingProposal] = useState(false);
+  const [error, setError] = useState<string>();
   const [airlineFilter, setAirlineFilter] = useState<string>();
   const [airportFilter, setAirportFilter] = useState<string>();
   const [responseFilter, setResponseFilter] = useState<string>();
   const [outcomeFilter, setOutcomeFilter] = useState<string>();
-  const [form] = Form.useForm<ProposalValues>();
 
   const loadRfps = useCallback(async () => {
     setLoading(true);
@@ -83,7 +85,7 @@ const SupplierRfps: React.FC = () => {
       const response = await fetch('/api/supplier/rfps', { headers });
       if (!response.ok) {
         throw new Error(response.status === 403
-          ? 'Your role does not permit RFP monitoring.'
+          ? 'Your role or access scope does not permit RFP opportunity tracking.'
           : 'RFP opportunities could not be loaded.');
       }
       setRfps(await response.json());
@@ -104,8 +106,13 @@ const SupplierRfps: React.FC = () => {
     const values = await form.validateFields();
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/supplier/rfps/${selectedRfp.id}/proposals`, {
-        method: 'POST',
+      const url = isEditingProposal && selectedRfp.proposalId
+        ? `/api/supplier/rfps/${selectedRfp.id}/proposals/${selectedRfp.proposalId}`
+        : `/api/supplier/rfps/${selectedRfp.id}/proposals`;
+      const method = isEditingProposal && selectedRfp.proposalId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(values),
       });
@@ -113,14 +120,15 @@ const SupplierRfps: React.FC = () => {
         const payload = await response.json().catch(() => ({}));
         throw new Error(response.status === 403
           ? 'Your role or access scope does not permit this proposal.'
-          : payload.message || 'The proposal could not be submitted.');
+          : payload.message || (isEditingProposal ? 'The proposal could not be updated.' : 'The proposal could not be submitted.'));
       }
-      message.success('Proposal submitted to the airline');
+      message.success(isEditingProposal ? 'Proposal updated successfully' : 'Proposal submitted to the airline');
       setSelectedRfp(undefined);
+      setIsEditingProposal(false);
       form.resetFields();
       await loadRfps();
     } catch (requestError) {
-      message.error(requestError instanceof Error ? requestError.message : 'The proposal could not be submitted.');
+      message.error(requestError instanceof Error ? requestError.message : 'Failed to save proposal.');
     } finally {
       setSubmitting(false);
     }
@@ -140,11 +148,44 @@ const SupplierRfps: React.FC = () => {
   const won = rfps.filter(rfp => rfp.outcome === 'WON').length;
 
   const columns: TableColumnsType<SupplierRfp> = [
-    { title: 'AIRLINE', dataIndex: 'airlineId', key: 'airlineId' },
-    { title: 'AIRPORT', dataIndex: 'airportCode', key: 'airportCode' },
-    { title: 'SERVICE', dataIndex: 'serviceType', key: 'serviceType' },
     {
-      title: 'CONTRACT PERIOD',
+      title: 'AIRLINE',
+      dataIndex: 'airlineId',
+      key: 'airlineId',
+      render: (airlineId: string) => (
+        <span className="font-semibold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
+          {airlineId}
+        </span>
+      ),
+    },
+    {
+      title: 'AIRPORT',
+      dataIndex: 'airportCode',
+      key: 'airportCode',
+      render: (airportCode: string) => (
+        <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
+          {airportCode}
+        </span>
+      ),
+    },
+    {
+      title: 'SERVICE',
+      dataIndex: 'serviceType',
+      key: 'serviceType',
+      render: (serviceType: string) => (
+        <span className="text-xs font-semibold text-slate-700">{serviceType}</span>
+      ),
+    },
+    {
+      title: 'REQUIREMENTS',
+      dataIndex: 'requirements',
+      key: 'requirements',
+      render: (requirements: string) => (
+        <span className="text-xs text-slate-600 line-clamp-2 max-w-xs">{requirements}</span>
+      ),
+    },
+    {
+      title: 'PERIOD',
       key: 'period',
       render: (_, rfp) => (
         <span className="text-xs text-slate-600">{rfp.desiredStartDate} → {rfp.desiredEndDate}</span>
@@ -185,12 +226,33 @@ const SupplierRfps: React.FC = () => {
       key: 'action',
       align: 'right' as const,
       render: (_, rfp) => rfp.proposalStatus ? (
-        <span className="text-xs font-semibold text-slate-900">{rfp.proposalCurrency} {rfp.proposedRate}</span>
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-xs font-semibold text-slate-900">{rfp.proposalCurrency} {rfp.proposedRate}</span>
+          {rfp.status === 'PUBLISHED' && rfp.proposalStatus === 'SUBMITTED' && (
+            <button
+              data-testid={`edit-proposal-${rfp.id}`}
+              onClick={() => {
+                form.setFieldsValue({
+                  proposedRate: rfp.proposedRate,
+                  currency: rfp.proposalCurrency || 'USD',
+                  terms: rfp.proposalTerms || '',
+                });
+                setIsEditingProposal(true);
+                setSelectedRfp(rfp);
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            >
+              <Pencil className="w-3 h-3 text-slate-600" />
+              Edit Bid
+            </button>
+          )}
+        </div>
       ) : rfp.status === 'PUBLISHED' ? (
         <button
           data-testid={`respond-rfp-${rfp.id}`}
           onClick={() => {
             form.resetFields();
+            setIsEditingProposal(false);
             setSelectedRfp(rfp);
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white border-0 font-medium text-xs rounded-lg transition-colors cursor-pointer"
@@ -350,15 +412,16 @@ const SupplierRfps: React.FC = () => {
         </Spin>
       </div>
 
-      {/* Submit Proposal Modal */}
+      {/* Submit / Edit Proposal Modal */}
       <Modal
-        title={selectedRfp ? `Proposal for ${selectedRfp.airlineId} · ${selectedRfp.serviceType}` : 'Submit Proposal'}
+        title={selectedRfp ? (isEditingProposal ? `Revise Bid for ${selectedRfp.airlineId} · ${selectedRfp.serviceType}` : `Proposal for ${selectedRfp.airlineId} · ${selectedRfp.serviceType}`) : 'Submit Proposal'}
         open={Boolean(selectedRfp)}
-        okText="Submit Proposal"
+        okText={isEditingProposal ? 'Save Changes' : 'Submit Proposal'}
         confirmLoading={submitting}
         onOk={submitProposal}
         onCancel={() => {
           setSelectedRfp(undefined);
+          setIsEditingProposal(false);
           form.resetFields();
         }}
       >

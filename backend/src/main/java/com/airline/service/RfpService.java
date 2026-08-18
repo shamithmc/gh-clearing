@@ -15,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -69,6 +71,42 @@ public class RfpService {
                 .createdAt(OffsetDateTime.now())
                 .eligibleGroundHandlerIds(Set.copyOf(eligibleGroundHandlers))
                 .build();
+        return toResponse(rfpRepository.save(rfp));
+    }
+
+    @Transactional
+    public RfpResponse update(String rfpId, RfpCreateRequest request) {
+        String airlineId = requireAirlineRfpRaiser();
+        Rfp rfp = rfpRepository.findByIdAndTenantId(rfpId, airlineId)
+                .orElseThrow(() -> new NoSuchElementException("RFP not found: " + rfpId));
+
+        if (rfp.getStatus() == RfpStatus.AWARDED || rfp.getStatus() == RfpStatus.CLOSED) {
+            throw new IllegalStateException("Awarded or closed RFPs cannot be modified");
+        }
+
+        String airportCode = normalize(request.getAirportCode());
+        String serviceType = normalize(request.getServiceType());
+        validatePeriod(request);
+
+        referenceDataService.getAirport(airportCode);
+        referenceDataService.getChargeCode(serviceType);
+        dimensionalSecurityEvaluator.verifyAccess(airportCode, airlineId, Set.of(serviceType));
+
+        Set<String> eligibleGroundHandlers = supplierConfigurationRepository
+                .findEligibleGroundHandlerIds(airportCode, airlineId);
+
+        rfp.setAirportCode(airportCode);
+        rfp.setServiceType(serviceType);
+        rfp.setRequirements(request.getRequirements().trim());
+        rfp.setDesiredStartDate(request.getDesiredStartDate());
+        rfp.setDesiredEndDate(request.getDesiredEndDate());
+        if (rfp.getEligibleGroundHandlerIds() == null) {
+            rfp.setEligibleGroundHandlerIds(new HashSet<>(eligibleGroundHandlers));
+        } else {
+            rfp.getEligibleGroundHandlerIds().clear();
+            rfp.getEligibleGroundHandlerIds().addAll(eligibleGroundHandlers);
+        }
+
         return toResponse(rfpRepository.save(rfp));
     }
 

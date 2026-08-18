@@ -16,4 +16,6 @@ public class TenantRequest {
 
     @NotNull
     private Tenant.TenantType type;
+
+    private Tenant.TenantStatus status;
 }

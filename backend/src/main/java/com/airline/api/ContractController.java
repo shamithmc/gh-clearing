@@ -31,6 +31,18 @@ public class ContractController {
         return contractService.getContracts(status, airportCode, serviceType);
     }
 
+    @GetMapping("/{id}")
+    public ContractResponse getContract(@PathVariable String id) {
+        return contractService.getContractById(id);
+    }
+
+    @PutMapping("/{id}")
+    public ContractResponse updateContract(
+            @PathVariable String id,
+            @Valid @RequestBody ContractCreateRequest request) {
+        return contractService.updateContract(id, request);
+    }
+
     @PutMapping("/{id}/status")
     public ContractResponse updateContractStatus(
             @PathVariable String id,

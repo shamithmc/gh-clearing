@@ -10,6 +10,7 @@ import java.util.List;
 
 @Repository
 public interface RfpProposalRepository extends TenantScopedRepository<RfpProposal, String> {
+    Optional<RfpProposal> findByIdAndTenantId(String id, String tenantId);
     Optional<RfpProposal> findByRfpIdAndTenantId(String rfpId, String tenantId);
     boolean existsByRfpIdAndTenantId(String rfpId, String tenantId);
     @Query("""

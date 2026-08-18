@@ -9,7 +9,8 @@ import {
   RefreshCw,
   Globe,
   Layers,
-  Building2
+  Building2,
+  Pencil
 } from 'lucide-react';
 
 interface AirportOption {
@@ -55,6 +56,7 @@ const ServiceOfferings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editingOffering, setEditingOffering] = useState<ServiceOffering | null>(null);
   const [error, setError] = useState<string>();
 
   const loadOfferings = useCallback(async () => {
@@ -90,12 +92,33 @@ const ServiceOfferings: React.FC = () => {
     loadOfferings();
   }, [headers, loadOfferings]);
 
-  const createOffering = async () => {
+  const openCreateModal = () => {
+    setEditingOffering(null);
+    form.resetFields();
+    setOpen(true);
+  };
+
+  const openEditModal = (offering: ServiceOffering) => {
+    setEditingOffering(offering);
+    form.setFieldsValue({
+      airportCode: offering.airportCode,
+      serviceType: offering.serviceType,
+      description: offering.description,
+    });
+    setOpen(true);
+  };
+
+  const saveOffering = async () => {
     const values = await form.validateFields();
     setSaving(true);
     try {
-      const response = await fetch('/api/supplier/offerings', {
-        method: 'POST',
+      const url = editingOffering
+        ? `/api/supplier/offerings/${editingOffering.id}`
+        : '/api/supplier/offerings';
+      const method = editingOffering ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(values),
       });
@@ -103,14 +126,15 @@ const ServiceOfferings: React.FC = () => {
         const payload = await response.json().catch(() => ({}));
         throw new Error(response.status === 403
           ? 'The airport or service is outside your configured operating scope.'
-          : payload.message || 'The service offering could not be published.');
+          : payload.message || (editingOffering ? 'The service offering could not be updated.' : 'The service offering could not be published.'));
       }
-      message.success('Service offering published to the marketplace');
+      message.success(editingOffering ? 'Service offering updated successfully' : 'Service offering published to the marketplace');
       setOpen(false);
+      setEditingOffering(null);
       form.resetFields();
       await loadOfferings();
     } catch (requestError) {
-      message.error(requestError instanceof Error ? requestError.message : 'The service offering could not be published.');
+      message.error(requestError instanceof Error ? requestError.message : 'Failed to save service offering.');
     } finally {
       setSaving(false);
     }
@@ -176,14 +200,24 @@ const ServiceOfferings: React.FC = () => {
       key: 'action',
       align: 'right' as const,
       render: (_, offering) => (
-        <button
-          data-testid={`remove-offering-${offering.id}`}
-          onClick={() => removeOffering(offering)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium text-xs rounded-lg transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Remove
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            data-testid={`edit-offering-${offering.id}`}
+            onClick={() => openEditModal(offering)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </button>
+          <button
+            data-testid={`remove-offering-${offering.id}`}
+            onClick={() => removeOffering(offering)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Remove
+          </button>
+        </div>
       ),
     },
   ];
@@ -221,7 +255,7 @@ const ServiceOfferings: React.FC = () => {
           </button>
           <button
             data-testid="add-service-offering"
-            onClick={() => setOpen(true)}
+            onClick={openCreateModal}
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 py-2 h-9 shadow-xs focus:ring-2 focus:ring-blue-500/30 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -258,15 +292,16 @@ const ServiceOfferings: React.FC = () => {
         </Spin>
       </div>
 
-      {/* Publish Offering Modal */}
+      {/* Publish / Edit Offering Modal */}
       <Modal
-        title="Publish Service Offering"
+        title={editingOffering ? 'Edit Service Offering' : 'Publish Service Offering'}
         open={open}
-        okText="Publish Offering"
+        okText={editingOffering ? 'Save Changes' : 'Publish Offering'}
         confirmLoading={saving}
-        onOk={createOffering}
+        onOk={saveOffering}
         onCancel={() => {
           setOpen(false);
+          setEditingOffering(null);
           form.resetFields();
         }}
       >
