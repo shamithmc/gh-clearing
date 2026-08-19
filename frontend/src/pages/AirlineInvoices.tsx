@@ -15,7 +15,8 @@ import {
   RefreshCw, 
   Layers,
   Send,
-  Check
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 
 interface InvoiceLineItem {
@@ -42,6 +43,7 @@ interface Invoice {
   dueDate: string;
   status: 'SENT' | 'PAID' | 'DISPUTED';
   totalAmount: number;
+  comments?: string;
   lineItems: InvoiceLineItem[];
 }
 
@@ -395,6 +397,61 @@ const AirlineInvoices: React.FC = () => {
     },
   ];
 
+  const getInvoiceCommentsConfig = (status: string) => {
+    switch (status) {
+      case 'MODIFICATION_REQUESTED':
+        return {
+          title: 'Modification Request Feedback',
+          icon: <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-amber-50 border-amber-200/90 text-amber-900',
+          titleClass: 'text-amber-950',
+          textClass: 'text-amber-900',
+        };
+      case 'DISPUTED':
+        return {
+          title: 'Dispute & Audit Remarks',
+          icon: <Scale className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-rose-50 border-rose-200/90 text-rose-900',
+          titleClass: 'text-rose-950',
+          textClass: 'text-rose-900',
+        };
+      case 'APPROVED':
+        return {
+          title: 'Approval Remarks',
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-emerald-50/80 border-emerald-200/90 text-emerald-900',
+          titleClass: 'text-emerald-950',
+          textClass: 'text-emerald-900',
+        };
+      case 'SENT':
+        return {
+          title: 'Dispatch & Delivery Remarks',
+          icon: <Send className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-blue-50/80 border-blue-200/90 text-blue-900',
+          titleClass: 'text-blue-950',
+          textClass: 'text-blue-900',
+        };
+      case 'PAID':
+        return {
+          title: 'Payment & Settlement Remarks',
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-emerald-50/80 border-emerald-200/90 text-emerald-900',
+          titleClass: 'text-emerald-950',
+          textClass: 'text-emerald-900',
+        };
+      case 'DRAFT':
+      case 'FINALIZED':
+      default:
+        return {
+          title: 'Invoice Remarks & Notes',
+          icon: <FileText className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />,
+          containerClass: 'bg-slate-100/90 border-slate-200 text-slate-800',
+          titleClass: 'text-slate-900',
+          textClass: 'text-slate-700',
+        };
+    }
+  };
+
   const lineColumns: TableColumnsType<InvoiceLineItem> = [
     { 
       title: 'FLIGHT DATE', 
@@ -658,6 +715,18 @@ const AirlineInvoices: React.FC = () => {
             expandable={{
               expandedRowRender: invoice => (
                 <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 shadow-inner space-y-3">
+                  {invoice.comments && (() => {
+                    const config = getInvoiceCommentsConfig(invoice.status);
+                    return (
+                      <div className={`p-3 border rounded-lg flex items-start gap-2.5 text-xs shadow-2xs ${config.containerClass}`}>
+                        {config.icon}
+                        <div>
+                          <strong className={`font-semibold ${config.titleClass}`}>{config.title}:</strong>
+                          <p className={`mt-0.5 ${config.textClass}`}>{invoice.comments}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="flex items-center justify-between px-1 pb-1">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-slate-500" />

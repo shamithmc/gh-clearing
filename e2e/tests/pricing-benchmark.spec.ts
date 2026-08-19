@@ -150,6 +150,16 @@ test('airline sees its premium market position without competitor rates', async 
 
   await createDispatchedInvoice('DNATA', 'EK', 14);
 
+  await expect.poll(async () => {
+    const res = await page.request.get(
+      `/api/market-intelligence/pricing-benchmarks?airportCode=DXB&serviceType=BAGGAGE&aircraftType=${aircraftType}&operationType=INTERNATIONAL`,
+      { headers: airlineHeaders },
+    );
+    if (!res.ok()) return 0;
+    const body = await res.json();
+    return body.length;
+  }, { timeout: 15000 }).toBe(1);
+
   const response = await page.request.get(
     `/api/market-intelligence/pricing-benchmarks?airportCode=DXB&serviceType=BAGGAGE&aircraftType=${aircraftType}&operationType=INTERNATIONAL`,
     { headers: airlineHeaders },
@@ -184,7 +194,7 @@ test('airline sees its premium market position without competitor rates', async 
   const aircraftFilter = page.getByTestId('benchmark-aircraft-filter');
   await aircraftFilter.click();
   await aircraftFilter.getByRole('combobox').fill(aircraftType);
-  await aircraftFilter.getByRole('combobox').press('Enter');
+  await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: aircraftType }).first().click();
 
   const benchmarkTable = page.getByTestId('pricing-benchmark-table');
   const row = benchmarkTable.getByRole('row').filter({ hasText: aircraftType });
@@ -197,7 +207,6 @@ test('airline sees its premium market position without competitor rates', async 
 
   const positionFilter = page.getByTestId('benchmark-position-filter');
   await positionFilter.click();
-  await positionFilter.getByRole('combobox').fill('Top 25% — Premium');
-  await positionFilter.getByRole('combobox').press('Enter');
+  await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: 'Top 25% — Premium' }).first().click();
   await expect(row).toBeVisible();
 });

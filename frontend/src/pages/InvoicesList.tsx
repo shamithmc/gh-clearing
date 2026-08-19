@@ -575,6 +575,61 @@ const InvoicesList: React.FC = () => {
     }
   ];
 
+  const getInvoiceCommentsConfig = (status: string) => {
+    switch (status) {
+      case 'MODIFICATION_REQUESTED':
+        return {
+          title: 'Modification Request Feedback',
+          icon: <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-amber-50 border-amber-200/90 text-amber-900',
+          titleClass: 'text-amber-950',
+          textClass: 'text-amber-900',
+        };
+      case 'DISPUTED':
+        return {
+          title: 'Dispute & Audit Remarks',
+          icon: <Scale className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-rose-50 border-rose-200/90 text-rose-900',
+          titleClass: 'text-rose-950',
+          textClass: 'text-rose-900',
+        };
+      case 'APPROVED':
+        return {
+          title: 'Approval Remarks',
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-emerald-50/80 border-emerald-200/90 text-emerald-900',
+          titleClass: 'text-emerald-950',
+          textClass: 'text-emerald-900',
+        };
+      case 'SENT':
+        return {
+          title: 'Dispatch & Delivery Remarks',
+          icon: <Send className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-blue-50/80 border-blue-200/90 text-blue-900',
+          titleClass: 'text-blue-950',
+          textClass: 'text-blue-900',
+        };
+      case 'PAID':
+        return {
+          title: 'Payment & Settlement Remarks',
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />,
+          containerClass: 'bg-emerald-50/80 border-emerald-200/90 text-emerald-900',
+          titleClass: 'text-emerald-950',
+          textClass: 'text-emerald-900',
+        };
+      case 'DRAFT':
+      case 'FINALIZED':
+      default:
+        return {
+          title: 'Invoice Remarks & Notes',
+          icon: <FileText className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />,
+          containerClass: 'bg-slate-100/90 border-slate-200 text-slate-800',
+          titleClass: 'text-slate-900',
+          textClass: 'text-slate-700',
+        };
+    }
+  };
+
   const expandedRowRender = (record: Invoice) => {
     const itemColumns = [
       { 
@@ -629,24 +684,45 @@ const InvoicesList: React.FC = () => {
         render: (name: string) => <span className="text-xs font-medium text-slate-800">{name}</span>
       },
       { 
-        title: 'QUANTITY / DRIVERS', 
+        title: 'FORMULA TYPE', 
+        dataIndex: 'formulaType', 
+        key: 'formulaType',
+        render: (type: string) => (
+          <span className="font-mono text-xs font-bold text-slate-800 bg-slate-200/70 px-2 py-0.5 rounded">
+            {type}
+          </span>
+        )
+      },
+      { 
+        title: 'QUANTITY DRIVERS', 
         dataIndex: 'quantityDrivers', 
         key: 'quantityDrivers',
-        render: (qty: string) => <span className="font-mono text-xs text-slate-600">{qty}</span>
+        render: (qd: string) => {
+          try {
+            const parsed = typeof qd === 'string' ? JSON.parse(qd) : qd;
+            return (
+              <span className="font-mono text-xs text-slate-600 bg-white p-1 rounded border border-slate-200">
+                {Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(', ')}
+              </span>
+            );
+          } catch {
+            return <span className="font-mono text-xs text-slate-400">{qd}</span>;
+          }
+        }
       },
       { 
         title: 'AMOUNT', 
         dataIndex: 'calculatedAmount', 
         key: 'calculatedAmount',
         align: 'right' as const,
-        render: (amount: number) => (
-          <span className="font-mono text-xs font-bold text-slate-900 text-right">
-            {amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        render: (amt: number) => (
+          <span className="font-mono text-xs font-bold text-slate-900">
+            {record.currency} {amt.toFixed(2)}
           </span>
         )
       },
       {
-        title: 'AUDIT / DISPUTE STATE',
+        title: 'DISPUTE STATUS',
         key: 'disputeStatus',
         render: ((_: any, r: InvoiceLineItem) => r.disputed ? (
           <div className="flex flex-col gap-1">
@@ -670,15 +746,18 @@ const InvoicesList: React.FC = () => {
 
     return (
       <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 shadow-inner space-y-3">
-        {record.comments && (
-          <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-lg flex items-start gap-2.5 text-xs text-amber-900 shadow-2xs">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <strong className="font-semibold text-amber-950">Modification Request Feedback:</strong>
-              <p className="mt-0.5 text-amber-900">{record.comments}</p>
+        {record.comments && (() => {
+          const config = getInvoiceCommentsConfig(record.status);
+          return (
+            <div className={`p-3 border rounded-lg flex items-start gap-2.5 text-xs shadow-2xs ${config.containerClass}`}>
+              {config.icon}
+              <div>
+                <strong className={`font-semibold ${config.titleClass}`}>{config.title}:</strong>
+                <p className={`mt-0.5 ${config.textClass}`}>{record.comments}</p>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         <div className="flex items-center justify-between px-1 pb-1">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-slate-500" />
