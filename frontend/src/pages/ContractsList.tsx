@@ -364,6 +364,17 @@ const ContractsList: React.FC = () => {
 
     return (
       <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 shadow-inner space-y-3">
+        {record.status === 'REVIEW_REQUESTED' && (
+          <div className="p-3 bg-rose-50 border border-rose-200/90 rounded-lg flex items-start gap-2.5 text-xs text-rose-900 shadow-2xs">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <strong className="font-semibold text-rose-950">Carrier Review Requested:</strong>
+              <p className="mt-0.5 text-rose-900">
+                The airline carrier has submitted review feedback on this agreement. Please check the Contract Review Requests inbox or edit SLA parameters to address remarks.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2 px-1 pb-1">
           <Layers className="w-4 h-4 text-slate-500" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 m-0">
