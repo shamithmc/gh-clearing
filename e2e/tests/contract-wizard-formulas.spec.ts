@@ -5,7 +5,8 @@ async function selectAntdOption(page: Page, inputId: string, optionText: string,
   if (searchTerm) {
     await page.fill(`#${inputId}`, searchTerm);
   }
-  const option = page.locator(`.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-content:has-text("${optionText}"), .ant-select-item-option-content:has-text("${optionText}")`).first();
+  const dropdown = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)').last();
+  const option = dropdown.locator('.ant-select-item-option-content').filter({ hasText: optionText }).first();
   await option.waitFor({ state: 'visible', timeout: 10000 });
   await option.click({ force: true });
 }

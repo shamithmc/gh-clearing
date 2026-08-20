@@ -23,6 +23,7 @@ import { CompoundDriverEditor } from '../components/pricing/CompoundDriverEditor
 import { MtowEditor } from '../components/pricing/MtowEditor';
 import { FormulaReviewCard } from '../components/pricing/FormulaReviewCard';
 import type { ReferenceAirline, ReferenceAirport, ReferenceChargeCode } from '../components/pricing/types';
+import { getChargeCodeDefaults, STANDARD_QUANTITY_DRIVERS, STANDARD_UOMS } from '../components/pricing/types';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -289,21 +290,67 @@ const ContractWizard: React.FC = () => {
     }
   };
 
+  const handleChargeCodeChange = (chargeCode: string, fieldIndex: number) => {
+    const currentServices = form.getFieldValue('services') || [];
+    const currentService = currentServices[fieldIndex] || {};
+    const defaults = getChargeCodeDefaults(chargeCode);
+    const matchedCc = chargeCodes.find((c) => c.code === chargeCode);
+
+    const prevDefaults = currentService.chargeCode ? getChargeCodeDefaults(currentService.chargeCode) : null;
+    const isDefaultOrEmptyName =
+      !currentService.serviceName ||
+      (prevDefaults && currentService.serviceName === prevDefaults.suggestedName) ||
+      chargeCodes.some((c) => c.code === currentService.chargeCode && c.name === currentService.serviceName);
+
+    const newServiceName = isDefaultOrEmptyName
+      ? defaults.suggestedName || matchedCc?.name || chargeCode
+      : currentService.serviceName;
+
+    let newDriver = currentService.quantityDriver;
+    let newUom = currentService.uom;
+
+    if (currentService.formulaType === 'PF-07') {
+      newDriver = 'mtow_tonnes';
+      newUom = 'TONNE';
+    } else if (currentService.formulaType === 'PF-02') {
+      const compDrivers = currentService.compoundDrivers?.length ? currentService.compoundDrivers : ['passengers', 'bags'];
+      newDriver = compDrivers.join(',');
+      newUom = currentService.uom || defaults.defaultUom || 'PAX';
+    } else {
+      newDriver = defaults.defaultDriver;
+      newUom = defaults.defaultUom;
+    }
+
+    currentServices[fieldIndex] = {
+      ...currentService,
+      chargeCode,
+      serviceName: newServiceName,
+      quantityDriver: newDriver,
+      uom: newUom,
+    };
+
+    form.setFieldsValue({ services: currentServices });
+  };
+
   const handleFormulaChange = (formulaType: string, fieldIndex: number) => {
     const currentServices = form.getFieldValue('services') || [];
     const currentService = currentServices[fieldIndex] || {};
+    const defaults = getChargeCodeDefaults(currentService.chargeCode);
 
     let updatedService = { ...currentService, formulaType };
 
     if (formulaType === 'PF-01') {
       updatedService = {
         ...updatedService,
-        quantityDriver: updatedService.quantityDriver || 'passengers',
-        uom: updatedService.uom || 'PAX',
+        quantityDriver: updatedService.quantityDriver || defaults.defaultDriver || 'passengers',
+        uom: updatedService.uom || defaults.defaultUom || 'PAX',
         rate: updatedService.rate || '12.50',
       };
     } else if (formulaType === 'PF-02') {
-      const defaultDrivers = ['passengers', 'bags'];
+      const defaultDrivers =
+        updatedService.compoundDrivers && updatedService.compoundDrivers.length >= 2
+          ? updatedService.compoundDrivers
+          : ['passengers', 'bags'];
       updatedService = {
         ...updatedService,
         compoundDrivers: defaultDrivers,
@@ -314,8 +361,8 @@ const ContractWizard: React.FC = () => {
     } else if (formulaType === 'PF-03' || formulaType === 'PF-04') {
       updatedService = {
         ...updatedService,
-        quantityDriver: updatedService.quantityDriver || 'passengers',
-        uom: updatedService.uom || 'PAX',
+        quantityDriver: updatedService.quantityDriver || defaults.defaultDriver || 'passengers',
+        uom: updatedService.uom || defaults.defaultUom || 'PAX',
         tiers:
           updatedService.tiers && updatedService.tiers.length > 0
             ? updatedService.tiers
@@ -328,8 +375,8 @@ const ContractWizard: React.FC = () => {
     } else if (formulaType === 'PF-05') {
       updatedService = {
         ...updatedService,
-        quantityDriver: updatedService.quantityDriver || 'flight_turnarounds',
-        uom: updatedService.uom || 'FLIGHT',
+        quantityDriver: updatedService.quantityDriver || defaults.defaultDriver || 'aircraft_movements',
+        uom: updatedService.uom || defaults.defaultUom || 'FLT',
         timeBands:
           updatedService.timeBands && updatedService.timeBands.length > 0
             ? updatedService.timeBands
@@ -341,8 +388,8 @@ const ContractWizard: React.FC = () => {
     } else if (formulaType === 'PF-06') {
       updatedService = {
         ...updatedService,
-        quantityDriver: updatedService.quantityDriver || 'flight_turnarounds',
-        uom: updatedService.uom || 'FLIGHT',
+        quantityDriver: updatedService.quantityDriver || defaults.defaultDriver || 'aircraft_movements',
+        uom: updatedService.uom || defaults.defaultUom || 'FLT',
         dayRates: updatedService.dayRates || {
           MONDAY: 50.0,
           TUESDAY: 50.0,
@@ -356,7 +403,7 @@ const ContractWizard: React.FC = () => {
     } else if (formulaType === 'PF-07') {
       updatedService = {
         ...updatedService,
-        quantityDriver: 'mtow',
+        quantityDriver: 'mtow_tonnes',
         uom: 'TONNE',
         rate: updatedService.rate || '4.75',
       };
@@ -380,19 +427,21 @@ const ContractWizard: React.FC = () => {
           : '',
       currency: values.currency,
       services: (values.services || []).map((s: any) => {
-        let qDriver = s.quantityDriver;
+        let qDriver = Array.isArray(s.quantityDriver) ? s.quantityDriver[s.quantityDriver.length - 1] : s.quantityDriver;
         if (s.formulaType === 'PF-02' && s.compoundDrivers && s.compoundDrivers.length > 0) {
           qDriver = s.compoundDrivers.join(',');
         } else if (s.formulaType === 'PF-07') {
-          qDriver = 'mtow';
+          qDriver = qDriver || 'mtow_tonnes';
         }
+
+        let uomVal = Array.isArray(s.uom) ? s.uom[s.uom.length - 1] : s.uom;
 
         return {
           chargeCode: s.chargeCode,
           serviceName: s.serviceName,
           formulaType: s.formulaType,
           quantityDriver: qDriver || 'units',
-          uom: s.uom || 'UNIT',
+          uom: uomVal || 'UNIT',
           taxCode: s.taxCode || 'VAT-0',
           billingFrequency: s.expectedAmount ? s.billingFrequency : undefined,
           rateDetails: buildRateDetails(s),
@@ -598,6 +647,7 @@ const ContractWizard: React.FC = () => {
                               virtual={false}
                               optionFilterProp="label"
                               placeholder="Select Code"
+                              onChange={(val: string) => handleChargeCodeChange(val, name)}
                               className="[&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
                             >
                               {chargeCodes.map((cc) => (
@@ -654,11 +704,49 @@ const ContractWizard: React.FC = () => {
                             name={[name, 'quantityDriver']}
                             label={<span className="text-xs font-medium text-slate-700">Quantity Driver</span>}
                             rules={[{ required: selectedFormula !== 'PF-02', message: 'Driver required' }]}
+                            getValueProps={(val) => ({ value: val ? (Array.isArray(val) ? val : [val]) : undefined })}
+                            normalize={(val) => (Array.isArray(val) ? val[val.length - 1] ?? '' : val ?? '')}
                           >
-                            <Input
+                            <Select
                               id={`services_${name}_quantityDriver`}
+                              showSearch
+                              allowClear
+                              mode="tags"
+                              maxCount={1}
+                              virtual={false}
                               placeholder="e.g. passengers"
-                              className="!text-xs !rounded-lg"
+                              className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+                              options={STANDARD_QUANTITY_DRIVERS}
+                              onSearch={(val: string) => {
+                                if (val) {
+                                  const currentServices = form.getFieldValue('services') || [];
+                                  if (currentServices[name]) {
+                                    currentServices[name].quantityDriver = val;
+                                    form.setFieldsValue({ services: currentServices });
+                                  }
+                                }
+                              }}
+                              onSelect={(val: string) => {
+                                const currentServices = form.getFieldValue('services') || [];
+                                if (currentServices[name]) {
+                                  currentServices[name].quantityDriver = val;
+                                  form.setFieldsValue({ services: currentServices });
+                                }
+                              }}
+                              onBlur={(e: any) => {
+                                const targetVal = e?.target?.value;
+                                if (targetVal) {
+                                  const currentServices = form.getFieldValue('services') || [];
+                                  if (currentServices[name]) {
+                                    currentServices[name].quantityDriver = targetVal;
+                                    form.setFieldsValue({ services: currentServices });
+                                  }
+                                }
+                              }}
+                              filterOption={(input, option) =>
+                                (option?.value ?? '').toLowerCase().includes(input.toLowerCase()) ||
+                                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                              }
                             />
                           </Form.Item>
 
@@ -667,11 +755,49 @@ const ContractWizard: React.FC = () => {
                             name={[name, 'uom']}
                             label={<span className="text-xs font-medium text-slate-700">UoM (Unit of Measure)</span>}
                             rules={[{ required: true, message: 'UoM required' }]}
+                            getValueProps={(val) => ({ value: val ? (Array.isArray(val) ? val : [val]) : undefined })}
+                            normalize={(val) => (Array.isArray(val) ? val[val.length - 1] ?? '' : val ?? '')}
                           >
-                            <Input
+                            <Select
                               id={`services_${name}_uom`}
+                              showSearch
+                              allowClear
+                              mode="tags"
+                              maxCount={1}
+                              virtual={false}
                               placeholder="e.g. PAX"
-                              className="!text-xs !rounded-lg"
+                              className="w-full [&_.ant-select-selector]:!text-xs [&_.ant-select-selector]:!rounded-lg"
+                              options={STANDARD_UOMS}
+                              onSearch={(val: string) => {
+                                if (val) {
+                                  const currentServices = form.getFieldValue('services') || [];
+                                  if (currentServices[name]) {
+                                    currentServices[name].uom = val;
+                                    form.setFieldsValue({ services: currentServices });
+                                  }
+                                }
+                              }}
+                              onSelect={(val: string) => {
+                                const currentServices = form.getFieldValue('services') || [];
+                                if (currentServices[name]) {
+                                  currentServices[name].uom = val;
+                                  form.setFieldsValue({ services: currentServices });
+                                }
+                              }}
+                              onBlur={(e: any) => {
+                                const targetVal = e?.target?.value;
+                                if (targetVal) {
+                                  const currentServices = form.getFieldValue('services') || [];
+                                  if (currentServices[name]) {
+                                    currentServices[name].uom = targetVal;
+                                    form.setFieldsValue({ services: currentServices });
+                                  }
+                                }
+                              }}
+                              filterOption={(input, option) =>
+                                (option?.value ?? '').toLowerCase().includes(input.toLowerCase()) ||
+                                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                              }
                             />
                           </Form.Item>
 

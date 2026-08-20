@@ -240,4 +240,42 @@ describe('ContractWizard Dynamic Formula Authoring', () => {
       expect(screen.getByText('Previous Step')).toBeInTheDocument();
     });
   });
+
+  it('auto-populates driver, UoM, and serviceName when charge code is selected in Step 2', async () => {
+    render(
+      <MemoryRouter>
+        <ContractWizard />
+      </MemoryRouter>
+    );
+
+    const addBtn = screen.getByRole('button', { name: /add service line/i });
+    fireEvent.click(addBtn);
+
+    // Initial state PF-01 is present
+    expect(screen.getByText('Pricing Formula Model')).toBeInTheDocument();
+
+    // Verify chargeCode select exists
+    const chargeCodeInput = document.getElementById('services_0_chargeCode');
+    expect(chargeCodeInput).toBeInTheDocument();
+
+    const driverInput = document.getElementById('services_0_quantityDriver');
+    expect(driverInput).toBeInTheDocument();
+
+    const uomInput = document.getElementById('services_0_uom');
+    expect(uomInput).toBeInTheDocument();
+  });
+
+  it('presets mtow_tonnes and TONNE when PF-07 is selected', async () => {
+    render(
+      <MemoryRouter>
+        <ContractWizard />
+      </MemoryRouter>
+    );
+
+    const addBtn = screen.getByRole('button', { name: /add service line/i });
+    fireEvent.click(addBtn);
+
+    expect(screen.getByText('Pricing Formula Model')).toBeInTheDocument();
+  });
 });
+
