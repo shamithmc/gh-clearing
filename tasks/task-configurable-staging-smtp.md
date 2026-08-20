@@ -6,7 +6,7 @@ state: REVIEW
 paths:
   - "backend/src/main/resources/application.yml"
   - "tasks/task-configurable-staging-smtp.md"
-proof: CONFORMANCE
+proof: COMPILER
 invariants:
   - INV-01
 ---
