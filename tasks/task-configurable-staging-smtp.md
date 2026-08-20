@@ -5,7 +5,7 @@ owner: Shamith
 state: REVIEW
 paths:
   - "backend/src/main/resources/application.yml"
-  - "tasks/task-fix-configurable-staging-smtp.md"
+  - "tasks/task-configurable-staging-smtp.md"
 proof: CONFORMANCE
 invariants:
   - INV-09
