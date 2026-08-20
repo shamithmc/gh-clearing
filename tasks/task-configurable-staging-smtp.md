@@ -8,7 +8,7 @@ paths:
   - "tasks/task-configurable-staging-smtp.md"
 proof: CONFORMANCE
 invariants:
-  - INV-09
+  - INV-01
 ---
 
 ## Scope
