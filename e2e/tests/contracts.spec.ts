@@ -1,4 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+async function selectOption(page: Page, triggerSelector: string, text: string) {
+  await page.click(triggerSelector);
+  const dropdown = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)').last();
+  const option = dropdown.locator('.ant-select-item-option').filter({ hasText: text }).first();
+  await option.waitFor({ state: 'visible', timeout: 10000 });
+  await option.scrollIntoViewIfNeeded();
+  await option.click();
+}
 
 test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
   test.beforeEach(async ({ page, request }) => {
@@ -33,15 +42,14 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     // 2. Click "Create Contract" button
     await page.click('button:has-text("Create Contract")');
     await expect(page).toHaveURL(/\/contracts\/new/);
+    await expect(page.locator('text=Create Ground Handling Agreement')).toBeVisible();
 
     // 3. Step 1: Fill Header Details
     // Select Airline
-    await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
+    await selectOption(page, '#airlineId', 'Emirates (EK)');
 
     // Select Airport (Using FRA to avoid collision with DXB invoices test)
-    await page.click('#airportCode');
-    await page.click('.ant-select-item-option-content:has-text("FRA - Frankfurt")');
+    await selectOption(page, '#airportCode', 'FRA - Frankfurt');
 
     // Enter Validity Period
     await page.click('input[placeholder="Start date"]');
@@ -55,25 +63,23 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.keyboard.press('Enter');
 
     // Select Currency
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("USD")');
+    await selectOption(page, '#currency', 'USD');
 
     // Click "Next"
     await page.click('button:has-text("Next")');
+    await expect(page.locator('button:has-text("Add Service Line")')).toBeVisible();
 
     // 4. Step 2: Service Lines
     await page.click('button:has-text("Add Service Line")');
 
     // Select Charge Code
-    await page.click('#services_0_chargeCode');
-    await page.click('.ant-select-item-option-content:has-text("PASSENGER_HANDLING")');
+    await selectOption(page, '#services_0_chargeCode', 'PASSENGER_HANDLING');
 
     // Service Name
     await page.fill('#services_0_serviceName', 'E2E Passenger Handling Service');
 
     // Formula Type
-    await page.click('#services_0_formulaType');
-    await page.click('.ant-select-item-option-content:has-text("PF-01 (Unit Rate)")');
+    await selectOption(page, '#services_0_formulaType', 'PF-01 (Unit Rate)');
 
     // Quantity Driver
     await page.fill('#services_0_quantityDriver', 'passengers');
@@ -133,13 +139,11 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.click('text=Contracts');
     await page.click('button:has-text("Create Contract")');
     await expect(page).toHaveURL(/\/contracts\/new/);
+    await expect(page.locator('text=Create Ground Handling Agreement')).toBeVisible();
 
     // Step 1: Header Details
-    await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
-
-    await page.click('#airportCode');
-    await page.click('.ant-select-item-option-content:has-text("FRA - Frankfurt")');
+    await selectOption(page, '#airlineId', 'Emirates (EK)');
+    await selectOption(page, '#airportCode', 'FRA - Frankfurt');
 
     await page.click('input[placeholder="Start date"]');
     await page.keyboard.press('Control+A');
@@ -151,21 +155,19 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.keyboard.insertText('2026-11-30');
     await page.keyboard.press('Enter');
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("AED")');
+    await selectOption(page, '#currency', 'AED');
 
     await page.click('button:has-text("Next")');
+    await expect(page.locator('button:has-text("Add Service Line")')).toBeVisible();
 
     // Step 2: Service Lines — PF-03 (Tiered Volume)
     await page.click('button:has-text("Add Service Line")');
 
-    await page.click('#services_0_chargeCode');
-    await page.click('.ant-select-item-option-content:has-text("BAGGAGE")');
+    await selectOption(page, '#services_0_chargeCode', 'BAGGAGE');
 
     await page.fill('#services_0_serviceName', 'E2E Baggage Handling - Tiered');
 
-    await page.click('#services_0_formulaType');
-    await page.click('.ant-select-item-option-content:has-text("PF-03 (Tiered Volume)")');
+    await selectOption(page, '#services_0_formulaType', 'PF-03 (Tiered Volume)');
 
     await page.fill('#services_0_quantityDriver', 'bags');
     await page.fill('#services_0_uom', 'BAG');
@@ -191,13 +193,11 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.click('text=Contracts');
     await page.click('button:has-text("Create Contract")');
     await expect(page).toHaveURL(/\/contracts\/new/);
+    await expect(page.locator('text=Create Ground Handling Agreement')).toBeVisible();
 
     // Step 1: Header Details
-    await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
-
-    await page.click('#airportCode');
-    await page.click('.ant-select-item-option-content:has-text("DXB - Dubai")');
+    await selectOption(page, '#airlineId', 'Emirates (EK)');
+    await selectOption(page, '#airportCode', 'DXB - Dubai');
 
     await page.click('input[placeholder="Start date"]');
     await page.keyboard.press('Control+A');
@@ -209,21 +209,19 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.keyboard.insertText('2027-05-31');
     await page.keyboard.press('Enter');
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("AED")');
+    await selectOption(page, '#currency', 'AED');
 
     await page.click('button:has-text("Next")');
+    await expect(page.locator('button:has-text("Add Service Line")')).toBeVisible();
 
     // Step 2: Service Lines — PF-05 (Time Band Rate)
     await page.click('button:has-text("Add Service Line")');
 
-    await page.click('#services_0_chargeCode');
-    await page.click('.ant-select-item-option-content:has-text("DEICING")');
+    await selectOption(page, '#services_0_chargeCode', 'DEICING');
 
     await page.fill('#services_0_serviceName', 'E2E De-icing - Time Based');
 
-    await page.click('#services_0_formulaType');
-    await page.click('.ant-select-item-option-content:has-text("PF-05 (Time Band Rate)")');
+    await selectOption(page, '#services_0_formulaType', 'PF-05 (Time Band Rate)');
 
     await page.fill('#services_0_quantityDriver', 'hours');
     await page.fill('#services_0_uom', 'HR');
@@ -249,13 +247,11 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.click('text=Contracts');
     await page.click('button:has-text("Create Contract")');
     await expect(page).toHaveURL(/\/contracts\/new/);
+    await expect(page.locator('text=Create Ground Handling Agreement')).toBeVisible();
 
     // Step 1: Header Details
-    await page.click('#airlineId');
-    await page.click('.ant-select-item-option-content:has-text("Emirates (EK)")');
-
-    await page.click('#airportCode');
-    await page.click('.ant-select-item-option-content:has-text("DXB - Dubai")');
+    await selectOption(page, '#airlineId', 'Emirates (EK)');
+    await selectOption(page, '#airportCode', 'DXB - Dubai');
 
     await page.click('input[placeholder="Start date"]');
     await page.keyboard.press('Control+A');
@@ -267,21 +263,19 @@ test.describe('Contract Entry Wizard and Lifecycle E2E', () => {
     await page.keyboard.insertText('2027-03-31');
     await page.keyboard.press('Enter');
 
-    await page.click('#currency');
-    await page.click('.ant-select-item-option-content:has-text("USD")');
+    await selectOption(page, '#currency', 'USD');
 
     await page.click('button:has-text("Next")');
+    await expect(page.locator('button:has-text("Add Service Line")')).toBeVisible();
 
     // Step 2: Service Lines — PF-07 (Custom Formula / MTOW Weight-Based)
     await page.click('button:has-text("Add Service Line")');
 
-    await page.click('#services_0_chargeCode');
-    await page.click('.ant-select-item-option-content:has-text("PASSENGER_HANDLING")');
+    await selectOption(page, '#services_0_chargeCode', 'PASSENGER_HANDLING');
 
     await page.fill('#services_0_serviceName', 'E2E MTOW Weight-Based Handling');
 
-    await page.click('#services_0_formulaType');
-    await page.click('.ant-select-item-option-content:has-text("PF-07 (Custom Formula)")');
+    await selectOption(page, '#services_0_formulaType', 'PF-07 (Custom Formula)');
 
     await page.fill('#services_0_quantityDriver', 'mtow_tonnes');
     await page.fill('#services_0_uom', 'TON');
