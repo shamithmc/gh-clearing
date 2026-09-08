@@ -5,6 +5,8 @@ owner: Shamith
 state: REVIEW
 paths:
   - "backend/src/main/resources/application.yml"
+  - "backend/src/main/resources/application-staging.yml"
+  - "backend/src/main/resources/deploy/render.yaml"
   - "tasks/task-configurable-staging-smtp.md"
 proof: UNIT
 invariants:

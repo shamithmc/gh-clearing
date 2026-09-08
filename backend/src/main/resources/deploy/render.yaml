@@ -28,33 +28,23 @@ projects:
                 value: api.workos.com
               - key: WORKOS_FRONTEND_ENABLED
                 value: "true"
+              # External Staging Database (Neon PostgreSQL 16)
+              # Topology metadata: name: gh-clearing-staging-db, postgresMajorVersion: "16"
               - key: DB_HOST
-                fromDatabase:
-                  name: gh-clearing-staging-db
-                  property: host
+                sync: false
               - key: DB_PORT
                 value: "5432"
               - key: DB_NAME
-                fromDatabase:
-                  name: gh-clearing-staging-db
-                  property: database
+                sync: false
               - key: DB_USER
-                fromDatabase:
-                  name: gh-clearing-staging-db
-                  property: user
+                sync: false
               - key: DB_PASSWORD
-                fromDatabase:
-                  name: gh-clearing-staging-db
-                  property: password
+                sync: false
+              - key: DB_SSLMODE
+                value: "require"
+              - key: SPRING_DATASOURCE_URL
+                sync: false
               - key: NOTIFICATIONS_ENABLED
                 value: "false"
               - key: APP_MAIL_DISPATCH_ENABLED
                 value: "false"
-        databases:
-          - name: gh-clearing-staging-db
-            plan: free
-            region: singapore
-            postgresMajorVersion: "16"
-            databaseName: gh_clearing
-            user: gh_clearing
-            ipAllowList: []
