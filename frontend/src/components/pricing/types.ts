@@ -54,3 +54,6 @@ export interface ReferenceChargeCode {
   category?: string;
   description?: string;
 }
+
+export * from './taxonomy';
+

@@ -23,7 +23,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'mvn -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=e2e "-Dspring-boot.run.arguments=--app.mail.dispatch-enabled=false --app.mail.simulate-delivery=true"',
+    command: `${process.platform === 'win32' ? 'mvn.cmd' : 'mvn'} -f ../backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=e2e "-Dspring-boot.run.arguments=--app.mail.dispatch-enabled=false --app.mail.simulate-delivery=true"`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

@@ -2,20 +2,12 @@ import React from 'react';
 import { Form, Input, Select } from 'antd';
 import { Network, Sparkles } from 'lucide-react';
 import type { FormInstance } from 'antd';
+import { STANDARD_QUANTITY_DRIVERS } from './types';
 
 interface CompoundDriverEditorProps {
   fieldIndex: number;
   form: FormInstance;
 }
-
-const COMMON_DRIVERS = [
-  { value: 'passengers', label: 'passengers (PAX)' },
-  { value: 'bags', label: 'bags (Baggage Units)' },
-  { value: 'cargo_kg', label: 'cargo_kg (Cargo Kilograms)' },
-  { value: 'uld_count', label: 'uld_count (Unit Load Devices)' },
-  { value: 'aircraft_movements', label: 'aircraft_movements (Turnarounds)' },
-  { value: 'containers', label: 'containers (Cargo Containers)' },
-];
 
 export const CompoundDriverEditor: React.FC<CompoundDriverEditorProps> = ({ fieldIndex, form }) => {
   const applyPreset = (drivers: string[]) => {
@@ -88,7 +80,7 @@ export const CompoundDriverEditor: React.FC<CompoundDriverEditorProps> = ({ fiel
               id={`services_${fieldIndex}_compoundDrivers`}
               mode="tags"
               placeholder="Select or type quantity driver keys"
-              options={COMMON_DRIVERS}
+              options={STANDARD_QUANTITY_DRIVERS}
               onChange={(values: string[]) => {
                 const currentServices = form.getFieldValue('services') || [];
                 if (currentServices[fieldIndex]) {
