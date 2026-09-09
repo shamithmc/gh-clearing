@@ -9,6 +9,11 @@ app:
       api-hostname: ${WORKOS_API_HOSTNAME:api.workos.com}
 
 spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:gh_clearing}?sslmode=${DB_SSLMODE:require}}
+    username: ${DB_USER:${SPRING_DATASOURCE_USERNAME:postgres}}
+    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:postgres}}
+    driver-class-name: org.postgresql.Driver
   flyway:
     # Business demo data is deliberately isolated from production migrations.
     locations:
